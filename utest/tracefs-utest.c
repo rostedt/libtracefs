@@ -40,6 +40,7 @@
 #define ALL_TRACERS	"available_tracers"
 #define CUR_TRACER	"current_tracer"
 #define PER_CPU		"per_cpu"
+#define SYNTH_EVENTS	"synthetic_events"
 #define TRACE_ON	"tracing_on"
 #define TRACE_CLOCK	"trace_clock"
 
@@ -2755,6 +2756,85 @@ static void test_multi_probes(void)
 	test_multi_probes_instance(test_instance);
 }
 
+static void test_trace_file_read(struct tracefs_instance *instance)
+{
+	test_instance_file_read(NULL, ALL_TRACERS);
+	test_instance_file_read(instance, ALL_TRACERS);
+}
+
+static void test_trace_file_write(struct tracefs_instance *instance)
+{
+	char *tracer;
+	char *file1;
+	char *file2;
+	int size;
+	int ret;
+
+	file1 = tracefs_instance_file_read(instance, ALL_TRACERS, NULL);
+	CU_TEST(file1 != NULL);
+	tracer = strtok(file1, " ");
+	CU_TEST(tracer != NULL);
+	ret = tracefs_instance_file_write(instance, CUR_TRACER, tracer);
+	CU_TEST(ret == strlen(tracer));
+	file2 = tracefs_instance_file_read(instance, CUR_TRACER, &size);
+	CU_TEST(file2 != NULL);
+	CU_TEST(size >= strlen(tracer));
+	CU_TEST(strncmp(file2, tracer, strlen(tracer)) == 0);
+	free(file1);
+	free(file2);
+}
+
+static bool check_file_line(struct tracefs_instance *instance,
+			    char *fname, char *line, bool last)
+{
+	bool found = false;
+	char *buf = NULL;
+	char *l;
+	int n;
+
+	buf = tracefs_instance_file_read(instance, fname, &n);
+	if (!buf)
+		return 0;
+	l = strtok(buf, "\n");
+	while (l) {
+		if (strncmp(l, line, strlen(line)) == 0) {
+			if (last) {
+				if (strtok(NULL, "\n") == NULL)
+					found = true;
+			} else
+				found = true;
+			break;
+		}
+		l = strtok(NULL, "\n");
+	}
+	free(buf);
+	return found;
+}
+
+static void test_trace_file_append(struct tracefs_instance *instance)
+{
+	char *sevent1 = "first	u64 start; u64 end; pid_t pid; u64 delta";
+	char *sevent2 = "second	u64 start; u64 end; pid_t pid; u64 delta";
+	char buf[256];
+	int ret;
+
+	if (!tracefs_file_exists(NULL, SYNTH_EVENTS))
+		return;
+
+	CU_TEST(!check_file_line(NULL, SYNTH_EVENTS, sevent1, false));
+	ret = tracefs_instance_file_append(NULL, SYNTH_EVENTS, sevent1);
+	CU_TEST(ret == strlen(sevent1));
+	CU_TEST(check_file_line(NULL, SYNTH_EVENTS, sevent1, true));
+	ret = tracefs_instance_file_append(NULL, SYNTH_EVENTS, sevent2);
+	CU_TEST(ret == strlen(sevent2));
+	CU_TEST(check_file_line(NULL, SYNTH_EVENTS, sevent1, false));
+	CU_TEST(check_file_line(NULL, SYNTH_EVENTS, sevent2, true));
+	snprintf(buf, 256, "!%s", sevent1);
+	tracefs_instance_file_write(NULL, SYNTH_EVENTS, buf);
+	snprintf(buf, 256, "!%s", sevent2);
+	tracefs_instance_file_write(NULL, SYNTH_EVENTS, buf);
+}
+
 static void test_instance_file(void)
 {
 	struct tracefs_instance *instance = NULL;
@@ -2765,12 +2845,7 @@ static void test_instance_file(void)
 	char *inst_file;
 	char *inst_dir;
 	struct stat st;
-	char *file1;
-	char *file2;
-	char *tracer;
 	char *fname;
-	int size;
-	int ret;
 
 	tdir  = tracefs_tracing_dir();
 	CU_TEST(tdir != NULL);
@@ -2816,25 +2891,12 @@ static void test_instance_file(void)
 	inst_file = tracefs_instance_get_file(instance, ALL_TRACERS);
 	CU_TEST(inst_file != NULL);
 	CU_TEST(strcmp(fname, inst_file) == 0);
-
-	test_instance_file_read(NULL, ALL_TRACERS);
-	test_instance_file_read(instance, ALL_TRACERS);
-
-	file1 = tracefs_instance_file_read(instance, ALL_TRACERS, NULL);
-	CU_TEST(file1 != NULL);
-	tracer = strtok(file1, " ");
-	CU_TEST(tracer != NULL);
-	ret = tracefs_instance_file_write(instance, CUR_TRACER, tracer);
-	CU_TEST(ret == strlen(tracer));
-	file2 = tracefs_instance_file_read(instance, CUR_TRACER, &size);
-	CU_TEST(file2 != NULL);
-	CU_TEST(size >= strlen(tracer));
-	CU_TEST(strncmp(file2, tracer, strlen(tracer)) == 0);
-	free(file1);
-	free(file2);
-
 	tracefs_put_tracing_file(inst_file);
 	free(fname);
+
+	test_trace_file_read(instance);
+	test_trace_file_write(instance);
+	test_trace_file_append(instance);
 
 	CU_TEST(tracefs_file_exists(NULL, (char *)name) == false);
 	CU_TEST(tracefs_dir_exists(NULL, (char *)name) == false);
