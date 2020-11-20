@@ -14,7 +14,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "kbuffer.h"
+#include <traceevent/kbuffer.h>
+
 #include "tracefs.h"
 #include "tracefs-local.h"
 
