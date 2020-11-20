@@ -184,7 +184,7 @@ cscope: force
 
 install_libs: libs
 	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)/tracefs)
-	$(Q)$(call do_install,$(src)/include/tracefs/tracefs.h,$(includedir_SQ)/tracefs)
+	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ)/tracefs)
 	$(Q)$(call do_install_ld,$(TRACE_LD_FILE),$(LD_SO_CONF_DIR),$(libdir_SQ)/tracefs)
 
 install: install_libs
