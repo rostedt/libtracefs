@@ -107,6 +107,7 @@ srctree		:= $(if $(BUILD_SRC),$(BUILD_SRC),$(CURDIR))
 objtree		:= $(BUILD_OUTPUT)
 src		:= $(srctree)
 obj		:= $(objtree)
+bdir		:= $(obj)/lib/tracefs
 
 export prefix bindir src obj
 
@@ -114,7 +115,7 @@ LIBS = -ldl
 
 LIBTRACEFS_DIR = $(obj)/lib/tracefs
 LIBTRACEFS_STATIC = $(LIBTRACEFS_DIR)/libtracefs.a
-LIBTRACEFS_SHARED = $(LIBTRACEFS_DIR)/libtracefs.so
+LIBTRACEFS_SHARED = $(LIBTRACEFS_DIR)/libtracefs.so.$(TRACEFS_VERSION)
 
 TRACE_LIBS = -L$(LIBTRACEFS_DIR) -ltracefs
 
@@ -150,14 +151,18 @@ override CFLAGS += $(INCLUDES)
 
 all: all_cmd
 
-CMD_TARGETS = libs
+LIB_TARGET  = libtracefs.a libtracefs.so.$(TRACEFS_VERSION)
+LIB_INSTALL = libtracefs.a libtracefs.so*
+LIB_INSTALL := $(addprefix $(bdir)/,$(LIB_INSTALL))
 
-all_cmd: $(CMD_TARGETS)
+TARGETS = $(LIBTRACEFS_SHARED) $(LIBTRACEFS_STATIC)
+
+all_cmd: $(TARGETS)
 
 libtracefs.a: $(LIBTRACEFS_STATIC)
 libtracefs.so: $(LIBTRACEFS_SHARED)
 
-libs: $(LIBTRACEFS_SHARED)
+libs:
 
 test: force $(LIBTRACEFS_STATIC)
 ifneq ($(CUNIT_INSTALLED),1)
@@ -183,7 +188,8 @@ cscope: force
 	$(call find_tag_files) | cscope -b -q
 
 install_libs: libs
-	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)/tracefs)
+	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)/tracefs); \
+		cp -fpR $(LIB_INSTALL) $(DESTDIR)$(libdir_SQ)/tracefs
 	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ)/tracefs)
 	$(Q)$(call do_install_ld,$(TRACE_LD_FILE),$(LD_SO_CONF_DIR),$(libdir_SQ)/tracefs)
 
@@ -212,8 +218,6 @@ force:
 # information in a variable so we can use it in if_changed and friends.
 .PHONY: $(PHONY)
 
-bdir:=$(obj)/lib/tracefs
-
 DEFAULT_TARGET = $(bdir)/libtracefs.a
 
 OBJS =
@@ -237,8 +241,10 @@ LIBS = -L$(obj)/lib/traceevent -ltraceevent
 $(bdir)/libtracefs.a: $(OBJS)
 	$(Q)$(call do_build_static_lib)
 
-$(bdir)/libtracefs.so: $(OBJS)
+$(bdir)/libtracefs.so.$(TRACEFS_VERSION): $(OBJS)
 	$(Q)$(call do_compile_shared_library)
+	@ln -sf $(@F) $(bdir)/libtracefs.so
+	@ln -sf $(@F) $(bdir)/libtracefs.so.$(TFS_VERSION)
 
 $(bdir)/%.o: %.c
 	$(Q)$(call do_fpic_compile)
@@ -255,6 +261,6 @@ ifneq ($(dep_includes),)
 endif
 
 clean:
-	$(RM) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.o $(bdir)/.*.d
+	$(RM) $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.o $(bdir)/.*.d
 
 .PHONY: clean
