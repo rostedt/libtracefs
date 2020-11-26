@@ -39,14 +39,22 @@ INSTALL = install
 DESTDIR ?=
 DESTDIR_SQ = '$(subst ','\'',$(DESTDIR))'
 
+LP64 := $(shell echo __LP64__ | ${CC} ${CFLAGS} -E -x c - | tail -n 1)
+ifeq ($(LP64), 1)
+  libdir_relative_temp = lib64
+else
+  libdir_relative_temp = lib
+endif
+
+libdir_relative ?= $(libdir_relative_temp)
 prefix ?= /usr/local
 bindir_relative = bin
 bindir = $(prefix)/$(bindir_relative)
 man_dir = $(prefix)/share/man
 man_dir_SQ = '$(subst ','\'',$(man_dir))'
-libdir ?= $(prefix)/lib
+libdir = $(prefix)/$(libdir_relative)
 libdir_SQ = '$(subst ','\'',$(libdir))'
-includedir = $(prefix)/include
+includedir = $(prefix)/include/tracefs
 includedir_SQ = '$(subst ','\'',$(includedir))'
 pkgconfig_dir ?= $(word 1,$(shell $(PKG_CONFIG) 		\
 			--variable pc_path pkg-config | tr ":" " "))
@@ -213,10 +221,10 @@ cscope: force
 	$(call find_tag_files) | cscope -b -q
 
 install_libs: libs install_pkgconfig
-	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)/tracefs); \
-		cp -fpR $(LIB_INSTALL) $(DESTDIR)$(libdir_SQ)/tracefs
-	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ)/tracefs)
-	$(Q)$(call do_install_ld,$(TRACE_LD_FILE),$(LD_SO_CONF_DIR),$(libdir_SQ)/tracefs)
+	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)); \
+		cp -fpR $(LIB_INSTALL) $(DESTDIR)$(libdir_SQ)
+	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ))
+	$(Q)$(call do_install_ld,$(TRACE_LD_FILE),$(LD_SO_CONF_DIR),$(libdir_SQ))
 
 install: install_libs
 
