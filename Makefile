@@ -126,7 +126,7 @@ LIBTRACEFS_SHARED = $(LIBTRACEFS_DIR)/libtracefs.so.$(TRACEFS_VERSION)
 TRACE_LIBS = -L$(LIBTRACEFS_DIR) -ltracefs
 
 export LIBS TRACE_LIBS
-export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
+export LIBTRACEFS_STATIC LIBTRACEFS_SHARED LIBTRACEFS_DIR
 
 export Q SILENT VERBOSE EXT
 
@@ -290,6 +290,7 @@ ifneq ($(dep_includes),)
 endif
 
 clean:
+	$(MAKE) -C $(src)/utest clean
 	$(RM) $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.o $(bdir)/.*.d
 	$(RM) $(PKG_CONFIG_FILE)
 
