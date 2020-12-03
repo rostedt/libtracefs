@@ -125,8 +125,6 @@ bdir		:= $(obj)/lib/tracefs
 
 export prefix bindir src obj
 
-LIBS = -ldl
-
 LIBTRACEFS_DIR = $(obj)/lib/tracefs
 LIBTRACEFS_STATIC = $(LIBTRACEFS_DIR)/libtracefs.a
 LIBTRACEFS_SHARED = $(LIBTRACEFS_DIR)/libtracefs.so.$(TRACEFS_VERSION)
