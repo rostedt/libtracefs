@@ -564,6 +564,11 @@ static int fill_local_events_system(const char *tracing_dir,
 		if (ret && parsing_failures)
 			(*parsing_failures)++;
 	}
+
+	/* Include ftrace, as it is excluded for not having "enable" file */
+	if (!sys_names || contains("ftrace", sys_names))
+		load_events(tep, tracing_dir, "ftrace");
+
 	/* always succeed because parsing failures are not critical */
 	ret = 0;
 out:
