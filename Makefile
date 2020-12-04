@@ -27,6 +27,7 @@ endef
 # Allow setting CC and AR, or setting CROSS_COMPILE as a prefix.
 $(call allow-override,CC,$(CROSS_COMPILE)gcc)
 $(call allow-override,AR,$(CROSS_COMPILE)ar)
+$(call allow-override,PKG_CONFIG,pkg-config)
 
 EXT = -std=gnu99
 INSTALL = install
@@ -47,6 +48,11 @@ libdir ?= $(prefix)/lib
 libdir_SQ = '$(subst ','\'',$(libdir))'
 includedir = $(prefix)/include
 includedir_SQ = '$(subst ','\'',$(includedir))'
+pkgconfig_dir ?= $(word 1,$(shell $(PKG_CONFIG) 		\
+			--variable pc_path pkg-config | tr ":" " "))
+
+PKG_CONFIG_SOURCE_FILE = libtracefs.pc
+PKG_CONFIG_FILE := $(addprefix $(OUTPUT),$(PKG_CONFIG_SOURCE_FILE))
 
 ifeq ($(prefix),/usr/local)
 etcdir ?= /etc
@@ -157,7 +163,7 @@ LIB_INSTALL := $(addprefix $(bdir)/,$(LIB_INSTALL))
 
 TARGETS = $(LIBTRACEFS_SHARED) $(LIBTRACEFS_STATIC)
 
-all_cmd: $(TARGETS)
+all_cmd: $(TARGETS) $(PKG_CONFIG_FILE)
 
 libtracefs.a: $(LIBTRACEFS_STATIC)
 libtracefs.so: $(LIBTRACEFS_SHARED)
@@ -175,6 +181,25 @@ define find_tag_files
 		! -name '\.#' -print
 endef
 
+define do_make_pkgconfig_file
+	cp -f ${PKG_CONFIG_SOURCE_FILE}.template ${PKG_CONFIG_FILE};	\
+	sed -i "s|INSTALL_PREFIX|${1}|g" ${PKG_CONFIG_FILE}; 		\
+	sed -i "s|LIB_VERSION|${TRACEFS_VERSION}|g" ${PKG_CONFIG_FILE}; \
+	sed -i "s|LIB_DIR|${libdir}|g" ${PKG_CONFIG_FILE}; \
+	sed -i "s|HEADER_DIR|$(includedir)|g" ${PKG_CONFIG_FILE};
+endef
+
+$(PKG_CONFIG_FILE) : ${PKG_CONFIG_SOURCE_FILE}.template
+	$(Q) $(call do_make_pkgconfig_file,$(prefix))
+
+define do_install_pkgconfig_file
+	if [ -n "${pkgconfig_dir}" ]; then 					\
+		$(call do_install,$(PKG_CONFIG_FILE),$(pkgconfig_dir),644); 	\
+	else 									\
+		(echo Failed to locate pkg-config directory) 1>&2;		\
+	fi
+endef
+
 tags:	force
 	$(RM) tags
 	$(call find_tag_files) | xargs ctags --extra=+f --c-kinds=+px
@@ -187,13 +212,17 @@ cscope: force
 	$(RM) cscope*
 	$(call find_tag_files) | cscope -b -q
 
-install_libs: libs
+install_libs: libs install_pkgconfig
 	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)/tracefs); \
 		cp -fpR $(LIB_INSTALL) $(DESTDIR)$(libdir_SQ)/tracefs
 	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ)/tracefs)
 	$(Q)$(call do_install_ld,$(TRACE_LD_FILE),$(LD_SO_CONF_DIR),$(libdir_SQ)/tracefs)
 
 install: install_libs
+
+install_pkgconfig: $(PKG_CONFIG_FILE)
+	$(Q)$(call , $(PKG_CONFIG_FILE)) \
+		$(call do_install_pkgconfig_file,$(prefix))
 
 doc:
 	$(MAKE) -C $(src)/Documentation all
@@ -262,5 +291,6 @@ endif
 
 clean:
 	$(RM) $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.o $(bdir)/.*.d
+	$(RM) $(PKG_CONFIG_FILE)
 
 .PHONY: clean
