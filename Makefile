@@ -62,6 +62,13 @@ pkgconfig_dir ?= $(word 1,$(shell $(PKG_CONFIG) 		\
 PKG_CONFIG_SOURCE_FILE = libtracefs.pc
 PKG_CONFIG_FILE := $(addprefix $(OUTPUT),$(PKG_CONFIG_SOURCE_FILE))
 
+LIBTRACEEVENT_INCLUDES = $(shell $(PKG_CONFIG) --cflags libtraceevent)
+LIBTRACEEVENT_LIBS = $(shell $(PKG_CONFIG) --libs libtraceevent)
+
+ifeq ("$(LIBTRACEEVENT_INCLUDES)","")
+$(error libtraceevent.so not installed)
+endif
+
 ifeq ($(prefix),/usr/local)
 etcdir ?= /etc
 else
@@ -128,7 +135,7 @@ export prefix bindir src obj bdir
 LIBTRACEFS_STATIC = $(bdir)/libtracefs.a
 LIBTRACEFS_SHARED = $(bdir)/libtracefs.so.$(TRACEFS_VERSION)
 
-TRACE_LIBS = -L$(bdir) -ltracefs
+TRACE_LIBS = $(LIBTRACEEVENT_LIBS)
 
 export LIBS TRACE_LIBS
 export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
@@ -155,7 +162,7 @@ export CFLAGS
 export INCLUDES
 
 # Required CFLAGS
-override CFLAGS += -D_GNU_SOURCE
+override CFLAGS += -D_GNU_SOURCE $(LIBTRACEEVENT_INCLUDES)
 
 # Append required CFLAGS
 override CFLAGS += $(INCLUDES)
