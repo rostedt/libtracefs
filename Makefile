@@ -142,7 +142,7 @@ include scripts/utils.mk
 INCLUDES = -I$(src)/include
 INCLUDES += -I$(src)/include/tracefs
 
-include $(src)/features.mk
+include $(src)/scripts/features.mk
 
 # Set compile option CFLAGS if not set elsewhere
 CFLAGS ?= -g -Wall
