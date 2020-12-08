@@ -123,16 +123,15 @@ src		:= $(srctree)
 obj		:= $(objtree)
 bdir		:= $(obj)/lib/tracefs
 
-export prefix bindir src obj
+export prefix bindir src obj bdir
 
-LIBTRACEFS_DIR = $(obj)/lib/tracefs
-LIBTRACEFS_STATIC = $(LIBTRACEFS_DIR)/libtracefs.a
-LIBTRACEFS_SHARED = $(LIBTRACEFS_DIR)/libtracefs.so.$(TRACEFS_VERSION)
+LIBTRACEFS_STATIC = $(bdir)/libtracefs.a
+LIBTRACEFS_SHARED = $(bdir)/libtracefs.so.$(TRACEFS_VERSION)
 
-TRACE_LIBS = -L$(LIBTRACEFS_DIR) -ltracefs
+TRACE_LIBS = -L$(bdir) -ltracefs
 
 export LIBS TRACE_LIBS
-export LIBTRACEFS_STATIC LIBTRACEFS_SHARED LIBTRACEFS_DIR
+export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
 
 export Q SILENT VERBOSE EXT
 
