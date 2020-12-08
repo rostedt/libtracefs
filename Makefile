@@ -267,35 +267,17 @@ all: $(DEFAULT_TARGET)
 $(bdir):
 	@mkdir -p $(bdir)
 
-$(OBJS): | $(bdir)
-$(DEPS): | $(bdir)
-
 LIBS = -L$(obj)/lib/traceevent -ltraceevent
 
-$(LIBTRACEFS_STATIC): $(OBJS)
-	$(Q)$(call do_build_static_lib)
+$(LIBTRACEFS_STATIC): force
+	$(Q)$(MAKE) -C $(src)/src $@
 
-$(LIBTRACEFS_SHARED): $(OBJS)
-	$(Q)$(call do_compile_shared_library)
-	@ln -sf $(@F) $(bdir)/libtracefs.so
-	@ln -sf $(@F) $(bdir)/libtracefs.so.$(TFS_VERSION)
-
-$(bdir)/%.o: %.c
-	$(Q)$(call do_fpic_compile)
-
-$(DEPS): $(bdir)/.%.d: %.c
-	$(Q)$(CC) -M -MT $(bdir)/$*.o $(CPPFLAGS) $(CFLAGS) $< > $@
-
-$(OBJS): $(bdir)/%.o : $(bdir)/.%.d
-
-dep_includes := $(wildcard $(DEPS))
-
-ifneq ($(dep_includes),)
-  include $(dep_includes)
-endif
+$(bdir)/libtracefs.so.$(TRACEFS_VERSION): force
+	$(Q)$(MAKE) -C $(src)/src $@
 
 clean:
 	$(MAKE) -C $(src)/utest clean
+	$(MAKE) -C $(src)/src clean
 	$(RM) $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.o $(bdir)/.*.d
 	$(RM) $(PKG_CONFIG_FILE)
 
