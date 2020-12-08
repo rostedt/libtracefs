@@ -252,7 +252,7 @@ force:
 # information in a variable so we can use it in if_changed and friends.
 .PHONY: $(PHONY)
 
-DEFAULT_TARGET = $(bdir)/libtracefs.a
+DEFAULT_TARGET = $(LIBTRACEFS_STATIC)
 
 OBJS =
 OBJS += tracefs-utils.o
@@ -272,10 +272,10 @@ $(DEPS): | $(bdir)
 
 LIBS = -L$(obj)/lib/traceevent -ltraceevent
 
-$(bdir)/libtracefs.a: $(OBJS)
+$(LIBTRACEFS_STATIC): $(OBJS)
 	$(Q)$(call do_build_static_lib)
 
-$(bdir)/libtracefs.so.$(TRACEFS_VERSION): $(OBJS)
+$(LIBTRACEFS_SHARED): $(OBJS)
 	$(Q)$(call do_compile_shared_library)
 	@ln -sf $(@F) $(bdir)/libtracefs.so
 	@ln -sf $(@F) $(bdir)/libtracefs.so.$(TFS_VERSION)
