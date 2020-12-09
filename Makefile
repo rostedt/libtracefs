@@ -277,9 +277,11 @@ $(bdir):
 LIBS = -L$(obj)/lib/traceevent -ltraceevent
 
 $(LIBTRACEFS_STATIC): force
+	$(Q)mkdir -p $(bdir)
 	$(Q)$(MAKE) -C $(src)/src $@
 
 $(bdir)/libtracefs.so.$(TRACEFS_VERSION): force
+	$(Q)mkdir -p $(bdir)
 	$(Q)$(MAKE) -C $(src)/src $@
 
 clean:
