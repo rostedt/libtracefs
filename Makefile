@@ -180,7 +180,7 @@ all_cmd: $(TARGETS) $(PKG_CONFIG_FILE)
 libtracefs.a: $(LIBTRACEFS_STATIC)
 libtracefs.so: $(LIBTRACEFS_SHARED)
 
-libs:
+libs: libtracefs.a libtracefs.so
 
 test: force $(LIBTRACEFS_STATIC)
 ifneq ($(CUNIT_INSTALLED),1)
@@ -203,6 +203,17 @@ endef
 
 $(PKG_CONFIG_FILE) : ${PKG_CONFIG_SOURCE_FILE}.template
 	$(Q) $(call do_make_pkgconfig_file,$(prefix))
+
+define do_install_mkdir
+	if [ ! -d '$(DESTDIR_SQ)$1' ]; then		\
+		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$1';	\
+	fi
+endef
+
+define do_install
+	$(call do_install_mkdir,$2);			\
+	$(INSTALL) $(if $3,-m $3,) $1 '$(DESTDIR_SQ)$2'
+endef
 
 define do_install_pkgconfig_file
 	if [ -n "${pkgconfig_dir}" ]; then 					\
