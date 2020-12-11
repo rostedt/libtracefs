@@ -10,13 +10,22 @@ OBJS += tracefs-events.o
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
 
+LIBTRACEFS_SHARED_SO = $(bdir)/libtracefs.so
+LIBTRACEFS_SHARED_VERSION = $(bdir)/libtracefs.so.$(TFS_VERSION)
+
 $(LIBTRACEFS_STATIC): $(OBJS)
 	$(Q)$(call do_build_static_lib)
 
 $(LIBTRACEFS_SHARED): $(OBJS)
 	$(Q)$(call do_compile_shared_library)
-	@ln -sf $(@F) $(bdir)/libtracefs.so
-	@ln -sf $(@F) $(bdir)/libtracefs.so.$(TFS_VERSION)
+
+$(LIBTRACEFS_SHARED_VERSION): $(LIBTRACEFS_SHARED)
+	@ln -sf $(<F) $@
+
+$(LIBTRACEFS_SHARED_SO): $(LIBTRACEFS_SHARED_VERSION)
+	@ln -sf $(<F) $@
+
+libtracefs.so: $(LIBTRACEFS_SHARED_SO)
 
 $(bdir)/%.o: %.c
 	$(Q)$(call do_fpic_compile)

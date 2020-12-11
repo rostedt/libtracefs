@@ -293,7 +293,7 @@ $(LIBTRACEFS_STATIC): force
 
 $(bdir)/libtracefs.so.$(TRACEFS_VERSION): force
 	$(Q)mkdir -p $(bdir)
-	$(Q)$(MAKE) -C $(src)/src $@
+	$(Q)$(MAKE) -C $(src)/src libtracefs.so
 
 clean:
 	$(MAKE) -C $(src)/utest clean
