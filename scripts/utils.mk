@@ -2,15 +2,7 @@
 
 # Utils
 
-ifeq ($(BUILDGUI), 1)
-  GUI		= 'GUI '
-  GSPACE	=
-else
-  GUI		=
-  GSPACE	= "    "
-endif
-
- GOBJ		= $(GSPACE)$(notdir $(strip $@))
+ GOBJ		= $(notdir $(strip $@))
 
 
 ifeq ($(VERBOSE),1)
@@ -32,15 +24,15 @@ ifeq ($(findstring 1,$(SILENT)$(VERBOSE)),1)
   print_install =
   print_update =
 else
-  print_compile =		echo '  $(GUI)COMPILE            '$(GOBJ);
-  print_app_build =		echo '  $(GUI)BUILD              '$(GOBJ);
-  print_fpic_compile =		echo '  $(GUI)COMPILE FPIC       '$(GOBJ);
-  print_shared_lib_compile =	echo '  $(GUI)COMPILE SHARED LIB '$(GOBJ);
-  print_plugin_obj_compile =	echo '  $(GUI)COMPILE PLUGIN OBJ '$(GOBJ);
-  print_plugin_build =		echo '  $(GUI)BUILD PLUGIN       '$(GOBJ);
-  print_static_lib_build =	echo '  $(GUI)BUILD STATIC LIB   '$(GOBJ);
-  print_install =		echo '  $(GUI)INSTALL     '$(GSPACE)$1'	to	$(DESTDIR_SQ)$2';
-  print_update =		echo '  $(GUI)UPDATE             '$(GOBJ);
+  print_compile =		echo '  COMPILE            '$(GOBJ);
+  print_app_build =		echo '  BUILD              '$(GOBJ);
+  print_fpic_compile =		echo '  COMPILE FPIC       '$(GOBJ);
+  print_shared_lib_compile =	echo '  COMPILE SHARED LIB '$(GOBJ);
+  print_plugin_obj_compile =	echo '  COMPILE PLUGIN OBJ '$(GOBJ);
+  print_plugin_build =		echo '  BUILD PLUGIN       '$(GOBJ);
+  print_static_lib_build =	echo '  BUILD STATIC LIB   '$(GOBJ);
+  print_install =		echo '  INSTALL     '$1'	to	$(DESTDIR_SQ)$2';
+  print_update =		echo '  UPDATE             '$(GOBJ);
 endif
 
 do_fpic_compile =					\
