@@ -119,18 +119,21 @@ define update_dir
 	fi);
 endef
 
-define do_install
-	$(print_install)				\
-	if [ ! -d '$(DESTDIR_SQ)$2' ]; then		\
-		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$2';	\
-	fi;						\
-	$(INSTALL) $1 '$(DESTDIR_SQ)$2'
+define do_install_mkdir
+	if [ ! -d '$(DESTDIR_SQ)$1' ]; then		\
+		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$1';	\
+	fi
 endef
 
-define do_install_data
-	$(print_install)				\
-	if [ ! -d '$(DESTDIR_SQ)$2' ]; then		\
-		$(INSTALL) -d -m 755 '$(DESTDIR_SQ)$2';	\
-	fi;						\
-	$(INSTALL) -m 644 $1 '$(DESTDIR_SQ)$2'
+define do_install
+	$(call do_install_mkdir,$2);			\
+	$(INSTALL) $(if $3,-m $3,) $1 '$(DESTDIR_SQ)$2'
+endef
+
+define do_install_pkgconfig_file
+	if [ -n "${pkgconfig_dir}" ]; then 					\
+		$(call do_install,$(PKG_CONFIG_FILE),$(pkgconfig_dir),644); 	\
+	else 									\
+		(echo Failed to locate pkg-config directory) 1>&2;		\
+	fi
 endef
