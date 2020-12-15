@@ -126,6 +126,7 @@ define do_install_mkdir
 endef
 
 define do_install
+	$(print_install)				\
 	$(call do_install_mkdir,$2);			\
 	$(INSTALL) $(if $3,-m $3,) $1 '$(DESTDIR_SQ)$2'
 endef
