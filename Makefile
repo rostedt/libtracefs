@@ -129,12 +129,12 @@ export prefix bindir src obj bdir
 LIBTRACEFS_STATIC = $(bdir)/libtracefs.a
 LIBTRACEFS_SHARED = $(bdir)/libtracefs.so.$(TRACEFS_VERSION)
 
-TRACE_LIBS = $(LIBTRACEEVENT_LIBS)
-
 PKG_CONFIG_SOURCE_FILE = libtracefs.pc
 PKG_CONFIG_FILE := $(addprefix $(obj)/,$(PKG_CONFIG_SOURCE_FILE))
 
-export LIBS TRACE_LIBS
+LIBS = $(LIBTRACEEVENT_LIBS)
+
+export LIBS
 export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
 
 export Q SILENT VERBOSE EXT
