@@ -61,9 +61,6 @@ includedir_SQ = '$(subst ','\'',$(includedir))'
 pkgconfig_dir ?= $(word 1,$(shell $(PKG_CONFIG) 		\
 			--variable pc_path pkg-config | tr ":" " "))
 
-PKG_CONFIG_SOURCE_FILE = libtracefs.pc
-PKG_CONFIG_FILE := $(addprefix $(OUTPUT),$(PKG_CONFIG_SOURCE_FILE))
-
 LIBTRACEEVENT_INCLUDES = $(shell $(PKG_CONFIG) --cflags libtraceevent)
 LIBTRACEEVENT_LIBS = $(shell $(PKG_CONFIG) --libs libtraceevent)
 
@@ -132,6 +129,9 @@ LIBTRACEFS_STATIC = $(bdir)/libtracefs.a
 LIBTRACEFS_SHARED = $(bdir)/libtracefs.so.$(TRACEFS_VERSION)
 
 TRACE_LIBS = $(LIBTRACEEVENT_LIBS)
+
+PKG_CONFIG_SOURCE_FILE = libtracefs.pc
+PKG_CONFIG_FILE := $(addprefix $(obj)/,$(PKG_CONFIG_SOURCE_FILE))
 
 export LIBS TRACE_LIBS
 export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
