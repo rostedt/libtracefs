@@ -158,11 +158,8 @@ export CUNIT_INSTALLED
 export CFLAGS
 export INCLUDES
 
-# Required CFLAGS
-override CFLAGS += -D_GNU_SOURCE $(LIBTRACEEVENT_INCLUDES)
-
 # Append required CFLAGS
-override CFLAGS += $(INCLUDES)
+override CFLAGS += -D_GNU_SOURCE $(LIBTRACEEVENT_INCLUDES) $(INCLUDES)
 
 all: all_cmd
 
