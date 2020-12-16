@@ -6,8 +6,8 @@
 #ifndef _TRACE_FS_H
 #define _TRACE_FS_H
 
+#include <traceevent/event-parse.h>
 #include <sched.h>
-#include "traceevent/event-parse.h"
 
 char *tracefs_get_tracing_file(const char *name);
 void tracefs_put_tracing_file(char *name);
@@ -18,7 +18,7 @@ const char *tracefs_get_tracing_dir(void);
 /* tracefs_find_tracing_dir must be freed */
 char *tracefs_find_tracing_dir(void);
 
-/* ftarce instances */
+/* ftrace instances */
 struct tracefs_instance;
 
 void tracefs_instance_free(struct tracefs_instance *instance);
