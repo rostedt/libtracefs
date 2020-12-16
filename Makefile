@@ -71,11 +71,7 @@ ifeq ("$(LIBTRACEEVENT_INCLUDES)","")
 $(error libtraceevent.so not installed)
 endif
 
-ifeq ($(prefix),/usr/local)
 etcdir ?= /etc
-else
-etcdir ?= $(prefix)/etc
-endif
 etcdir_SQ = '$(subst ','\'',$(etcdir))'
 
 export man_dir man_dir_SQ html_install html_install_SQ INSTALL
