@@ -197,7 +197,12 @@ define do_make_pkgconfig_file
 	sed -i "s|HEADER_DIR|$(includedir)|g" ${PKG_CONFIG_FILE};
 endef
 
-$(PKG_CONFIG_FILE) : ${PKG_CONFIG_SOURCE_FILE}.template
+BUILD_PREFIX := $(BUILD_OUTPUT)/build_prefix
+
+$(BUILD_PREFIX): force
+	$(Q)$(call build_prefix,$(prefix))
+
+$(PKG_CONFIG_FILE) : ${PKG_CONFIG_SOURCE_FILE}.template $(BUILD_PREFIX)
 	$(Q) $(call do_make_pkgconfig_file,$(prefix))
 
 tags:	force
