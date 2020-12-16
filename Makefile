@@ -224,14 +224,14 @@ ifeq ("$(DESTDIR)", "")
 define install_ld_config
 	$(LDCONFIG); \
 	if ! grep "^$(libdir)$$" $(LD_SO_CONF_PATH)/* &> /dev/null ; then \
-		$(CC) -o $(OUTPUT)test $(srctree)/test.c -I $(includedir_SQ) \
+		$(CC) -o $(objtree)/test $(srctree)/test.c -I $(includedir_SQ) \
 			-L $(libdir_SQ) -ltracefs &> /dev/null; \
-		if ! $(OUTPUT)test &> /dev/null; then \
+		if ! $(objtree)/test &> /dev/null; then \
 			$(call print_install, trace.conf, $(LD_SO_CONF_PATH)) \
 			echo $(libdir_SQ) >> $(LD_SO_CONF_PATH)/trace.conf; \
 			$(LDCONFIG); \
 		fi; \
-		$(RM) $(OUTPUT)test; \
+		$(RM) $(objtree)/test; \
 	fi
 endef
 else
