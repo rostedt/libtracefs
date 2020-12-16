@@ -65,8 +65,10 @@ pkgconfig_dir ?= $(word 1,$(shell $(PKG_CONFIG) 		\
 LIBTRACEEVENT_INCLUDES = $(shell $(PKG_CONFIG) --cflags libtraceevent)
 LIBTRACEEVENT_LIBS = $(shell $(PKG_CONFIG) --libs libtraceevent)
 
-ifeq ("$(LIBTRACEEVENT_INCLUDES)","")
-$(error libtraceevent.so not installed)
+ifneq ($(MAKECMDGOALS),clean)
+ ifeq ("$(LIBTRACEEVENT_INCLUDES)","")
+   $(error libtraceevent.so not installed)
+ endif
 endif
 
 etcdir ?= /etc
