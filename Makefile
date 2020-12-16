@@ -89,8 +89,6 @@ HELP_DIR_SQ = '$(subst ','\'',$(HELP_DIR))'
 #' emacs highlighting gets confused by the above escaped quote.
 
 BASH_COMPLETE_DIR ?= $(etcdir)/bash_completion.d
-LD_SO_CONF_DIR ?= $(etcdir)/ld.so.conf.d
-TRACE_LD_FILE ?= trace.conf
 
 # copy a bit from Linux kbuild
 
@@ -242,7 +240,6 @@ install_libs: libs install_pkgconfig
 	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)); \
 		cp -fpR $(LIB_INSTALL) $(DESTDIR)$(libdir_SQ)
 	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ))
-	$(Q)$(call do_install_ld,$(TRACE_LD_FILE),$(LD_SO_CONF_DIR),$(libdir_SQ))
 	$(Q)$(call install_ld_config)
 
 install: install_libs
