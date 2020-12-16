@@ -22,6 +22,7 @@ ifeq ($(findstring 1,$(SILENT)$(VERBOSE)),1)
   print_plugin_obj_compile =
   print_plugin_build =
   print_install =
+  print_uninstall =
   print_update =
 else
   print_compile =		echo '  COMPILE            '$(GOBJ);
@@ -32,6 +33,7 @@ else
   print_plugin_build =		echo '  BUILD PLUGIN       '$(GOBJ);
   print_static_lib_build =	echo '  BUILD STATIC LIB   '$(GOBJ);
   print_install =		echo '  INSTALL     '$1'	to	$(DESTDIR_SQ)$2';
+  print_uninstall =		echo '  UNINSTALL     $(DESTDIR_SQ)$1';
   print_update =		echo '  UPDATE             '$(GOBJ);
 endif
 
