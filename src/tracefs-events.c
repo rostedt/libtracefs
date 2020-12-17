@@ -407,6 +407,9 @@ char **tracefs_tracers(const char *tracing_dir)
 	int ret;
 
 	if (!tracing_dir)
+		tracing_dir = tracefs_get_tracing_dir();
+
+	if (!tracing_dir)
 		return NULL;
 
 	available_tracers = trace_append_file(tracing_dir, "available_tracers");
