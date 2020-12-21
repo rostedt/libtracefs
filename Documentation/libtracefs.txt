@@ -1,0 +1,84 @@
+libtracefs(3)
+=============
+
+NAME
+----
+libtracefs - Linux kernel trace file system library
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+Locations of tracing files and directories:
+	char pass:[*]*tracefs_get_tracing_file*(const char pass:[*]_name_);
+	void *tracefs_put_tracing_file*(char pass:[*]_name_);
+	const char pass:[*]*tracefs_tracing_dir*(void);
+
+Trace instances:
+	struct tracefs_instance pass:[*]*tracefs_instance_create*(const char pass:[*]_name_);
+	int *tracefs_instance_destroy*(struct tracefs_instance pass:[*]_instance_);
+	void *tracefs_instance_free*(struct tracefs_instance pass:[*]_instance_);
+	bool *tracefs_instance_is_new*(struct tracefs_instance pass:[*]_instance_);
+	bool *tracefs_file_exists*(struct tracefs_instance pass:[*]_instance_, char pass:[*]_name_);
+	bool *tracefs_dir_exists*(struct tracefs_instance pass:[*]_instance_, char pass:[*]_name_);
+	char pass:[*]*tracefs_instance_get_file*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_);
+	char pass:[*]*tracefs_instance_get_dir*(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_instance_file_write*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, const char pass:[*]_str_);
+	char pass:[*]*tracefs_instance_file_read*(struct tracefs_instance pass:[*]_instance_, char pass:[*]_file_, int pass:[*]_psize_);
+	const char pass:[*]*tracefs_instance_get_name*(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_instances_walk*(int (pass:[*]_callback_)(const char pass:[*], void pass:[*]), void pass:[*]_context)_;
+	bool *tracefs_instance_exists*(const char pass:[*]_name_);
+
+Trace events:
+	char pass:[*]pass:[*]*tracefs_event_systems*(const char pass:[*]_tracing_dir_);
+	char pass:[*]pass:[*]*tracefs_system_events*(const char pass:[*]_tracing_dir_, const char pass:[*]_system_);
+	int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_, cpu_set_t pass:[*]_cpus_, int _cpu_size_, int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]), void pass:[*]_callback_context_);
+	struct tep_handle pass:[*]*tracefs_local_events*(const char pass:[*]_tracing_dir_);
+	struct tep_handle pass:[*]*tracefs_local_events_system*(const char pass:[*]_tracing_dir_, const char pass:[*] const pass:[*]_sys_names_);
+	int *tracefs_fill_local_events*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_, int pass:[*]_parsing_failures_);
+
+Trace helper functions:
+	void *tracefs_list_free*(char pass:[*]pass:[*]_list_);
+	char pass:[*]pass:[*]*tracefs_tracers*(const char pass:[*]_tracing_dir_);
+	char pass:[*]*tracefs_get_clock*(struct tracefs_instance pass:[*]_instance_);
+--
+
+DESCRIPTION
+-----------
+The libtracefs(3) library provides APIs to access kernel trace file system.
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtraceevent(3)_
+_trace-cmd(1)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
