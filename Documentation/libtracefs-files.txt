@@ -1,0 +1,97 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_get_tracing_file, tracefs_put_tracing_file, tracefs_tracing_dir -
+Find locations of trace directory and files.
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+char pass:[*]*tracefs_get_tracing_file*(const char pass:[*]_name_);
+void *tracefs_put_tracing_file*(char pass:[*]_name_);
+const char pass:[*]*tracefs_tracing_dir*(void);
+--
+
+DESCRIPTION
+-----------
+This set of APIs can be used to find the full path of the trace file
+system mount point and trace files in it.
+
+The _tracefs_get_tracing_file()_ function returns the full path of the
+file with given _name_ in the trace file system. The function works
+only with files in the trasefs main directory, it is not trace instance
+aware. It is recommended to use _tracefs_instance_get_file()_ and
+_tracefs_instance_get_dir()_ instead. The returned string must be freed
+with _tracefs_put_tracing_file()_.
+
+The _tracefs_put_tracing_file()_ function frees trace file name,
+returned by _tracefs_get_tracing_file()_.
+
+The _tracefs_tracing_dir()_ function returns the full path to the
+trace file system. In the first function call, the mount point of the
+tracing file system is located, cached and returned. It will mount it,
+if it is not mounted. On any subsequent call the cached path is returned.
+The return string must _not_ be freed.
+
+RETURN VALUE
+------------
+The _tracefs_get_tracing_file()_ function returns a string or NULL in case
+of an error. The returned string must be freed with _tracefs_put_tracing_file()_.
+
+The _tracefs_tracing_dir()_ function returns a constant string or NULL
+in case of an error. The returned string must _not_ be freed.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <tracefs.h>
+...
+char *trace_on = tracefs_get_tracing_file("tracing_on");
+	if (trace_on) {
+		...
+		tracefs_put_tracing_file(trace_on);
+	}
+...
+const char *trace_dir = tracefs_tracing_dir();
+
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
