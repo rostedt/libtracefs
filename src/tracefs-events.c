@@ -268,7 +268,7 @@ char **tracefs_event_systems(const char *tracing_dir)
 	int ret;
 
 	if (!tracing_dir)
-		tracing_dir = tracefs_get_tracing_dir();
+		tracing_dir = tracefs_tracing_dir();
 
 	if (!tracing_dir)
 		return NULL;
@@ -342,7 +342,7 @@ char **tracefs_system_events(const char *tracing_dir, const char *system)
 	int ret;
 
 	if (!tracing_dir)
-		tracing_dir = tracefs_get_tracing_dir();
+		tracing_dir = tracefs_tracing_dir();
 
 	if (!tracing_dir || !system)
 		return NULL;
@@ -407,7 +407,7 @@ char **tracefs_tracers(const char *tracing_dir)
 	int ret;
 
 	if (!tracing_dir)
-		tracing_dir = tracefs_get_tracing_dir();
+		tracing_dir = tracefs_tracing_dir();
 
 	if (!tracing_dir)
 		return NULL;
@@ -544,7 +544,7 @@ static int fill_local_events_system(const char *tracing_dir,
 	int i;
 
 	if (!tracing_dir)
-		tracing_dir = tracefs_get_tracing_dir();
+		tracing_dir = tracefs_tracing_dir();
 	if (!tracing_dir)
 		return -1;
 

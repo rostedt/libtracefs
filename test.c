@@ -2,6 +2,6 @@
 
 int main()
 {
-	tracefs_get_tracing_dir();
+	tracefs_tracing_dir();
 	return 0;
 }
