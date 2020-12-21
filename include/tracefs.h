@@ -15,9 +15,6 @@ void tracefs_put_tracing_file(char *name);
 /* tracefs_get_tracing_dir must *not* be freed */
 const char *tracefs_get_tracing_dir(void);
 
-/* tracefs_find_tracing_dir must be freed */
-char *tracefs_find_tracing_dir(void);
-
 /* ftrace instances */
 struct tracefs_instance;
 
