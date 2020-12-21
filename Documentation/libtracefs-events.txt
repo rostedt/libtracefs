@@ -1,0 +1,143 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_event_systems, tracefs_system_events, tracefs_iterate_raw_events -
+Work with trace systems and events.
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+char pass:[*]pass:[*]*tracefs_event_systems*(const char pass:[*]_tracing_dir_);
+char pass:[*]pass:[*]*tracefs_system_events*(const char pass:[*]_tracing_dir_, const char pass:[*]_system_);
+int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_, cpu_set_t pass:[*]_cpus_, int _cpu_size_, int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]), void pass:[*]_callback_context_);
+
+--
+
+DESCRIPTION
+-----------
+Trace systems and events related APIs.
+
+The _tracefs_event_systems()_ function returns array of strings with the
+names of all registered trace systems, located in the given _tracing_dir_
+directory. This could be NULL or the location of the tracefs mount point
+for the trace systems of the local machine, or it may be a path to a copy
+of the tracefs directory from another machine. The last entry in the array
+is a NULL pointer. The array must be freed with _tracefs_list_free()_ API.
+
+The _tracefs_system_events()_ function returns array of strings with the
+names of all registered trace events for given trace system specified by
+_system_, located in the given _tracing_dir_ directory. This could be NULL
+or the location of the tracefs mount point for the trace systems of the
+local machine, or it may be a path to a copy of the tracefs directory
+from another machine. The last entry in the array as a NULL pointer.
+The array must be freed with _tracefs_list_free()_ API.
+
+The _tracefs_interate_raw_events()_ function will read the tracefs raw
+data buffers and call the specified _callback_ function for every event it
+encounters. An initialized _tep_ handler is required (See
+_tracefs_local_events_(3)). If _instance_ is NULL, then the toplevel
+tracefs buffer is used, otherwise the buffer for the corresponding
+_instance_ is read. To filter only on a subset of CPUs, _cpus_ and
+_cpu_size_ may be set to only call _callback_ with events that occurred on
+the CPUs specified, otherwise if _cpus_ is NULL then the _callback_
+function will be called for all events, and _cpu_size_ is ignored. The
+_callback_ function will be called with the following parameters: A
+pointer to a struct tep_event that corresponds to the type of event the
+record is; The record representing the event; The CPU that the event
+occurred on; and a pointer to user specified _callback_context_. If the _callback_
+returns non-zero, the iteration stops.
+
+
+RETURN VALUE
+------------
+The _tracefs_event_systems()_ and __tracefs_system_events()_ functions return
+an array of strings. The last element in that array is a NULL pointer. The array
+must be freed with _tracefs_list_free()_ API. In case of an error, NULL is returned.
+
+The _tracefs_iterate_raw_events()_ function returns -1 in case of an error or
+0 otherwise.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <tracefs.h>
+
+char **systems = tracefs_event_systems(NULL);
+
+	if (systems) {
+		int i = 0;
+		/* Got registered trace systems from the top trace instance */
+		while (systems[i]) {
+			char **events = tracefs_system_events(NULL, systems[i]);
+			if (events) {
+				/* Got registered events in system[i] from the top trace instance */
+				int j = 0;
+
+				while (events[j]) {
+					/* Got event[j] in system[i] from the top trace instance */
+					j++;
+				}
+				tracefs_list_free(events);
+			}
+			i++;
+		}
+		tracefs_list_free(systems);
+	}
+....
+static int records_walk(struct tep_event *tep, struct tep_record *record, int cpu, void *context)
+{
+	/* Got recorded event on cpu */
+	return 0;
+}
+...
+struct tep_event *tep = tracefs_local_events(NULL);
+
+	if (!tep) {
+		/* Failed to initialise tep handler with local events */
+		...
+	}
+	if (tracefs_iterate_raw_events(tep, NULL, NULL, 0, records_walk, NULL) < 0) {
+		/* Error walking through the recorded raw events */
+	}
+	tep_free(tep);
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
