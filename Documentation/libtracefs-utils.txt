@@ -1,0 +1,103 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_tracers, tracefs_get_clock, tracefs_list_free -
+Helper functions for working with trace file system.
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+char pass:[*]pass:[*]*tracefs_tracers*(const char pass:[*]_tracing_dir_);
+char pass:[*]*tracefs_get_clock*(struct tracefs_instance pass:[*]_instance_);
+void *tracefs_list_free*(char pass:[*]pass:[*]_list_);
+--
+
+DESCRIPTION
+-----------
+Various useful functions for working with trace file system.
+
+The _tracefs_tracers()_ function returns array of strings with the
+names of supported tracer plugins, located in the given _tracing_dir_
+directory. This could be NULL or the location of the tracefs mount point
+for the trace systems of the local machine, or it may be a path to a copy
+of the tracefs directory from another machine. The last entry in the array
+as a NULL pointer. The array must be freed with _tracefs_list_free()_ API.
+
+The _tracefs_get_clock()_ function returns name of the current trace clock,
+used in the given _instance_. If _instance_ is NULL, the clock of the main
+trace instance is returned. The returned string must be freed with free().
+
+The _tracefs_list_free()_ function frees an array of strings, returned by
+_tracefs_event_systems()_, _tracefs_system_events()_ and _tracefs_tracers()_
+APIs.
+
+RETURN VALUE
+------------
+The _tracefs_tracers()_ returns array of strings. The last element in that
+array is a NULL pointer. The array must be freed with _tracefs_list_free()_ API.
+In case of an error, NULL is returned.
+
+The _tracefs_get_clock()_ returns string, that must be freed with free(), or NULL
+in case of an error.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <tracefs.h>
+
+char **tracers = tracefs_tracers(NULL);
+
+	if (tracers) {
+		/* Got tracer plugins from the top trace instance */
+		...
+		tracefs_list_free(tracers);
+	}
+....
+char *clock = tracefs_get_clock(NULL);
+
+	if (clock) {
+		/* Got current trace clock of the top trace instance */
+		...
+		free(clock);
+	}
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
