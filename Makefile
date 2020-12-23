@@ -244,7 +244,7 @@ endif # DESTDIR = ""
 install_libs: libs install_pkgconfig
 	$(Q)$(call do_install,$(LIBTRACEFS_SHARED),$(libdir_SQ)); \
 		cp -fpR $(LIB_INSTALL) $(DESTDIR)$(libdir_SQ)
-	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ))
+	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ),644)
 	$(Q)$(call install_ld_config)
 
 install: install_libs
