@@ -141,3 +141,8 @@ libtracefs is Free Software licensed under the GNU LGPL 2.1
 RESOURCES
 ---------
 https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).
