@@ -17,7 +17,7 @@ $(LIBTRACEFS_STATIC): $(OBJS)
 	$(Q)$(call do_build_static_lib)
 
 $(LIBTRACEFS_SHARED): $(OBJS)
-	$(Q)$(call do_compile_shared_library)
+	$(Q)$(call do_compile_shared_library,$(notdir $(LIBTRACEFS_SHARED_VERSION)))
 
 $(LIBTRACEFS_SHARED_VERSION): $(LIBTRACEFS_SHARED)
 	@ln -sf $(<F) $@
