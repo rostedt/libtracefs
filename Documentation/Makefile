@@ -146,12 +146,12 @@ ifdef missing_tools
 endif
 
 do-install-man: man
-	$(Q)$(call do_install,$(OUTPUT)*.3,$(DESTDIR)$(man3dir),644);
+	$(Q)$(call do_install,$(OUTPUT)*.3,$(man3dir),644);
 
 install-man: man do-install-man
 
 do-install-html: html
-	$(Q)$(call do_install,$(OUTPUT)*.html,$(DESTDIR)$(htmldir),644);
+	$(Q)$(call do_install,$(OUTPUT)*.html,$(htmldir),644);
 
 install-html: html do-install-html
 
