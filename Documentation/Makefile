@@ -45,18 +45,15 @@ ASCIIDOC_EXTRA += -a mansource="libtracefs" -a manmanual="libtracefs Manual"
 ASCIIDOC_HTML = xhtml5
 endif
 
+ASCIIDOC_INSTALLED := $(shell command -v $(ASCIIDOC) 2> /dev/null)
+ifndef ASCIIDOC_INSTALLED
+	missing_tools += $(ASCIIDOC)
+endif
+
 XMLTO=xmlto
-
-_tmp_tool_path := $(call get-executable,$(ASCIIDOC))
-ifeq ($(_tmp_tool_path),)
-	missing_tools = $(ASCIIDOC)
-endif
-
-ifndef USE_ASCIIDOCTOR
-_tmp_tool_path := $(call get-executable,$(XMLTO))
-ifeq ($(_tmp_tool_path),)
+XMLTO_INSTALLED := $(shell command -v $(XMLTO) 2> /dev/null)
+ifndef XMLTO_INSTALLED
 	missing_tools += $(XMLTO)
-endif
 endif
 
 #
@@ -132,7 +129,7 @@ ifneq ($(V),1)
 endif
 endif
 
-all: html man
+all: check-man-tools html man
 
 man: man3
 man3: $(DOC_MAN3)
@@ -141,7 +138,7 @@ html: $(MAN_HTML)
 
 $(MAN_HTML) $(DOC_MAN3): asciidoc.conf
 
-install: install-man install-html
+install: check-man-tools install-man install-html
 
 check-man-tools:
 ifdef missing_tools
@@ -149,28 +146,22 @@ ifdef missing_tools
 endif
 
 do-install-man: man
-	$(call QUIET_INSTALL, Documentation-man) \
-		$(INSTALL) -d -m 755 $(DESTDIR)$(man3dir); \
-		$(INSTALL) -m 644 $(OUTPUT)*.3 $(DESTDIR)$(man3dir);
+	$(Q)$(call do_install,$(OUTPUT)*.3,$(DESTDIR)$(man3dir),644);
 
-install-man: check-man-tools man do-install-man
+install-man: man do-install-man
 
 do-install-html: html
-	$(call QUIET_INSTALL, Documentation-html) \
-		$(INSTALL) -d -m 755 $(DESTDIR)$(htmldir); \
-		$(INSTALL) -m 644 $(OUTPUT)*.html $(DESTDIR)$(htmldir);
+	$(Q)$(call do_install,$(OUTPUT)*.html,$(DESTDIR)$(htmldir),644);
 
-install-html: check-man-tools html do-install-html
+install-html: html do-install-html
 
 uninstall: uninstall-man uninstall-html
 
 uninstall-man:
-	$(call QUIET_UNINST, Documentation-man) \
-		$(Q)$(RM) $(addprefix $(DESTDIR)$(man3dir)/,$(DOC_MAN3))
+	$(Q)$(RM) $(addprefix $(DESTDIR)$(man3dir)/,$(DOC_MAN3))
 
 uninstall-html:
-	$(call QUIET_UNINST, Documentation-html) \
-		$(Q)$(RM) $(addprefix $(DESTDIR)$(htmldir)/,$(MAN_HTML))
+	$(Q)$(RM) $(addprefix $(DESTDIR)$(htmldir)/,$(MAN_HTML))
 
 ifdef missing_tools
   DO_INSTALL_MAN = $(warning Please install $(missing_tools) to have the man pages installed)
@@ -184,7 +175,7 @@ CLEAN_FILES =					\
 	$(DOC_MAN3) *.3
 
 clean:
-	$(call QUIET_CLEAN, Documentation) $(RM) $(CLEAN_FILES)
+	$(Q) $(RM) $(CLEAN_FILES)
 
 ifdef USE_ASCIIDOCTOR
 $(OUTPUT)%.3 : $(OUTPUT)%.txt
