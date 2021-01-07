@@ -181,7 +181,7 @@ ifdef USE_ASCIIDOCTOR
 $(OUTPUT)%.3 : $(OUTPUT)%.txt
 	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
 	$(ASCIIDOC) -b manpage -d manpage \
-		$(ASCIIDOC_EXTRA) -alibtraceevent_version=$(EVENT_PARSE_VERSION) -o $@+ $< && \
+		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
 	mv $@+ $@
 endif
 
@@ -192,11 +192,11 @@ $(OUTPUT)%.3 : $(OUTPUT)%.xml
 $(OUTPUT)%.xml : %.txt
 	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
 	$(ASCIIDOC) -b docbook -d manpage \
-		$(ASCIIDOC_EXTRA) -alibtraceevent_version=$(EVENT_PARSE_VERSION) -o $@+ $< && \
+		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
 	mv $@+ $@
 
 $(MAN_HTML): $(OUTPUT)%.html : %.txt
 	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
 	$(ASCIIDOC) -b $(ASCIIDOC_HTML) -d manpage \
-		$(ASCIIDOC_EXTRA) -aperf_version=$(EVENT_PARSE_VERSION) -o $@+ $< && \
+		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
 	mv $@+ $@
