@@ -181,7 +181,7 @@ static void test_trace_file(void)
 	tracefs_put_tracing_file(file);
 }
 
-static void test_instance_file_read(struct tracefs_instance *inst, char *fname)
+static void test_instance_file_read(struct tracefs_instance *inst, const char *fname)
 {
 	const char *tdir  = tracefs_tracing_dir();
 	char buf[BUFSIZ];

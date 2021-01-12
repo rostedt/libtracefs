@@ -282,7 +282,7 @@ int tracefs_instance_file_write(struct tracefs_instance *instance,
  * The return string must be freed by free()
  */
 char *tracefs_instance_file_read(struct tracefs_instance *instance,
-				  char *file, int *psize)
+				 const char *file, int *psize)
 {
 	char *buf = NULL;
 	int size = 0;
