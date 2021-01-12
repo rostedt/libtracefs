@@ -30,6 +30,10 @@ int tracefs_instance_file_write(struct tracefs_instance *instance,
 				const char *file, const char *str);
 char *tracefs_instance_file_read(struct tracefs_instance *instance,
 				 const char *file, int *psize);
+int tracefs_instance_file_read_number(struct tracefs_instance *instance,
+				      const char *file, long long *res);
+int tracefs_instance_file_open(struct tracefs_instance *instance,
+			       const char *file, int mode);
 int tracefs_instances_walk(int (*callback)(const char *, void *), void *context);
 
 bool tracefs_instance_exists(const char *name);

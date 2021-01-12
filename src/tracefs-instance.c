@@ -14,7 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
-#include <linux/limits.h>
+#include <limits.h>
 #include "tracefs.h"
 #include "tracefs-local.h"
 
@@ -299,6 +299,64 @@ char *tracefs_instance_file_read(struct tracefs_instance *instance,
 		*psize = size;
 
 	return buf;
+}
+
+/**
+ * tracefs_instance_file_read_number - Read long long integer from a trace file.
+ * @instance: ftrace instance, can be NULL for the top instance
+ * @file: name of the file
+ * @res: The integer from the file.
+ *
+ * Returns 0 if the reading is successful and the result is stored in res, -1
+ * in case of an error.
+ */
+int tracefs_instance_file_read_number(struct tracefs_instance *instance,
+				      const char *file, long long *res)
+{
+	long long num;
+	int ret = -1;
+	int size = 0;
+	char *str;
+
+	str = tracefs_instance_file_read(instance, file, &size);
+	if (size && str) {
+		errno = 0;
+		num = strtoll(str, NULL, 0);
+		if (errno == 0) {
+			*res = num;
+			ret = 0;
+		}
+	}
+	free(str);
+	return ret;
+}
+
+/**
+ * tracefs_instance_file_open - Open a trace file for reading and writing
+ * @instance: ftrace instance, can be NULL for the top instance
+ * @file: name of the file
+ * @mode: file open flags, -1 for default O_RDWR
+ *
+ * Returns -1 in case of an error, or a valid file descriptor otherwise.
+ * The returned FD must be closed with close()
+ */
+int tracefs_instance_file_open(struct tracefs_instance *instance,
+			       const char *file, int mode)
+{
+	int flags = O_RDWR;
+	int fd = -1;
+	char *path;
+
+	path = tracefs_instance_get_file(instance, file);
+	if (!path)
+		return -1;
+
+	if (mode >= 0)
+		flags = mode;
+	fd = open(path, flags);
+	tracefs_put_tracing_file(path);
+
+	return fd;
 }
 
 static bool check_file_exists(struct tracefs_instance *instance,
