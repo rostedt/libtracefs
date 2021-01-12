@@ -4,8 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_file_exists, tracefs_dir_exists, tracefs_instance_get_file,
-tracefs_instance_get_dir, tracefs_instance_file_write,
-tracefs_instance_file_read - Work with files in tracing instances.
+tracefs_instance_get_dir, tracefs_instance_file_open, tracefs_instance_file_write,
+tracefs_instance_file_read, tracefs_instance_file_read_number - Work with files in tracing instances.
 
 SYNOPSIS
 --------
@@ -17,8 +17,10 @@ bool *tracefs_file_exists*(struct tracefs_instance pass:[*]_instance_, char pass
 bool *tracefs_dir_exists*(struct tracefs_instance pass:[*]_instance_, char pass:[*]_name_);
 char pass:[*]*tracefs_instance_get_file*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_);
 char pass:[*]*tracefs_instance_get_dir*(struct tracefs_instance pass:[*]_instance_);
+int *tracefs_instance_file_open*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, int _mode_);
 int *tracefs_instance_file_write*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, const char pass:[*]_str_);
 char pass:[*]*tracefs_instance_file_read*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, int pass:[*]_psize_);
+int *tracefs_instance_file_read_number*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, long long int pass:[*]_res_);
 
 --
 
@@ -41,11 +43,18 @@ The _tracefs_instance_get_dir()_ function  returns the full path of the director
 with given _name_ in _instance_. Note, it does not check if the directory exists
 in the instance.
 
+The _tracefs_instance_file_open()_ function opens trace _file_ from given _instance_ and returns
+a file descriptor to it. The file access _mode_ can be specified, see *open*(3) for more details.
+If -1 is passed as _mode_, default O_RDWR is used.
+
 The _tracefs_instance_file_write()_ function writes a string _str_ in a _file_ from
 the given _instance_, without the terminating NULL character.
 
-The _tracefs_instance_file_read()_ function reads the content of a _file_  from
+The _tracefs_instance_file_read()_ function reads the content of a _file_ from
 the given _instance_.
+
+The _tracefs_instance_file_read_number()_ function reads the content of a _file_ from
+the given _instance_ and converts it to a long long integer, which is stored in _res_.
 
 RETURN VALUE
 ------------
@@ -56,12 +65,18 @@ The _tracefs_instance_get_file()_ and _tracefs_instance_get_dir()_ functions ret
 a string or NULL in case of an error. The returned string must be freed with
 _tracefs_put_tracing_file()_.
 
+The _tracefs_instance_file_open()_ function returns a file descriptor to the opened file. It must be
+closed with *close*(3). In case of an error, -1 is returned.
+
 The _tracefs_instance_file_write()_ function returns the number of written bytes,
 or -1 in case of an error.
 
 The _tracefs_instance_file_read()_ function returns a pointer to a NULL terminated
 string, read from the file, or NULL in case of an error. The returned string must
 be freed with free().
+
+The _tracefs_instance_file_read_number()_ function returns 0 if a valid integer is read from
+the file and stored in _res_ or -1 in case of an error.
 
 EXAMPLE
 -------
@@ -123,6 +138,30 @@ struct tracefs_instance *inst = tracefs_instance_create("foo");
 		tracefs_instance_destroy(inst);
 	else
 		tracefs_instance_free(inst);
+	...
+
+	long long int res;
+	if (tracefs_instance_file_read_number(NULL, "tracing_on", &res) == 0) {
+		if (res == 0) {
+			/* tracing is disabled in the top instance */
+		} else if (res == 1) {
+			/* tracing is enabled in the top instance */
+		} else {
+			/* Unknown tracing state of the top instance */
+		}
+	} else {
+		/* Failed to read integer from tracing_on file */
+	}
+
+	...
+
+	int fd;
+	fd = tracefs_instance_file_open(NULL, "tracing_on", O_WRONLY);
+	if (fd >= 0) {
+		/* Got file descriptor to the tracing_on file from the top instance for writing */
+		...
+		close(fd);
+	}
 --
 FILES
 -----
