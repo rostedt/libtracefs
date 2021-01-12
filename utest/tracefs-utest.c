@@ -218,6 +218,7 @@ static void test_instance_file_read(struct tracefs_instance *inst, const char *f
 #define ALL_TRACERS	"available_tracers"
 #define CUR_TRACER	"current_tracer"
 #define PER_CPU		"per_cpu"
+#define TRACE_ON	"tracing_on"
 static void test_instance_file(void)
 {
 	struct tracefs_instance *instance = NULL;
@@ -320,6 +321,97 @@ static void test_instance_file(void)
 	tracefs_instance_free(instance);
 	CU_TEST(stat(inst_dir, &st) != 0);
 	free(inst_dir);
+}
+
+static bool check_fd_name(int fd, char *name)
+{
+	char link[PATH_MAX + 1];
+	char path[PATH_MAX + 1];
+	struct stat st;
+	char *file;
+	int ret;
+
+	snprintf(link, PATH_MAX, "/proc/self/fd/%d", fd);
+	ret = lstat(link, &st);
+	CU_TEST(ret == 0);
+	if (ret < 0)
+		return false;
+	CU_TEST(S_ISLNK(st.st_mode));
+	if (!S_ISLNK(st.st_mode))
+		return false;
+	ret = readlink(link, path, PATH_MAX);
+	CU_TEST(ret > 0);
+	if (ret > PATH_MAX || ret < 0)
+		return false;
+	path[ret] = 0;
+	file = basename(path);
+	CU_TEST(file != NULL);
+	if (!file)
+		return false;
+	ret = strcmp(file, name);
+	CU_TEST(ret == 0);
+	if (ret)
+		return false;
+	return true;
+}
+
+#define FLAGS_STR	"flags:"
+static bool check_fd_mode(int fd, int mode)
+{
+	char path[PATH_MAX + 1];
+	long fmode = -1;
+	char *line = NULL;
+	struct stat st;
+	size_t len = 0;
+	ssize_t size;
+	FILE *file;
+	int ret;
+
+	snprintf(path, PATH_MAX, "/proc/self/fdinfo/%d", fd);
+	ret = stat(path, &st);
+	CU_TEST(ret == 0);
+	if (ret < 0)
+		return false;
+	file = fopen(path, "r");
+	if (!file)
+		return false;
+	while ((size = getline(&line, &len, file)) > 0) {
+		if (strncmp(line, FLAGS_STR, strlen(FLAGS_STR)))
+			continue;
+		fmode = strtol(line + strlen(FLAGS_STR), NULL, 8);
+		break;
+	}
+	free(line);
+	fclose(file);
+	if (fmode < 0 ||
+	    (O_ACCMODE & fmode) != (O_ACCMODE & mode))
+		return false;
+	return true;
+}
+
+static void test_instance_file_fd(void)
+{
+	const char *name = get_rand_str();
+	long long res = -1;
+	char rd[2];
+	int fd;
+
+	fd = tracefs_instance_file_open(test_instance, name, -1);
+	CU_TEST(fd == -1);
+	fd = tracefs_instance_file_open(test_instance, TRACE_ON, O_RDONLY);
+	CU_TEST(fd >= 0);
+	CU_TEST(check_fd_name(fd, TRACE_ON));
+	CU_TEST(check_fd_mode(fd, O_RDONLY));
+
+	CU_TEST(tracefs_instance_file_read_number(test_instance, "available_tracer", &res) != 0);
+	CU_TEST(tracefs_instance_file_read_number(test_instance, name, &res) != 0);
+	CU_TEST(tracefs_instance_file_read_number(test_instance, TRACE_ON, &res) == 0);
+	CU_TEST((res == 0 || res == 1));
+	CU_TEST(read(fd, &rd, 1) == 1);
+	rd[1] = 0;
+	CU_TEST(res == atoi(rd));
+
+	close(fd);
 }
 
 static void exclude_string(char **strings, char *name)
@@ -614,6 +706,8 @@ void test_tracefs_lib(void)
 	CU_add_test(suite, "tracing file / directory APIs",
 		    test_trace_file);
 	CU_add_test(suite, "instance file / directory APIs",
+		    test_instance_file_fd);
+	CU_add_test(suite, "instance file descriptor",
 		    test_instance_file);
 	CU_add_test(suite, "systems and events APIs",
 		    test_system_event);
