@@ -414,6 +414,44 @@ static void test_instance_file_fd(void)
 	close(fd);
 }
 
+static void test_tracing_onoff(void)
+{
+	long long res = -1;
+	int fd;
+
+	fd = tracefs_trace_on_get_fd(test_instance);
+	CU_TEST(fd >= 0);
+	CU_TEST(check_fd_name(fd, TRACE_ON));
+	CU_TEST(check_fd_mode(fd, O_RDWR));
+	CU_TEST(tracefs_instance_file_read_number(test_instance, TRACE_ON, &res) == 0);
+	if (res == 1) {
+		CU_TEST(tracefs_trace_is_on(test_instance) == 1);
+		CU_TEST(tracefs_trace_off(test_instance) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 0);
+		CU_TEST(tracefs_trace_on(test_instance) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 1);
+
+		CU_TEST(tracefs_trace_off_fd(fd) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 0);
+		CU_TEST(tracefs_trace_on_fd(fd) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 1);
+	} else {
+		CU_TEST(tracefs_trace_is_on(test_instance) == 0);
+		CU_TEST(tracefs_trace_on(test_instance) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 1);
+		CU_TEST(tracefs_trace_off(test_instance) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 0);
+
+		CU_TEST(tracefs_trace_on_fd(fd) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 1);
+		CU_TEST(tracefs_trace_off_fd(fd) == 0);
+		CU_TEST(tracefs_trace_is_on(test_instance) == 0);
+	}
+
+	if (fd >= 0)
+		close(fd);
+}
+
 static void exclude_string(char **strings, char *name)
 {
 	int i;
@@ -721,4 +759,7 @@ void test_tracefs_lib(void)
 		    test_instances_walk);
 	CU_add_test(suite, "tracefs_get_clock API",
 		    test_get_clock);
+	CU_add_test(suite, "tracing on / off",
+		    test_tracing_onoff);
+
 }
