@@ -40,6 +40,24 @@ bool tracefs_instance_exists(const char *name);
 bool tracefs_file_exists(struct tracefs_instance *instance, char *name);
 bool tracefs_dir_exists(struct tracefs_instance *instance, char *name);
 
+int tracefs_trace_is_on(struct tracefs_instance *instance);
+int tracefs_trace_on(struct tracefs_instance *instance);
+int tracefs_trace_off(struct tracefs_instance *instance);
+int tracefs_trace_on_fd(int fd);
+int tracefs_trace_off_fd(int fd);
+
+/**
+ * tracefs_trace_on_get_fd - Get a file descriptor of "tracing_on" in given instance
+ * @instance: ftrace instance, can be NULL for the top instance
+ *
+ * Returns -1 in case of an error, or a valid file descriptor to "tracing_on"
+ * file for reading and writing.The returned FD must be closed with close().
+ */
+static inline int tracefs_trace_on_get_fd(struct tracefs_instance *instance)
+{
+	return tracefs_instance_file_open(instance, "tracing_on", O_RDWR);
+}
+
 /* events */
 void tracefs_list_free(char **list);
 char **tracefs_event_systems(const char *tracing_dir);
