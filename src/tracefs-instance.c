@@ -316,13 +316,14 @@ int tracefs_instance_file_read_number(struct tracefs_instance *instance,
 	long long num;
 	int ret = -1;
 	int size = 0;
+	char *endptr;
 	char *str;
 
 	str = tracefs_instance_file_read(instance, file, &size);
 	if (size && str) {
 		errno = 0;
-		num = strtoll(str, NULL, 0);
-		if (errno == 0) {
+		num = strtoll(str, &endptr, 0);
+		if (errno == 0 && str != endptr) {
 			*res = num;
 			ret = 0;
 		}
