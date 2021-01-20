@@ -82,4 +82,65 @@ int tracefs_fill_local_events(const char *tracing_dir,
 
 char *tracefs_get_clock(struct tracefs_instance *instance);
 
+enum tracefs_option_id {
+	TRACEFS_OPTION_INVALID = 0,
+	TRACEFS_OPTION_ANNOTATE,
+	TRACEFS_OPTION_BIN,
+	TRACEFS_OPTION_BLK_CGNAME,
+	TRACEFS_OPTION_BLK_CGROUP,
+	TRACEFS_OPTION_BLK_CLASSIC,
+	TRACEFS_OPTION_BLOCK,
+	TRACEFS_OPTION_CONTEXT_INFO,
+	TRACEFS_OPTION_DISABLE_ON_FREE,
+	TRACEFS_OPTION_DISPLAY_GRAPH,
+	TRACEFS_OPTION_EVENT_FORK,
+	TRACEFS_OPTION_FGRAPH_ABSTIME,
+	TRACEFS_OPTION_FGRAPH_CPU,
+	TRACEFS_OPTION_FGRAPH_DURATION,
+	TRACEFS_OPTION_FGRAPH_IRQS,
+	TRACEFS_OPTION_FGRAPH_OVERHEAD,
+	TRACEFS_OPTION_FGRAPH_OVERRUN,
+	TRACEFS_OPTION_FGRAPH_PROC,
+	TRACEFS_OPTION_FGRAPH_TAIL,
+	TRACEFS_OPTION_FUNC_STACKTRACE,
+	TRACEFS_OPTION_FUNCTION_FORK,
+	TRACEFS_OPTION_FUNCTION_TRACE,
+	TRACEFS_OPTION_GRAPH_TIME,
+	TRACEFS_OPTION_HEX,
+	TRACEFS_OPTION_IRQ_INFO,
+	TRACEFS_OPTION_LATENCY_FORMAT,
+	TRACEFS_OPTION_MARKERS,
+	TRACEFS_OPTION_OVERWRITE,
+	TRACEFS_OPTION_PAUSE_ON_TRACE,
+	TRACEFS_OPTION_PRINTK_MSG_ONLY,
+	TRACEFS_OPTION_PRINT_PARENT,
+	TRACEFS_OPTION_RAW,
+	TRACEFS_OPTION_RECORD_CMD,
+	TRACEFS_OPTION_RECORD_TGID,
+	TRACEFS_OPTION_SLEEP_TIME,
+	TRACEFS_OPTION_STACKTRACE,
+	TRACEFS_OPTION_SYM_ADDR,
+	TRACEFS_OPTION_SYM_OFFSET,
+	TRACEFS_OPTION_SYM_USEROBJ,
+	TRACEFS_OPTION_TRACE_PRINTK,
+	TRACEFS_OPTION_USERSTACKTRACE,
+	TRACEFS_OPTION_VERBOSE,
+};
+#define TRACEFS_OPTION_MAX (TRACEFS_OPTION_VERBOSE + 1)
+
+struct tracefs_options_mask {
+	unsigned long long	mask;
+};
+void tracefs_option_set(struct tracefs_options_mask *options, enum tracefs_option_id id);
+void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_option_id id);
+bool tracefs_option_is_set(struct tracefs_options_mask options, enum tracefs_option_id id);
+
+struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instance *instance);
+bool tracefs_option_is_supported(struct tracefs_instance *instance, enum tracefs_option_id id);
+struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance *instance);
+bool tracefs_option_is_enabled(struct tracefs_instance *instance, enum tracefs_option_id id);
+int tracefs_option_enable(struct tracefs_instance *instance, enum tracefs_option_id id);
+int tracefs_option_diasble(struct tracefs_instance *instance, enum tracefs_option_id id);
+const char *tracefs_option_name(enum tracefs_option_id id);
+
 #endif /* _TRACE_FS_H */
