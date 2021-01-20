@@ -452,6 +452,148 @@ static void test_tracing_onoff(void)
 		close(fd);
 }
 
+static bool check_option(struct tracefs_instance *instance,
+			 enum tracefs_option_id id, bool exist, int enabled)
+{
+	const char *name = tracefs_option_name(id);
+	char file[PATH_MAX];
+	char *path = NULL;
+	bool ret = false;
+	bool supported;
+	struct stat st;
+	char buf[10];
+	int fd;
+	int r;
+	int rstat;
+
+	CU_TEST(name != NULL);
+	supported = tracefs_option_is_supported(instance, id);
+	CU_TEST(supported == exist);
+	if (supported != exist)
+		goto out;
+	snprintf(file, PATH_MAX, "options/%s", name);
+	path = tracefs_instance_get_file(instance, file);
+	CU_TEST(path != NULL);
+	rstat = stat(path, &st);
+	if (exist) {
+		CU_TEST(rstat == 0);
+		if (rstat != 0)
+			goto out;
+	} else {
+		CU_TEST(stat(path, &st) == -1);
+		if (rstat != -1)
+			goto out;
+	}
+
+	fd = open(path, O_RDONLY);
+	if (exist) {
+		CU_TEST(fd >= 0);
+		if (fd < 0)
+			goto out;
+	} else {
+		CU_TEST(fd < 0);
+		if (fd >= 0)
+			goto out;
+	}
+
+	if (exist && enabled >= 0) {
+		int val = enabled ? '1' : '0';
+
+		r = read(fd, buf, 10);
+		CU_TEST(r >= 1);
+		CU_TEST(buf[0] == val);
+		if (buf[0] != val)
+			goto out;
+	}
+
+	ret = true;
+out:
+	tracefs_put_tracing_file(path);
+	if (fd >= 0)
+		close(fd);
+	return ret;
+}
+
+static bool check_options_mask_empty(struct tracefs_options_mask *mask)
+{
+	int i;
+
+	for (i = 1; i < TRACEFS_OPTION_MAX; i++) {
+		if (tracefs_option_is_set(*mask, i))
+			return false;
+	}
+	return true;
+}
+
+static void test_instance_tracing_options(struct tracefs_instance *instance)
+{
+	struct tracefs_options_mask *enabled;
+	struct tracefs_options_mask *all, *all_copy;
+	enum tracefs_option_id i = 1;
+	char file[PATH_MAX];
+	const char *name;
+
+	all = tracefs_options_get_supported(instance);
+	all_copy = tracefs_options_get_supported(instance);
+	enabled = tracefs_options_get_enabled(instance);
+	CU_TEST(all != NULL);
+
+	/* Invalid parameters test */
+	CU_TEST(!tracefs_option_is_supported(instance, TRACEFS_OPTION_INVALID));
+	CU_TEST(!tracefs_option_is_enabled(instance, TRACEFS_OPTION_INVALID));
+	CU_TEST(tracefs_option_enable(instance, TRACEFS_OPTION_INVALID) == -1);
+	CU_TEST(tracefs_option_diasble(instance, TRACEFS_OPTION_INVALID) == -1);
+	name = tracefs_option_name(TRACEFS_OPTION_INVALID);
+	CU_TEST(!strcmp(name, "unknown"));
+	/* Test all valid options */
+	for (i = 1; i < TRACEFS_OPTION_MAX; i++) {
+		name = tracefs_option_name(i);
+		CU_TEST(name != NULL);
+		CU_TEST(strcmp(name, "unknown"));
+		snprintf(file, PATH_MAX, "options/%s", name);
+
+		if (tracefs_option_is_set(*all, i)) {
+			tracefs_option_clear(all, i);
+			CU_TEST(!tracefs_option_is_set(*all, i));
+			CU_TEST(check_option(instance, i, true, -1));
+			CU_TEST(tracefs_option_is_supported(instance, i));
+		} else {
+			CU_TEST(check_option(instance, i, false, -1));
+			CU_TEST(!tracefs_option_is_supported(instance, i));
+		}
+
+		if (tracefs_option_is_set(*enabled, i)) {
+			tracefs_option_clear(enabled, i);
+			CU_TEST(!tracefs_option_is_set(*enabled, i));
+			CU_TEST(check_option(instance, i, true, 1));
+			CU_TEST(tracefs_option_is_supported(instance, i));
+			CU_TEST(tracefs_option_is_enabled(instance, i));
+			CU_TEST(tracefs_option_diasble(instance, i) == 0);
+			CU_TEST(check_option(instance, i, true, 0));
+			CU_TEST(tracefs_option_enable(instance, i) == 0);
+			CU_TEST(check_option(instance, i, true, 1));
+		} else if (tracefs_option_is_set(*all_copy, i)) {
+			CU_TEST(check_option(instance, i, true, 0));
+			CU_TEST(tracefs_option_is_supported(instance, i));
+			CU_TEST(!tracefs_option_is_enabled(instance, i));
+			CU_TEST(tracefs_option_enable(instance, i) == 0);
+			CU_TEST(check_option(instance, i, true, 1));
+			CU_TEST(tracefs_option_diasble(instance, i) == 0);
+			CU_TEST(check_option(instance, i, true, 0));
+		}
+	}
+	CU_TEST(check_options_mask_empty(all));
+	CU_TEST(check_options_mask_empty(enabled));
+
+	free(all);
+	free(enabled);
+}
+
+static void test_tracing_options(void)
+{
+	test_instance_tracing_options(test_instance);
+}
+
 static void exclude_string(char **strings, char *name)
 {
 	int i;
@@ -761,5 +903,7 @@ void test_tracefs_lib(void)
 		    test_get_clock);
 	CU_add_test(suite, "tracing on / off",
 		    test_tracing_onoff);
+	CU_add_test(suite, "tracing options",
+		    test_tracing_options);
 
 }
