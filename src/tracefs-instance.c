@@ -152,6 +152,49 @@ error:
 }
 
 /**
+ * tracefs_instance_alloc - Allocate an instance structure for existing trace instance
+ * @tracing_dir: full path to the system trace directory, where the new instance is
+ *		 if NULL, the default top tracing directory is used.
+ * @name: Name of the instance.
+ *
+ * Allocates and initializes a new instance structure. If the instance does not
+ * exist, do not create it and exit with error.
+ * Returns a pointer to a newly allocated instance, or NULL in case of an error
+ * or the requested instance does not exists.
+ * The returned instance must be freed by tracefs_instance_free().
+ */
+struct tracefs_instance *tracefs_instance_alloc(const char *tracing_dir,
+						const char *name)
+{
+	struct tracefs_instance *inst = NULL;
+	char file[PATH_MAX];
+	const char *tdir;
+	struct stat st;
+	int ret;
+
+	if (tracing_dir) {
+		ret = stat(tracing_dir, &st);
+		if (ret < 0 || !S_ISDIR(st.st_mode))
+			return NULL;
+		tdir = tracing_dir;
+
+	} else
+		tdir = tracefs_tracing_dir();
+	if (!tdir)
+		return NULL;
+
+	if (name) {
+		sprintf(file, "%s/instances/%s", tdir, name);
+		ret = stat(file, &st);
+		if (ret < 0 || !S_ISDIR(st.st_mode))
+			return NULL;
+	}
+	inst = instance_alloc(tdir, name);
+
+	return inst;
+}
+
+/**
  * tracefs_instance_destroy - Remove a ftrace instance
  * @instance: Pointer to the instance to be removed
  *
@@ -244,6 +287,20 @@ const char *tracefs_instance_get_name(struct tracefs_instance *instance)
 {
 	if (instance)
 		return instance->name;
+	return NULL;
+}
+
+/**
+ * tracefs_instance_get_trace_dir - return the top trace directory, where the instance is confuigred
+ * @instance: ftrace instance
+ *
+ * Returns the top trace directory where the given @instance is configured.
+ * The returned string must *not* be freed.
+ */
+const char *tracefs_instance_get_trace_dir(struct tracefs_instance *instance)
+{
+	if (instance)
+		return instance->trace_dir;
 	return NULL;
 }
 

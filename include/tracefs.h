@@ -22,9 +22,12 @@ struct tracefs_instance;
 
 void tracefs_instance_free(struct tracefs_instance *instance);
 struct tracefs_instance *tracefs_instance_create(const char *name);
+struct tracefs_instance *tracefs_instance_alloc(const char *tracing_dir,
+						const char *name);
 int tracefs_instance_destroy(struct tracefs_instance *instance);
 bool tracefs_instance_is_new(struct tracefs_instance *instance);
 const char *tracefs_instance_get_name(struct tracefs_instance *instance);
+const char *tracefs_instance_get_trace_dir(struct tracefs_instance *instance);
 char *
 tracefs_instance_get_file(struct tracefs_instance *instance, const char *file);
 char *tracefs_instance_get_dir(struct tracefs_instance *instance);
