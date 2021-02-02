@@ -8,6 +8,12 @@
 
 #define __hidden __attribute__((visibility ("hidden")))
 
+#define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
+
+/* Will cause a division by zero warning if cond is true */
+#define BUILD_BUG_ON(cond)			\
+	do { if (!(1/!(cond))) { } } while (0)
+
 /* Can be overridden */
 void warning(const char *fmt, ...);
 

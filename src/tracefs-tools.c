@@ -19,7 +19,7 @@
 
 #define TRACE_CTRL	"tracing_on"
 
-static const char * const options_map[TRACEFS_OPTION_MAX] = {
+static const char * const options_map[] = {
 	"unknown", "annotate", "bin", "blk_cgname", "blk_cgroup", "blk_classic",
 	"block", "context-info", "disable_on_free", "display-graph", "event-fork",
 	"funcgraph-abstime", "funcgraph-cpu", "funcgraph-duration", "funcgraph-irqs",
@@ -132,6 +132,9 @@ int tracefs_trace_off_fd(int fd)
  */
 const char *tracefs_option_name(enum tracefs_option_id id)
 {
+	/* Make sure options map contains all the options */
+	BUILD_BUG_ON(ARRAY_SIZE(options_map) != TRACEFS_OPTION_MAX);
+
 	if (id < TRACEFS_OPTION_MAX)
 		return options_map[id];
 
