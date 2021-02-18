@@ -3,7 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_instance_get_name, tracefs_instances_walk, tracefs_instance_exists -
+tracefs_instance_get_name, tracefs_instance_get_trace_dir,
+tracefs_instances_walk, tracefs_instance_exists -
 Helper functions for working with tracing instances.
 
 SYNOPSIS
@@ -13,6 +14,7 @@ SYNOPSIS
 *#include <tracefs.h>*
 
 const char pass:[*]*tracefs_instance_get_name*(struct tracefs_instance pass:[*]_instance_);
+const char pass:[*]*tracefs_instance_get_trace_dir*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_instances_walk*(int (pass:[*]_callback_)(const char pass:[*], void pass:[*]), void pass:[*]_context)_;
 bool *tracefs_instance_exists*(const char pass:[*]_name_);
 
@@ -24,6 +26,9 @@ Helper functions for working with trace instances.
 
 The _tracefs_instance_get_name()_ function returns the name of the given _instance_.
 Note that the top instance has no name, the function returns NULL for it.
+
+The _tracefs_instance_get_trace_dir()_ function returns the tracing directory, where
+the given _instance_ is configured.
 
 The _tracefs_instances_walk()_ function walks through all configured tracing
 instances in the system and calls _callback_ for each one of them. The _context_
@@ -38,6 +43,9 @@ RETURN VALUE
 ------------
 The _tracefs_instance_get_name()_ returns a string or NULL in case of the top
 instance. The returned string must _not_ be freed.
+
+The _tracefs_instance_get_trace_dir()_ returns a string or NULL in case of an error.
+The returned string must _not_ be freed.
 
 The _tracefs_instances_walk()_ function returns 0, if all instances were iterated, 1
 if the iteration was stopped by the _callback_, or -1 in case of an error.
@@ -54,11 +62,13 @@ EXAMPLE
 struct tracefs_instance *inst;
 ....
 char *name = tracefs_instance_get_name(inst);
-
 	if(name) {
 		/* Got name of the instance */
 	}
-
+char *dir = tracefs_instance_get_trace_dir(inst);
+	if(dir) {
+		/* Got tracing directory of the instance */
+	}
 ...
 static int instance_walk(char *name, void *context)
 {

@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_instance_create, tracefs_instance_destroy, tracefs_instance_free,
+tracefs_instance_create, tracefs_instance_destroy, tracefs_instance_alloc, tracefs_instance_free,
 tracefs_instance_is_new - Manage trace instances.
 
 SYNOPSIS
@@ -14,6 +14,7 @@ SYNOPSIS
 
 struct tracefs_instance pass:[*]*tracefs_instance_create*(const char pass:[*]_name_);
 int *tracefs_instance_destroy*(struct tracefs_instance pass:[*]_instance_);
+struct tracefs_instance pass:[*]*tracefs_instance_alloc*(const char pass:[*]_tracing_dir_, const char pass:[*]_name_);
 void *tracefs_instance_free*(struct tracefs_instance pass:[*]_instance_);
 bool *tracefs_instance_is_new*(struct tracefs_instance pass:[*]_instance_);
 
@@ -28,11 +29,21 @@ system, nor other instances, as events enabled in the main tracing system
 or other instances do not affect the given instance.
 
 The _tracefs_instance_create()_ function allocates and initializes a new
-tracefs_instance structure and returns it. If the instance does not yet
-exist in the system, it will be created.
+tracefs_instance structure and returns it. If the instance with _name_ does
+not yet exist in the system, it will be created. The _name_ could be NULL,
+then the new tracefs_instance structure is initialised for the top instance.
+Note that the top instance cannot be created in the system, if it does not
+exist.
 
 The _tracefs_instance_destroy()_ frees the _instance_ structure, and will
 also remove the trace instance from the system.
+
+The _tracefs_instance_alloc()_ function allocates a new tracefs_instance structure
+for existing trace instance. If the instance does not exist in the system, the function
+fails. The _tracing_dir_ parameter points to the system trace directory. It can be
+NULL, then default system trace directory is used. This parameter is useful to allocate
+instances to trace directories, copied from another machine. The _name_ is the name of
+the instance, or NULL for the top instance in the given _tracing_dir_.
 
 The _tracefs_instance_free()_ function frees the tracefs_instance structure,
 without removing the trace instance from the system.
@@ -43,8 +54,8 @@ before that.
 
 RETURN VALUE
 ------------
-The _tracefs_instance_create()_ function returns a pointer to a newly allocated
-tracefs_instance structure. It must be freed with _tracefs_instance_destroy()_ or
+The _tracefs_instance_create()_ and _tracefs_instance_alloc()_ functions return a pointer to
+a newly allocated tracefs_instance structure. It must be freed with _tracefs_instance_destroy()_ or
 _tracefs_instance_free()_.
 
 The _tracefs_instance_destroy()_ function returns -1 in case of an error,
@@ -54,7 +65,7 @@ The _tracefs_instance_is_new()_ function returns true if the
 _tracefs_instance_create()_ that allocated _instance_ also created the
 trace instance in the system, or false if the trace instance already
 existed in the system when _instance_ was allocated by
-_tracefs_instance_create()_.
+_tracefs_instance_create()_ or _tracefs_instance_alloc()_.
 
 EXAMPLE
 -------
@@ -74,6 +85,17 @@ struct tracefs_instance *inst = tracefs_instance_create("foo");
 		tracefs_instance_destroy(inst);
 	else
 		tracefs_instance_free(inst);
+...
+
+struct tracefs_instance *inst = tracefs_instance_alloc(NULL, "bar");
+	if (!inst) {
+		/* Error allocating 'bar' trace instance */
+		...
+	}
+
+	...
+
+	tracefs_instance_free(inst);
 --
 FILES
 -----
