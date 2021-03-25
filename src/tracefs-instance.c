@@ -436,7 +436,7 @@ int tracefs_instance_file_open(struct tracefs_instance *instance,
 }
 
 static bool check_file_exists(struct tracefs_instance *instance,
-			     char *name, bool dir)
+			      const char *name, bool dir)
 {
 	char file[PATH_MAX];
 	struct stat st;
@@ -482,7 +482,7 @@ bool tracefs_instance_exists(const char *name)
  *
  * If a directory with the given name exists, false is returned.
  */
-bool tracefs_file_exists(struct tracefs_instance *instance, char *name)
+bool tracefs_file_exists(struct tracefs_instance *instance, const char *name)
 {
 	return check_file_exists(instance, name, false);
 }
@@ -494,7 +494,7 @@ bool tracefs_file_exists(struct tracefs_instance *instance, char *name)
  *
  * Returns true if the directory exists, false otherwise
  */
-bool tracefs_dir_exists(struct tracefs_instance *instance, char *name)
+bool tracefs_dir_exists(struct tracefs_instance *instance, const char *name)
 {
 	return check_file_exists(instance, name, true);
 }

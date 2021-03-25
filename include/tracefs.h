@@ -42,8 +42,8 @@ int tracefs_instance_file_open(struct tracefs_instance *instance,
 int tracefs_instances_walk(int (*callback)(const char *, void *), void *context);
 
 bool tracefs_instance_exists(const char *name);
-bool tracefs_file_exists(struct tracefs_instance *instance, char *name);
-bool tracefs_dir_exists(struct tracefs_instance *instance, char *name);
+bool tracefs_file_exists(struct tracefs_instance *instance, const char *name);
+bool tracefs_dir_exists(struct tracefs_instance *instance, const char *name);
 
 int tracefs_trace_is_on(struct tracefs_instance *instance);
 int tracefs_trace_on(struct tracefs_instance *instance);
