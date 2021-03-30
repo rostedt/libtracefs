@@ -1,0 +1,10 @@
+*~
+\#*\#
+.pc
+libtracefs.pc
+TAGS
+tags
+lib/
+patches/
+build_prefix
+build_uninstall
