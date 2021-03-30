@@ -11,7 +11,7 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_function_filter(struct tracefs_instance *instance, const char **filters, const char *module, bool reset, const char ***errs);
+int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]pass:[*]_filters_, const char pass:[*]_module_, bool _reset_, const char pass:[*]pass:[*]pass:[*]_errs_);
 --
 
 DESCRIPTION
@@ -24,7 +24,7 @@ _instance_ , that can be NULL for the top level tracing.
 _filters_, which is an array of the strings that represent a list of filters that should
 be applied to define what functions are to be traced and The array must end
 with a NULL pointer.
-_module_ , name of the module to be traced.
+_module_ , name of the module to be traced (or NULL for all functions),
 _reset_ if set will clear the current set of filters and then apply the
 filter list, otherwise the list of filters are added to the current set of
 filters,
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	int i = 0;
 
 	if (!inst) {
-		/* Error creating new trace instance*/
+		/* Error creating new trace instance */
 	}
 
 	ret = tracefs_function_filter(inst, filters, NULL, reset, &errs);
@@ -71,7 +71,6 @@ int main(int argc, char *argv[])
 			printf("%s\n", errs[i++]);
 	}
 
-	tracefs_instance_free(inst);
 	tracefs_instance_destroy(inst);
 	free(errs);
 	return 0;
