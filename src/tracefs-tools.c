@@ -13,6 +13,7 @@
 #include <regex.h>
 #include <dirent.h>
 #include <limits.h>
+#include <pthread.h>
 #include <errno.h>
 
 #include "tracefs.h"
@@ -21,6 +22,8 @@
 #define TRACE_CTRL		"tracing_on"
 #define TRACE_FILTER		"set_ftrace_filter"
 #define TRACE_FILTER_LIST	"available_filter_functions"
+
+static pthread_mutex_t filter_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static const char * const options_map[] = {
 	"unknown",
@@ -867,15 +870,16 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	char *ftrace_filter_path;
 	bool reset = flags & TRACEFS_FL_RESET;
 	int open_flags;
-	int ret;
+	int ret = 1;
 	int fd;
 
+	pthread_mutex_lock(&filter_lock);
 	if (!filters)
-		return 1;
+		goto out;
 
 	func_filters = make_func_filters(filters);
 	if (!func_filters)
-		return 1;
+		goto out;
 
 	/* Make sure errs is NULL to start with, realloc() depends on it. */
 	if (errs)
@@ -906,6 +910,8 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
  out_free:
 	free_func_list(func_list);
 	free_func_filters(func_filters);
+ out:
+	pthread_mutex_unlock(&filter_lock);
 
 	return ret;
 }
