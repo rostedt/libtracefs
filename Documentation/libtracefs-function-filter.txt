@@ -11,7 +11,7 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]pass:[*]_filters_, const char pass:[*]_module_, bool _reset_, const char pass:[*]pass:[*]pass:[*]_errs_);
+int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]pass:[*]_filters_, const char pass:[*]_module_, int _flags_, const char pass:[*]pass:[*]pass:[*]_errs_);
 --
 
 DESCRIPTION
@@ -25,24 +25,34 @@ _filters_, which is an array of the strings that represent a list of filters tha
 be applied to define what functions are to be traced and The array must end
 with a NULL pointer.
 _module_ , name of the module to be traced (or NULL for all functions),
-_reset_ if set will clear the current set of filters and then apply the
-filter list, otherwise the list of filters are added to the current set of
-filters,
+_flags_ which holds control knobs on how the filters will be handled (see *FLAGS*)
+section below,
 _errs_, is a pointer to an array of strings, which will be allocated if
 any of filters fail to match any available function, If _errs_ is NULL, it will
 be ignored.
 
 A filter in the array of _filters_ may be either a straight match of a
-function, a glob or regex(3). a glob is where '*' matches zero or more
+function, a glob or regex(3). a glob is where 'pass:[*]' matches zero or more
 characters, '?' will match zero or one character, and '.' only matches a
 period. If the filter is determined to be a regex (where it contains
-anything other than alpha numeric characters, or '.', '*', '?') the filter
+anything other than alpha numeric characters, or '.', 'pass:[*]', '?') the filter
 will be processed as a regex(3) following the rules of regex(3), and '.' is
 not a period, but will match any one character. To force a regular
 expression, either prefix the filter with a '^' or append it with a '$' as
 all filters will act as complete matches of functions anyway.
 
 returns 0  on success, 1 or -x (where x is an integer) on error.
+
+FLAGS
+-----
+
+The _flags_ parameter may have the following set, or be zero.
+
+*TRACEFS_FL_RESET* :
+If _flags_ contains *TRACEFS_FL_RESET*, then it will clear the filters that
+are currently set before applying the list of filters from _filters_. Otherwise,
+the list of filters from _filters_ will be added to the current set of filters
+already enabled.
 
 RETURN VALUE
 ------------
@@ -66,7 +76,7 @@ int main(int argc, char *argv[])
 {
 	struct tracefs_instance *inst = tracefs_instance_create(INST);
 	const char **errs = NULL;
-	bool reset = 1;
+	int flags = TRACEFS_FL_RESET;
 	int ret;
 	int i = 0;
 
@@ -74,7 +84,7 @@ int main(int argc, char *argv[])
 		/* Error creating new trace instance */
 	}
 
-	ret = tracefs_function_filter(inst, filters, NULL, reset, &errs);
+	ret = tracefs_function_filter(inst, filters, NULL, flags, &errs);
 
 	if (ret < 0 && errs) {
 		while (errs[i])

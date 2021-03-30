@@ -835,7 +835,7 @@ static int write_func_list(int fd, struct func_list *list)
  * @instance: ftrace instance, can be NULL for top tracing instance
  * @filters: An array of function names ending with a NULL pointer
  * @module: Module to be traced
- * @reset: set to true to reset the file before applying the filter
+ * @flags: flags on modifying the filter file
  * @errs: A pointer to array of constant strings that will be allocated
  * on negative return of this function, pointing to the filters that
  * failed.May be NULL, in which case this field will be ignored.
@@ -843,9 +843,11 @@ static int write_func_list(int fd, struct func_list *list)
  * The @filters is an array of strings, where each string will be used
  * to set a function or functions to be traced.
  *
- * If @reset is true, then all functions in the filter are cleared
- * before adding functions from @filters. Otherwise, the functions set
- * by @filters will be appended to the filter file
+ * @flags:
+ *   TRACEFS_FL_RESET - will clear the functions in the filter file
+ *          before applying the @filters. This flag is ignored
+ *          if this function is called again when the previous
+ *          call had TRACEFS_FL_CONTINUE set.
  *
  * returns -x on filter errors (where x is number of failed filter
  * srtings) and if @errs is not NULL will be an allocated string array
@@ -858,12 +860,13 @@ static int write_func_list(int fd, struct func_list *list)
  * return 0 on success and @errs is not set.
  */
 int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,
-			    const char *module, bool reset, const char ***errs)
+			    const char *module, unsigned int flags, const char ***errs)
 {
 	struct func_filter *func_filters;
 	struct func_list *func_list = NULL;
 	char *ftrace_filter_path;
-	int flags;
+	bool reset = flags & TRACEFS_FL_RESET;
+	int open_flags;
 	int ret;
 	int fd;
 
@@ -887,9 +890,9 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	if (!ftrace_filter_path)
 		goto out_free;
 
-	flags = reset ? O_TRUNC : O_APPEND;
+	open_flags = reset ? O_TRUNC : O_APPEND;
 
-	fd = open(ftrace_filter_path, O_WRONLY | flags);
+	fd = open(ftrace_filter_path, O_WRONLY | open_flags);
 	tracefs_put_tracing_file(ftrace_filter_path);
 	if (fd < 0)
 		goto out_free;

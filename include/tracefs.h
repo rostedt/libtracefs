@@ -145,6 +145,14 @@ bool tracefs_option_is_enabled(struct tracefs_instance *instance, enum tracefs_o
 int tracefs_option_enable(struct tracefs_instance *instance, enum tracefs_option_id id);
 int tracefs_option_diasble(struct tracefs_instance *instance, enum tracefs_option_id id);
 const char *tracefs_option_name(enum tracefs_option_id id);
+
+/*
+ * RESET	- Reset on opening filter file (O_TRUNC)
+ */
+enum {
+	TRACEFS_FL_RESET	= (1 << 0),
+};
+
 int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,
-			    const char *module, bool reset, const char ***errs);
+			    const char *module, unsigned int flags, const char ***errs);
 #endif /* _TRACE_FS_H */
