@@ -149,10 +149,13 @@ const char *tracefs_option_name(enum tracefs_option_id id);
 /*
  * RESET	- Reset on opening filter file (O_TRUNC)
  * CONTINUE	- Do not close filter file on return.
+ * FUTURE	- For kernels that support this feature, enable filters for
+ *		  a module that has yet to be loaded.
  */
 enum {
 	TRACEFS_FL_RESET	= (1 << 0),
 	TRACEFS_FL_CONTINUE	= (1 << 1),
+	TRACEFS_FL_FUTURE	= (1 << 2),
 };
 
 int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,

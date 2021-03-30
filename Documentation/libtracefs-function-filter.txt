@@ -71,6 +71,15 @@ the *TRACEFS_FL_CONTINUE* flag set for the same instance will fail if
 *TRACEFS_FL_RESET* flag is set, as the reset flag is only applicable for the
 first filter to be added before committing.
 
+*TRACEFS_FL_FUTURE* :
+If _flags_ contains *TRACEFS_FL_FUTURE* and _module_ holds a string of a module,
+then if the module is not loaded it will attemp to write the filter with the module
+in the filter file. Starting in Linux v4.13 module functions could be added to the
+filter before they are loaded. The filter will be cached, and when the module is
+loaded, the filter will be set before the module executes, allowing to trace
+init functions of a module. This will only work if the _filter_ is not a
+regular expression.
+
 RETURN VALUE
 ------------
 Returns 0 on success. If the there is an error but the filtering was not

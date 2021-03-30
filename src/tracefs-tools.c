@@ -553,14 +553,18 @@ static void free_func_list(struct func_list *func_list)
 }
 
 enum match_type {
-	FILTER_CHECK,
-	FILTER_WRITE,
+	FILTER_CHECK	= (1 << 0),
+	FILTER_WRITE	= (1 << 1),
+	FILTER_FUTURE	= (1 << 2),
 };
 
 static int match_filters(int fd, struct func_filter *func_filter,
 			 const char *module, struct func_list **func_list,
-			 enum match_type type)
+			 int flags)
 {
+	enum match_type type = flags & (FILTER_CHECK | FILTER_WRITE);
+	bool future = flags & FILTER_FUTURE;
+	bool mod_match = false;
 	char *line = NULL;
 	size_t size = 0;
 	char *path;
@@ -602,6 +606,8 @@ static int match_filters(int fd, struct func_filter *func_filter,
 			if ((strncmp(mtok + 1, module, mlen) != 0) ||
 			    (mtok[mlen + 1] != ']'))
 				goto next;
+			if (future)
+				mod_match = true;
 		}
 		switch (type) {
 		case FILTER_CHECK:
@@ -620,6 +626,11 @@ static int match_filters(int fd, struct func_filter *func_filter,
 					goto out;
 			}
 			break;
+		default:
+			/* Should never happen */
+			ret = -1;
+			goto out;
+
 		}
 	next:
 		free(line);
@@ -630,14 +641,21 @@ static int match_filters(int fd, struct func_filter *func_filter,
 	free(line);
 	fclose(fp);
 
+	/* If there was no matches and future was set, this is a success */
+	if (future && !mod_match)
+		ret = 0;
+
 	return ret;
 }
 
 static int check_available_filters(struct func_filter *func_filter,
 				   const char *module,
-				   struct func_list **func_list)
+				   struct func_list **func_list,
+				   bool future)
 {
-	return match_filters(-1, func_filter, module, func_list, FILTER_CHECK);
+	int flags = FILTER_CHECK | (future ? FILTER_FUTURE : 0);
+
+	return match_filters(-1, func_filter, module, func_list, flags);
 }
 
 static int set_regex_filter(int fd, struct func_filter *func_filter,
@@ -748,6 +766,13 @@ static int write_func_list(int fd, struct func_list *list)
  *          may be added before they take effect. The last call of this
  *          function must be called without this flag for the filter
  *          to take effect.
+ *   TRACEFS_FL_FUTURE - only applicable if "module" is set. If no match
+ *          is made, and the module is not yet loaded, it will still attempt
+ *          to write the filter plus the module; "<filter>:mod:<module>"
+ *          to the filter file. Starting with Linux kernels 4.13, it is possible
+ *          to load the filter file with module functions for a module that
+ *          is not yet loaded, and when the module is loaded, it will then
+ *          activate the module.
  *
  * Returns 0 on success, 1 if there was an error but the filtering has not
  *  yet started, -1 if there was an error but the filtering has started.
@@ -763,9 +788,16 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	char *ftrace_filter_path;
 	bool reset = flags & TRACEFS_FL_RESET;
 	bool cont = flags & TRACEFS_FL_CONTINUE;
+	bool future = flags & TRACEFS_FL_FUTURE;
 	int open_flags;
 	int ret = 1;
 	int *fd;
+
+	/* future flag is only applicable to modules */
+	if (future && !module) {
+		errno = EINVAL;
+		return 1;
+	}
 
 	pthread_mutex_lock(&filter_lock);
 	if (instance)
@@ -808,7 +840,7 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	if (init_func_filter(&func_filter, filter) < 0)
 		goto out;
 
-	ret = check_available_filters(&func_filter, module, &func_list);
+	ret = check_available_filters(&func_filter, module, &func_list, future);
 	if (ret)
 		goto out_free;
 
@@ -831,7 +863,14 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	ret = 0;
 
 	if (filter) {
-		ret = write_func_list(*fd, func_list);
+		/*
+		 * If future is set, and no functions were found, then
+		 * set it directly.
+		 */
+		if (func_list)
+			ret = write_func_list(*fd, func_list);
+		else
+			ret = 1;
 		if (ret > 0)
 			ret = controlled_write(*fd, &func_filter, module);
 	}
