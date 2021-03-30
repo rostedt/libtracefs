@@ -461,6 +461,33 @@ static bool match(const char *str, struct func_filter *func_filter)
 	return regexec(&func_filter->re, str, 0, NULL, 0) == 0;
 }
 
+/*
+ * Return 0 on success, -1 error writing, 1 on other errors.
+ */
+static int write_filter(int fd, const char *filter, const char *module)
+{
+	char *each_str = NULL;
+	int write_size;
+	int size;
+
+	if (module)
+		write_size = asprintf(&each_str, "%s:mod:%s ", filter, module);
+	else
+		write_size = asprintf(&each_str, "%s ", filter);
+
+	if (write_size < 0)
+		return 1;
+
+	size = write(fd, each_str, write_size);
+	free(each_str);
+
+	/* compare written bytes*/
+	if (size < write_size)
+		return -1;
+
+	return 0;
+}
+
 static int check_available_filters(struct func_filter *func_filters,
 				   const char *module, const char ***errs)
 {
@@ -526,31 +553,24 @@ static int check_available_filters(struct func_filter *func_filters,
 static int controlled_write(int fd, const char **filters,
 			    const char *module, const char ***errs)
 {
-	char *each_str = NULL;
-	int write_size = 0;
-	int size = 0;
 	int ret = 0;
 	int i;
 
 	for (i = 0; filters[i]; i++) {
-		if (module)
-			write_size = asprintf(&each_str, "%s:mod:%s ", filters[i], module);
-		else
-			write_size = asprintf(&each_str, "%s ", filters[i]);
-		if (write_size < 0) {
-			ret = 1;
-			goto error;
-		}
-		size = write(fd, each_str, write_size);
-		/* compare written bytes*/
-		if (size < write_size)
+		int r;
+
+		r = write_filter(fd, filters[i], module);
+		if (r < 0) {
 			add_errors(errs, filters[i], ret--);
-		free(each_str);
-		each_str = NULL;
+		} else if (r > 0) {
+			/* Not filter error */
+			if (errs) {
+				free(*errs);
+				*errs = NULL;
+			}
+			return 1;
+		}
 	}
- error:
-	if (each_str)
-		free(each_str);
 	return ret;
 }
 
