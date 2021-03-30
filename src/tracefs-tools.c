@@ -739,9 +739,9 @@ static int write_func_list(int fd, struct func_list *list)
  *
  * @flags:
  *   TRACEFS_FL_RESET - will clear the functions in the filter file
- *          before applying the @filter. This flag is ignored
- *          if this function is called again when the previous
- *          call had TRACEFS_FL_CONTINUE set.
+ *          before applying the @filter. This will error with -1
+ *          and errno of EBUSY if this flag is set and a previous
+ *          call had the same instance and TRACEFS_FL_CONTINUE set.
  *   TRACEFS_FL_CONTINUE - will keep the filter file open on return.
  *          The filter is updated on closing of the filter file.
  *          With this flag set, the file is not closed, and more filters
@@ -772,6 +772,13 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 		fd = &instance->ftrace_filter_fd;
 	else
 		fd = &ftrace_filter_fd;
+
+	/* RESET is only allowed if the file is not opened yet */
+	if (reset && *fd >= 0) {
+		errno = EBUSY;
+		ret = -1;
+		goto out;
+	}
 
 	/*
 	 * Set EINVAL on no matching filter. But errno may still be modified

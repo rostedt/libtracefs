@@ -45,9 +45,10 @@ The _flags_ parameter may have the following set, or be zero.
 *TRACEFS_FL_RESET* :
 If _flags_ contains *TRACEFS_FL_RESET*, then it will clear the filters that
 are currently set before applying _filter_. Otherwise, _filter_ is added to
-the current set of filters already enabled. This flag is ignored if a
+the current set of filters already enabled. If this flag is set and the
 previous call to tracefs_function_filter() had the same _instance_ and the
-*TRACEFS_FL_CONTINUE* flag was set.
+*TRACEFS_FL_CONTINUE* flag was set, then the function will fail with a
+return of -1 and errno set to EBUSY.
 
 *TRACEFS_FL_CONTINUE* :
 If _flags_ contains *TRACEFS_FL_CONTINUE*, then _filter_ will not take
@@ -58,9 +59,9 @@ commit all the filters.
 It can be called multiple times to add more filters. A call without this
 flag set will commit the changes before returning (if the _filter_ passed in
 successfully matched). A tracefs_function_filter() call after one that had
-the *TRACEFS_FL_CONTINUE* flag set for the same instance will ignore the
-*TRACEFS_FL_RESET* flag, as the reset flag is only applicable for the first
-filters to be added before committing.
+the *TRACEFS_FL_CONTINUE* flag set for the same instance will fail if
+*TRACEFS_FL_RESET* flag is set, as the reset flag is only applicable for the
+first filter to be added before committing.
 
 RETURN VALUE
 ------------
@@ -78,6 +79,10 @@ ERRORS
 *tracefs_function_filter*() can fail with the following errors:
 
 *EINVAL* The filter is invalid or did not match any functions.
+
+*EBUSY* The previous call of *tracefs_function_filter*() was called
+with the same instance and *TRACEFS_FL_CONTINUE* set and the current call
+had *TRACEFS_FL_RESET* set.
 
 Other errors may also happen caused by internal system calls.
 
@@ -97,6 +102,7 @@ int main(int argc, char *argv[])
 {
 	struct tracefs_instance *inst = tracefs_instance_create(INST);
 	int ret;
+	int reset = TRACEFS_FL_RESET;
 	int i;
 
 	if (!inst) {
@@ -105,12 +111,11 @@ int main(int argc, char *argv[])
 
 	for (i = 0; filters[i]; i++) {
 		/*
-		 * Note, only the first call does something
-		 * with TRACEFS_FL_RESET. It is ignored in the following
-		 * calls.
+		 * Only the first call can have TRACEFS_FL_RESET set
+		 * while TRACEFS_FL_CONTINUE is set.
 		 */
 		ret = tracefs_function_filter(inst, filters[i], NULL,
-				      TRACEFS_FL_RESET | TRACEFS_FL_CONTINUE);
+				      reset | TRACEFS_FL_CONTINUE);
 
 		if (ret) {
 			if (errno == EINVAL)
@@ -118,6 +123,7 @@ int main(int argc, char *argv[])
 			else
 				printf("Failed writing %s\n", filters[i]);
 		}
+		reset = 0;
 	}
 
 	ret = tracefs_function_filter(inst, "*", "ext4", 0);
