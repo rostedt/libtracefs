@@ -148,9 +148,11 @@ const char *tracefs_option_name(enum tracefs_option_id id);
 
 /*
  * RESET	- Reset on opening filter file (O_TRUNC)
+ * CONTINUE	- Do not close filter file on return.
  */
 enum {
 	TRACEFS_FL_RESET	= (1 << 0),
+	TRACEFS_FL_CONTINUE	= (1 << 1),
 };
 
 int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,

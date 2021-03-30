@@ -18,6 +18,7 @@ struct tracefs_instance {
 	char	*trace_dir;
 	char	*name;
 	int	flags;
+	int	ftrace_filter_fd;
 };
 
 /* Can be overridden */

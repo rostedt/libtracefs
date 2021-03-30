@@ -43,6 +43,8 @@ static struct tracefs_instance *instance_alloc(const char *trace_dir, const char
 			goto error;
 	}
 
+	instance->ftrace_filter_fd = -1;
+
 	return instance;
 
 error:

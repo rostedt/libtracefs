@@ -52,7 +52,20 @@ The _flags_ parameter may have the following set, or be zero.
 If _flags_ contains *TRACEFS_FL_RESET*, then it will clear the filters that
 are currently set before applying the list of filters from _filters_. Otherwise,
 the list of filters from _filters_ will be added to the current set of filters
-already enabled.
+already enabled. This flag is ignored if a previous call to
+tracefs_function_filter() had the same _instance_ and the
+*TRACEFS_FL_CONTINUE* flag was set.
+
+*TRACEFS_FL_CONTINUE* :
+If _flags_ contains *TRACEFS_FL_CONTINUE*, then the filters will not take
+effect after a successful call to tracefs_function_filter(). This allows for
+multiple calls to tracefs_function_filter() to update the filter function.
+It can be called multiple times and add more filters. A call without this
+flag set will commit the changes before returning (if the filters passed in
+successfully matched). A tracefs_function_filter() call after one that had
+the *TRACEFS_FL_CONTINUE* flag set for the same instance will ignore the
+*TRACEFS_FL_RESET* flag, as the reset flag is only applicable for the first
+filters to be added before committing.
 
 RETURN VALUE
 ------------
@@ -70,13 +83,13 @@ EXAMPLE
 
 #define INST "dummy"
 
-const char *filters[] = { "run_init_process", "try_to_run_init_process", "dummy1", NULL };
+static const char *filters[] = { "run_init_process", "try_to_run_init_process", "dummy1", NULL };
+static const char *all[] = { "*", NULL };
 
 int main(int argc, char *argv[])
 {
 	struct tracefs_instance *inst = tracefs_instance_create(INST);
 	const char **errs = NULL;
-	int flags = TRACEFS_FL_RESET;
 	int ret;
 	int i = 0;
 
@@ -84,15 +97,24 @@ int main(int argc, char *argv[])
 		/* Error creating new trace instance */
 	}
 
-	ret = tracefs_function_filter(inst, filters, NULL, flags, &errs);
+	ret = tracefs_function_filter(inst, filters, NULL,
+				      TRACEFS_FL_RESET | TRACEF_FL_CONTINUE,
+				      &errs);
 
 	if (ret < 0 && errs) {
 		while (errs[i])
 			printf("%s\n", errs[i++]);
 	}
+	free(errs);
+
+	ret = tracefs_function_filter(inst, all, "ext4", 0, &errs);
+	if (ret < 0) {
+		printf("Failed to set filters for ext4\n");
+		/* Force the function to commit previous filters */
+		tracefs_function_filter(inst, NULL, NULL, 0, &errs);
+	}
 
 	tracefs_instance_destroy(inst);
-	free(errs);
 	return 0;
 }
 --

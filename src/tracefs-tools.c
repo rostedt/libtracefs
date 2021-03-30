@@ -23,6 +23,8 @@
 #define TRACE_FILTER		"set_ftrace_filter"
 #define TRACE_FILTER_LIST	"available_filter_functions"
 
+/* File descriptor for Top level set_ftrace_filter  */
+static int ftrace_filter_fd = -1;
 static pthread_mutex_t filter_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static const char * const options_map[] = {
@@ -851,6 +853,12 @@ static int write_func_list(int fd, struct func_list *list)
  *          before applying the @filters. This flag is ignored
  *          if this function is called again when the previous
  *          call had TRACEFS_FL_CONTINUE set.
+ *   TRACEFS_FL_CONTINUE - will keep the filter file open on return.
+ *          The filter is updated on closing of the filter file.
+ *          With this flag set, the file is not closed, and more filters
+ *          may be added before they take effect. The last call of this
+ *          function must be called without this flag for the filter
+ *          to take effect.
  *
  * returns -x on filter errors (where x is number of failed filter
  * srtings) and if @errs is not NULL will be an allocated string array
@@ -869,13 +877,26 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	struct func_list *func_list = NULL;
 	char *ftrace_filter_path;
 	bool reset = flags & TRACEFS_FL_RESET;
+	bool cont = flags & TRACEFS_FL_CONTINUE;
 	int open_flags;
 	int ret = 1;
-	int fd;
+	int *fd;
 
 	pthread_mutex_lock(&filter_lock);
-	if (!filters)
+	if (instance)
+		fd = &instance->ftrace_filter_fd;
+	else
+		fd = &ftrace_filter_fd;
+
+	if (!filters) {
+		/* OK to call without filters if this is closing the opened file */
+		if (!cont && *fd >= 0) {
+			ret = 0;
+			close(*fd);
+			*fd = -1;
+		}
 		goto out;
+	}
 
 	func_filters = make_func_filters(filters);
 	if (!func_filters)
@@ -896,16 +917,20 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 
 	open_flags = reset ? O_TRUNC : O_APPEND;
 
-	fd = open(ftrace_filter_path, O_WRONLY | open_flags);
+	if (*fd < 0)
+		*fd = open(ftrace_filter_path, O_WRONLY | open_flags);
 	tracefs_put_tracing_file(ftrace_filter_path);
-	if (fd < 0)
+	if (*fd < 0)
 		goto out_free;
 
-	ret = write_func_list(fd, func_list);
+	ret = write_func_list(*fd, func_list);
 	if (ret > 0)
-		ret = controlled_write(fd, func_filters, module, errs);
+		ret = controlled_write(*fd, func_filters, module, errs);
 
-	close(fd);
+	if (!cont) {
+		close(*fd);
+		*fd = -1;
+	}
 
  out_free:
 	free_func_list(func_list);
