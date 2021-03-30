@@ -37,7 +37,9 @@ not a period, but will match any one character. To force a regular
 expression, either prefix _filter_ with a '^' or append it with a '$' as
 the _filter_ does complete matches of the functions anyway.
 
-The _filter_ may be NULL if a previous call to *tracefs_function_filter()* with
+If _module_ is set and _filter_ is NULL, this will imply the same as _filter_ being
+equal to "pass:[*]". Which will enable all functions for a given _module_. Otherwise
+the _filter_ may be NULL if a previous call to *tracefs_function_filter()* with
 the same _instance_ had *TRACEFS_FL_CONTINUE* set and this call does not. This is
 useful to simply commit the previous filters. It may also be NULL
 if *TRACEFS_FL_RESET* is set and the previous call did not have the same _instance_

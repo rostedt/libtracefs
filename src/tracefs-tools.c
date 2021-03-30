@@ -786,6 +786,10 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	 */
 	errno = EINVAL;
 
+	/* module set with NULL filter means to enable all functions in a module */
+	if (module && !filter)
+		filter = "*";
+
 	if (!filter) {
 		/* OK to call without filters if this is closing the opened file */
 		if (!cont && *fd >= 0) {
