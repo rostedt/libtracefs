@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <regex.h>
 #include <dirent.h>
 #include <limits.h>
 #include <errno.h>
@@ -416,6 +417,112 @@ static void add_errors(const char ***errs, const char *filter, int ret)
 	*errs = e;
 }
 
+struct func_filter {
+	const char		*filter;
+	regex_t			re;
+	bool			set;
+};
+
+/*
+ * Convert a glob into a regular expression.
+ */
+static char *make_regex(const char *glob)
+{
+	char *str;
+	int cnt = 0;
+	int i, j;
+
+	for (i = 0; glob[i]; i++) {
+		if (glob[i] == '*'|| glob[i] == '.')
+			cnt++;
+	}
+
+	/* '^' + ('*'->'.*' or '.' -> '\.') + '$' + '\0' */
+	str = malloc(i + cnt + 3);
+	if (!str)
+		return NULL;
+
+	str[0] = '^';
+	for (i = 0, j = 1; glob[i]; i++, j++) {
+		if (glob[i] == '*')
+			str[j++] = '.';
+		/* Dots can be part of a function name */
+		if (glob[i] == '.')
+			str[j++] = '\\';
+		str[j] = glob[i];
+	}
+	str[j++] = '$';
+	str[j] = '\0';
+	return str;
+}
+
+static bool match(const char *str, struct func_filter *func_filter)
+{
+	return regexec(&func_filter->re, str, 0, NULL, 0) == 0;
+}
+
+static int check_available_filters(struct func_filter *func_filters,
+				   const char *module, const char ***errs)
+{
+	char *line = NULL;
+	size_t size = 0;
+	char *path;
+	FILE *fp;
+	int ret = 1;
+	int mlen;
+	int i;
+
+	path = tracefs_get_tracing_file("available_filter_functions");
+	if (!path)
+		return 1;
+
+	fp = fopen(path, "r");
+	tracefs_put_tracing_file(path);
+
+	if (!fp)
+		return 1;
+
+	if (module)
+		mlen = strlen(module);
+
+	while (getline(&line, &size, fp) >= 0) {
+		char *saveptr = NULL;
+		char *tok, *mtok;
+		int len = strlen(line);
+
+		if (line[len - 1] == '\n')
+			line[len - 1] = '\0';
+		tok = strtok_r(line, " ", &saveptr);
+		if (!tok)
+			goto next;
+		if (module) {
+			mtok = strtok_r(NULL, " ", &saveptr);
+			if (!mtok)
+				goto next;
+			if ((strncmp(mtok + 1, module, mlen) != 0) ||
+			    (mtok[mlen + 1] != ']'))
+				goto next;
+		}
+		for (i = 0; func_filters[i].filter; i++) {
+			if (match(tok, &func_filters[i]))
+				func_filters[i].set = true;
+		}
+	next:
+		free(line);
+		line = NULL;
+		len = 0;
+	}
+	fclose(fp);
+
+	ret = 0;
+	for (i = 0; func_filters[i].filter; i++) {
+		if (!func_filters[i].set)
+			add_errors(errs, func_filters[i].filter, ret--);
+	}
+
+	return ret;
+}
+
 static int controlled_write(int fd, const char **filters,
 			    const char *module, const char ***errs)
 {
@@ -445,6 +552,62 @@ static int controlled_write(int fd, const char **filters,
 	if (each_str)
 		free(each_str);
 	return ret;
+}
+
+static int init_func_filter(struct func_filter *func_filter, const char *filter)
+{
+	char *str;
+	int ret;
+
+	str = make_regex(filter);
+	if (!str)
+		return -1;
+
+	ret = regcomp(&func_filter->re, str, REG_ICASE|REG_NOSUB);
+	free(str);
+
+	if (ret < 0)
+		return -1;
+
+	func_filter->filter = filter;
+	return 0;
+}
+
+static void free_func_filters(struct func_filter *func_filters)
+{
+	int i;
+
+	if (!func_filters)
+		return;
+
+	for (i = 0; func_filters[i].filter; i++) {
+		regfree(&func_filters[i].re);
+	}
+}
+
+static struct func_filter *make_func_filters(const char **filters)
+{
+	struct func_filter *func_filters = NULL;
+	int i;
+
+	for (i = 0; filters[i]; i++)
+		;
+
+	if (!i)
+		return NULL;
+
+	func_filters = calloc(i + 1, sizeof(*func_filters));
+	if (!func_filters)
+		return NULL;
+
+	for (i = 0; filters[i]; i++) {
+		if (init_func_filter(&func_filters[i], filters[i]) < 0)
+			goto out_err;
+	}
+	return func_filters;
+ out_err:
+	free_func_filters(func_filters);
+	return NULL;
 }
 
 /**
@@ -478,13 +641,27 @@ static int controlled_write(int fd, const char **filters,
 int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,
 			    const char *module, bool reset, const char ***errs)
 {
+	struct func_filter *func_filters;
 	char *ftrace_filter_path;
-	int ret = 0;
 	int flags;
+	int ret;
 	int fd;
 
 	if (!filters)
 		return 1;
+
+	func_filters = make_func_filters(filters);
+	if (!func_filters)
+		return 1;
+
+	/* Make sure errs is NULL to start with, realloc() depends on it. */
+	if (errs)
+		*errs = NULL;
+
+	ret = check_available_filters(func_filters, module, errs);
+	free_func_filters(func_filters);
+	if (ret)
+		return ret;
 
 	ftrace_filter_path = tracefs_instance_get_file(instance, TRACE_FILTER);
 	if (!ftrace_filter_path)
@@ -496,10 +673,6 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	tracefs_put_tracing_file(ftrace_filter_path);
 	if (fd < 0)
 		return 1;
-
-	/* Make sure errs is NULL to start with, realloc() depends on it. */
-	if (errs)
-		*errs = NULL;
 
 	ret = controlled_write(fd, filters, module, errs);
 
