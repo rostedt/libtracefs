@@ -32,6 +32,16 @@ _errs_, is a pointer to an array of strings, which will be allocated if
 any of filters fail to match any available function, If _errs_ is NULL, it will
 be ignored.
 
+A filter in the array of _filters_ may be either a straight match of a
+function, a glob or regex(3). a glob is where '*' matches zero or more
+characters, '?' will match zero or one character, and '.' only matches a
+period. If the filter is determined to be a regex (where it contains
+anything other than alpha numeric characters, or '.', '*', '?') the filter
+will be processed as a regex(3) following the rules of regex(3), and '.' is
+not a period, but will match any one character. To force a regular
+expression, either prefix the filter with a '^' or append it with a '$' as
+all filters will act as complete matches of functions anyway.
+
 returns 0  on success, 1 or -x (where x is an integer) on error.
 
 RETURN VALUE
