@@ -389,16 +389,40 @@ void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_opt
 		options->mask &= ~(1ULL << (id - 1));
 }
 
+static void add_errors(const char ***errs, const char *filter, int ret)
+{
+	const char **e;
+
+	if (!errs)
+		return;
+
+	/* Negative is passed in */
+	ret = -ret;
+	e = *errs;
+
+	/* If this previously failed to allocate stop processing */
+	if (!e && ret)
+		return;
+
+	/* Add 2, one for the new entry, and one for NULL */
+	e = realloc(e, sizeof(*e) * (ret + 2));
+	if (!e) {
+		free(*errs);
+		*errs = NULL;
+		return;
+	}
+	e[ret] = filter;
+	e[ret + 1] = NULL;
+	*errs = e;
+}
+
 static int controlled_write(int fd, const char **filters,
 			    const char *module, const char ***errs)
 {
-	const char **temp = NULL;
-	const char **e = NULL;
 	char *each_str = NULL;
 	int write_size = 0;
 	int size = 0;
 	int ret = 0;
-	int j = 0;
 	int i;
 
 	for (i = 0; filters[i]; i++) {
@@ -412,33 +436,10 @@ static int controlled_write(int fd, const char **filters,
 		}
 		size = write(fd, each_str, write_size);
 		/* compare written bytes*/
-		if (size < write_size) {
-			if (errs) {
-				temp = realloc(e, (j + 1) * (sizeof(char *)));
-				if (!temp) {
-					free(e);
-					ret = 1;
-					goto error;
-				} else
-					e = temp;
-
-				e[j++] = filters[i];
-				ret -= 1;
-			}
-		}
+		if (size < write_size)
+			add_errors(errs, filters[i], ret--);
 		free(each_str);
 		each_str = NULL;
-	}
-	if (errs) {
-		temp = realloc(e, (j + 1) * (sizeof(char *)));
-		if (!temp) {
-			free(e);
-			ret = 1;
-			goto error;
-		} else
-			e = temp;
-		e[j] = NULL;
-		*errs = e;
 	}
  error:
 	if (each_str)
@@ -495,6 +496,10 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	tracefs_put_tracing_file(ftrace_filter_path);
 	if (fd < 0)
 		return 1;
+
+	/* Make sure errs is NULL to start with, realloc() depends on it. */
+	if (errs)
+		*errs = NULL;
 
 	ret = controlled_write(fd, filters, module, errs);
 
