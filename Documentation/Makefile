@@ -13,7 +13,7 @@ MAN3_TXT= \
 MAN_TXT = $(MAN3_TXT)
 _MAN_XML=$(patsubst %.txt,%.xml,$(MAN_TXT))
 _MAN_HTML=$(patsubst %.txt,%.html,$(MAN_TXT))
-_DOC_MAN3=$(patsubst %.txt,%.3,$(MAN3_TXT))
+_DOC_MAN3=$(patsubst %.txt,%.m,$(MAN3_TXT))
 
 MAN_XML=$(addprefix $(OUTPUT),$(_MAN_XML))
 MAN_HTML=$(addprefix $(OUTPUT),$(_MAN_HTML))
@@ -145,13 +145,18 @@ ifdef missing_tools
 	$(error "You need to install $(missing_tools) for man pages")
 endif
 
-do-install-man: man
-	$(Q)$(call do_install,$(OUTPUT)*.3,$(man3dir),644);
+install-%.3: $(OUTPUT)%.3
+	$(Q)$(call do_install,$<,$(man3dir),644);
 
-install-man: man do-install-man
+do-install-man: man $(addprefix install-,$(wildcard $(OUTPUT)*.3))
 
-do-install-html: html
-	$(Q)$(call do_install,$(OUTPUT)*.html,$(htmldir),644);
+install-man: man
+	$(Q)$(MAKE) -C . do-install-man
+
+install-%.txt: $(OUTPUT)%.html
+	$(Q)$(call do_install,$<,$(htmldir),644);
+
+do-install-html: html $(addprefix install-,$(wildcard *.txt))
 
 install-html: html do-install-html
 
@@ -172,7 +177,7 @@ endif
 CLEAN_FILES =					\
 	$(MAN_XML) $(addsuffix +,$(MAN_XML))	\
 	$(MAN_HTML) $(addsuffix +,$(MAN_HTML))	\
-	$(DOC_MAN3) *.3
+	$(DOC_MAN3) *.3 *.m
 
 clean:
 	$(Q) $(RM) $(CLEAN_FILES)
@@ -185,9 +190,10 @@ $(OUTPUT)%.3 : $(OUTPUT)%.txt
 	mv $@+ $@
 endif
 
-$(OUTPUT)%.3 : $(OUTPUT)%.xml
+$(OUTPUT)%.m : $(OUTPUT)%.xml
 	$(QUIET_XMLTO)$(RM) $@ && \
-	$(XMLTO) -o $(OUTPUT). -m $(MANPAGE_XSL) $(XMLTO_EXTRA) man $<
+	$(XMLTO) -o $(OUTPUT). -m $(MANPAGE_XSL) $(XMLTO_EXTRA) man $<; \
+	touch $@
 
 $(OUTPUT)%.xml : %.txt
 	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
