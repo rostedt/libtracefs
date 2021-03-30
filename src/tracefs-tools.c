@@ -396,33 +396,6 @@ void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_opt
 		options->mask &= ~(1ULL << (id - 1));
 }
 
-static void add_errors(const char ***errs, const char *filter, int ret)
-{
-	const char **e;
-
-	if (!errs)
-		return;
-
-	/* Negative is passed in */
-	ret = -ret;
-	e = *errs;
-
-	/* If this previously failed to allocate stop processing */
-	if (!e && ret)
-		return;
-
-	/* Add 2, one for the new entry, and one for NULL */
-	e = realloc(e, sizeof(*e) * (ret + 2));
-	if (!e) {
-		free(*errs);
-		*errs = NULL;
-		return;
-	}
-	e[ret] = filter;
-	e[ret + 1] = NULL;
-	*errs = e;
-}
-
 struct func_list {
 	struct func_list	*next;
 	unsigned int		start;
@@ -584,7 +557,7 @@ enum match_type {
 	FILTER_WRITE,
 };
 
-static int match_filters(int fd, struct func_filter *func_filters,
+static int match_filters(int fd, struct func_filter *func_filter,
 			 const char *module, struct func_list **func_list,
 			 enum match_type type)
 {
@@ -595,7 +568,6 @@ static int match_filters(int fd, struct func_filter *func_filters,
 	int index = 0;
 	int ret = 1;
 	int mlen;
-	int i;
 
 	path = tracefs_get_tracing_file(TRACE_FILTER_LIST);
 	if (!path)
@@ -614,7 +586,6 @@ static int match_filters(int fd, struct func_filter *func_filters,
 		char *saveptr = NULL;
 		char *tok, *mtok;
 		int len = strlen(line);
-		bool first = true;
 
 		if (line[len - 1] == '\n')
 			line[len - 1] = '\0';
@@ -634,30 +605,16 @@ static int match_filters(int fd, struct func_filter *func_filters,
 		}
 		switch (type) {
 		case FILTER_CHECK:
-			/* Check, checks a list of filters */
-			for (i = 0; func_filters[i].filter; i++) {
-				/*
-				 * If a match was found, still need to
-				 * check if other filters would match
-				 * to make sure that all filters have a
-				 * match, as some filters may overlap.
-				 */
-				if (!first && func_filters[i].set)
-					continue;
-				if (match(tok, &func_filters[i])) {
-					func_filters[i].set = true;
-					if (first) {
-						first = false;
-						ret = add_func(&func_list, index);
-						if (ret)
-							goto out;
-					}
-				}
+			if (match(tok, func_filter)) {
+				func_filter->set = true;
+				ret = add_func(&func_list, index);
+				if (ret)
+					goto out;
 			}
 			break;
 		case FILTER_WRITE:
 			/* Writes only have one filter */
-			if (match(tok, func_filters)) {
+			if (match(tok, func_filter)) {
 				ret = write_filter(fd, tok, module);
 				if (ret)
 					goto out;
@@ -676,25 +633,11 @@ static int match_filters(int fd, struct func_filter *func_filters,
 	return ret;
 }
 
-static int check_available_filters(struct func_filter *func_filters,
-				   const char *module, const char ***errs,
+static int check_available_filters(struct func_filter *func_filter,
+				   const char *module,
 				   struct func_list **func_list)
 {
-	int ret;
-	int i;
-
-	ret = match_filters(-1, func_filters, module, func_list, FILTER_CHECK);
-	/* Return here if success or non filter error */
-	if (ret >= 0)
-		return ret;
-
-	/* Failed on filter, set the errors */
-	ret = 0;
-	for (i = 0; func_filters[i].filter; i++) {
-		if (!func_filters[i].set)
-			add_errors(errs, func_filters[i].filter, ret--);
-	}
-	return ret;
+	return match_filters(-1, func_filter, module, func_list, FILTER_CHECK);
 }
 
 static int set_regex_filter(int fd, struct func_filter *func_filter,
@@ -703,31 +646,17 @@ static int set_regex_filter(int fd, struct func_filter *func_filter,
 	return match_filters(fd, func_filter, module, NULL, FILTER_WRITE);
 }
 
-static int controlled_write(int fd, struct func_filter *func_filters,
-			    const char *module, const char ***errs)
+static int controlled_write(int fd, struct func_filter *func_filter,
+			    const char *module)
 {
-	int ret = 0;
-	int i;
+	const char *filter = func_filter->filter;
+	int ret;
 
-	for (i = 0; func_filters[i].filter; i++) {
-		const char *filter = func_filters[i].filter;
-		int r;
+	if (func_filter->is_regex)
+		ret = set_regex_filter(fd, func_filter, module);
+	else
+		ret = write_filter(fd, filter, module);
 
-		if (func_filters[i].is_regex)
-			r = set_regex_filter(fd, &func_filters[i], module);
-		else
-			r = write_filter(fd, filter, module);
-		if (r > 0) {
-			/* Not filter error */
-			if (errs) {
-				free(*errs);
-				*errs = NULL;
-			}
-			return 1;
-		}
-		if (r < 0)
-			add_errors(errs, filter, ret--);
-	}
 	return ret;
 }
 
@@ -752,43 +681,6 @@ static int init_func_filter(struct func_filter *func_filter, const char *filter)
 
 	func_filter->filter = filter;
 	return 0;
-}
-
-static void free_func_filters(struct func_filter *func_filters)
-{
-	int i;
-
-	if (!func_filters)
-		return;
-
-	for (i = 0; func_filters[i].filter; i++) {
-		regfree(&func_filters[i].re);
-	}
-}
-
-static struct func_filter *make_func_filters(const char **filters)
-{
-	struct func_filter *func_filters = NULL;
-	int i;
-
-	for (i = 0; filters[i]; i++)
-		;
-
-	if (!i)
-		return NULL;
-
-	func_filters = calloc(i + 1, sizeof(*func_filters));
-	if (!func_filters)
-		return NULL;
-
-	for (i = 0; filters[i]; i++) {
-		if (init_func_filter(&func_filters[i], filters[i]) < 0)
-			goto out_err;
-	}
-	return func_filters;
- out_err:
-	free_func_filters(func_filters);
-	return NULL;
 }
 
 static int write_number(int fd, unsigned int start, unsigned int end)
@@ -835,22 +727,19 @@ static int write_func_list(int fd, struct func_list *list)
 }
 
 /**
- * tracefs_function_filter - write to set_ftrace_filter file to trace
- * particular functions
- * @instance: ftrace instance, can be NULL for top tracing instance
- * @filters: An array of function names ending with a NULL pointer
- * @module: Module to be traced
+ * tracefs_function_filter - filter the functions that are traced
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ * @filter: The filter to filter what functions are to be traced
+ * @module: Module to be traced or NULL if all functions are to be examined.
  * @flags: flags on modifying the filter file
- * @errs: A pointer to array of constant strings that will be allocated
- * on negative return of this function, pointing to the filters that
- * failed.May be NULL, in which case this field will be ignored.
  *
- * The @filters is an array of strings, where each string will be used
- * to set a function or functions to be traced.
+ * @filter may be a full function name, a glob, or a regex. It will be
+ * considered a regex, if there's any characters that are not normally in
+ * function names or "*" or "?" for a glob.
  *
  * @flags:
  *   TRACEFS_FL_RESET - will clear the functions in the filter file
- *          before applying the @filters. This flag is ignored
+ *          before applying the @filter. This flag is ignored
  *          if this function is called again when the previous
  *          call had TRACEFS_FL_CONTINUE set.
  *   TRACEFS_FL_CONTINUE - will keep the filter file open on return.
@@ -860,20 +749,16 @@ static int write_func_list(int fd, struct func_list *list)
  *          function must be called without this flag for the filter
  *          to take effect.
  *
- * returns -x on filter errors (where x is number of failed filter
- * srtings) and if @errs is not NULL will be an allocated string array
- * pointing to the strings in @filters that failed and must be freed
- * with free().
- *
- * returns 1 on general errors not realted to setting the filter.
- * @errs is not set even if supplied.
- *
- * return 0 on success and @errs is not set.
+ * Returns 0 on success, 1 if there was an error but the filtering has not
+ *  yet started, -1 if there was an error but the filtering has started.
+ *  If -1 is returned and TRACEFS_FL_CONTINUE was set, then this function
+ *  needs to be called again without the TRACEFS_FL_CONTINUE flag to commit
+ *  the changes and close the filter file.
  */
-int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,
-			    const char *module, unsigned int flags, const char ***errs)
+int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,
+			    const char *module, unsigned int flags)
 {
-	struct func_filter *func_filters;
+	struct func_filter func_filter;
 	struct func_list *func_list = NULL;
 	char *ftrace_filter_path;
 	bool reset = flags & TRACEFS_FL_RESET;
@@ -888,9 +773,16 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	else
 		fd = &ftrace_filter_fd;
 
-	if (!filters) {
+	/*
+	 * Set EINVAL on no matching filter. But errno may still be modified
+	 * on another type of failure (allocation or opening a file).
+	 */
+	errno = EINVAL;
+
+	if (!filter) {
 		/* OK to call without filters if this is closing the opened file */
 		if (!cont && *fd >= 0) {
+			errno = 0;
 			ret = 0;
 			close(*fd);
 			*fd = -1;
@@ -898,15 +790,10 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 		goto out;
 	}
 
-	func_filters = make_func_filters(filters);
-	if (!func_filters)
+	if (init_func_filter(&func_filter, filter) < 0)
 		goto out;
 
-	/* Make sure errs is NULL to start with, realloc() depends on it. */
-	if (errs)
-		*errs = NULL;
-
-	ret = check_available_filters(func_filters, module, errs, &func_list);
+	ret = check_available_filters(&func_filter, module, &func_list);
 	if (ret)
 		goto out_free;
 
@@ -923,9 +810,11 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	if (*fd < 0)
 		goto out_free;
 
+	errno = 0;
+
 	ret = write_func_list(*fd, func_list);
 	if (ret > 0)
-		ret = controlled_write(*fd, func_filters, module, errs);
+		ret = controlled_write(*fd, &func_filter, module);
 
 	if (!cont) {
 		close(*fd);
@@ -934,7 +823,6 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 
  out_free:
 	free_func_list(func_list);
-	free_func_filters(func_filters);
  out:
 	pthread_mutex_unlock(&filter_lock);
 

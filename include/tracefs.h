@@ -155,6 +155,6 @@ enum {
 	TRACEFS_FL_CONTINUE	= (1 << 1),
 };
 
-int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,
-			    const char *module, unsigned int flags, const char ***errs);
+int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,
+			    const char *module, unsigned int flags);
 #endif /* _TRACE_FS_H */

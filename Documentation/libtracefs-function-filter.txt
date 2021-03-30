@@ -11,37 +11,31 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]pass:[*]_filters_, const char pass:[*]_module_, int _flags_, const char pass:[*]pass:[*]pass:[*]_errs_);
+int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_filter_, const char pass:[*]_module_, int _flags_);
 --
 
 DESCRIPTION
 -----------
-This function can be used to limit the Linux kernel functions that were
+This function can be used to limit the Linux kernel functions that would be
 traced by the function and function-graph tracers
 
-It will take
-_instance_ , that can be NULL for the top level tracing.
-_filters_, which is an array of the strings that represent a list of filters that should
-be applied to define what functions are to be traced and The array must end
-with a NULL pointer.
-_module_ , name of the module to be traced (or NULL for all functions),
+It will take an
+_instance_ , that can be NULL for the top level tracing,
+_filter_, a string that represents a filter that should
+be applied to define what functions are to be traced,
+_module_, to limit the filtering on a specific module (or NULL to filter on all functions),
 _flags_ which holds control knobs on how the filters will be handled (see *FLAGS*)
-section below,
-_errs_, is a pointer to an array of strings, which will be allocated if
-any of filters fail to match any available function, If _errs_ is NULL, it will
-be ignored.
+section below.
 
-A filter in the array of _filters_ may be either a straight match of a
-function, a glob or regex(3). a glob is where 'pass:[*]' matches zero or more
+The _filter may be either a straight match of a
+function, a glob or regex(3). A glob is where 'pass:[*]' matches zero or more
 characters, '?' will match zero or one character, and '.' only matches a
-period. If the filter is determined to be a regex (where it contains
-anything other than alpha numeric characters, or '.', 'pass:[*]', '?') the filter
+period. If the _filter_ is determined to be a regex (where it contains
+anything other than alpha numeric characters, or '.', 'pass:[*]', '?') the _filter_
 will be processed as a regex(3) following the rules of regex(3), and '.' is
 not a period, but will match any one character. To force a regular
-expression, either prefix the filter with a '^' or append it with a '$' as
-all filters will act as complete matches of functions anyway.
-
-returns 0  on success, 1 or -x (where x is an integer) on error.
+expression, either prefix _filter_ with a '^' or append it with a '$' as
+the _filter_ does complete matches of the functions anyway.
 
 FLAGS
 -----
@@ -50,18 +44,19 @@ The _flags_ parameter may have the following set, or be zero.
 
 *TRACEFS_FL_RESET* :
 If _flags_ contains *TRACEFS_FL_RESET*, then it will clear the filters that
-are currently set before applying the list of filters from _filters_. Otherwise,
-the list of filters from _filters_ will be added to the current set of filters
-already enabled. This flag is ignored if a previous call to
-tracefs_function_filter() had the same _instance_ and the
+are currently set before applying _filter_. Otherwise, _filter_ is added to
+the current set of filters already enabled. This flag is ignored if a
+previous call to tracefs_function_filter() had the same _instance_ and the
 *TRACEFS_FL_CONTINUE* flag was set.
 
 *TRACEFS_FL_CONTINUE* :
-If _flags_ contains *TRACEFS_FL_CONTINUE*, then the filters will not take
+If _flags_ contains *TRACEFS_FL_CONTINUE*, then _filter_ will not take
 effect after a successful call to tracefs_function_filter(). This allows for
-multiple calls to tracefs_function_filter() to update the filter function.
-It can be called multiple times and add more filters. A call without this
-flag set will commit the changes before returning (if the filters passed in
+multiple calls to tracefs_function_filter() to update the filter function
+and then a single call (one without the *TRACEFS_FL_CONTINUE* flag set) to
+commit all the filters.
+It can be called multiple times to add more filters. A call without this
+flag set will commit the changes before returning (if the _filter_ passed in
 successfully matched). A tracefs_function_filter() call after one that had
 the *TRACEFS_FL_CONTINUE* flag set for the same instance will ignore the
 *TRACEFS_FL_RESET* flag, as the reset flag is only applicable for the first
@@ -69,49 +64,67 @@ filters to be added before committing.
 
 RETURN VALUE
 ------------
-return 0 on success, if there is error, it will return 1 for general errors or
-negative number -x(x denotes number of failed filters), if there are any failed filters.
+Returns 0 on success. If the there is an error but the filtering was not
+started, then 1 is returned. If filtering was started but an error occurs,
+then -1 is returned. The state of the filtering may be in an unknown state.
 
-In case of negative return value, errs have to be checked and must be freed
-using the free()
+If *TRACEFS_FL_CONTINUE* was set, and 0 or -1 was returned, then another call
+to tracefs_function_filter() must be done without *TRACEFS_FL_CONTINUE* set
+in order to commit (and close) the filtering.
+
+ERRORS
+------
+
+*tracefs_function_filter*() can fail with the following errors:
+
+*EINVAL* The filter is invalid or did not match any functions.
+
+Other errors may also happen caused by internal system calls.
 
 EXAMPLE
 -------
 [source,c]
 --
+#include <stdio.h>
+#include <errno.h>
 #include <tracefs.h>
 
 #define INST "dummy"
 
 static const char *filters[] = { "run_init_process", "try_to_run_init_process", "dummy1", NULL };
-static const char *all[] = { "*", NULL };
 
 int main(int argc, char *argv[])
 {
 	struct tracefs_instance *inst = tracefs_instance_create(INST);
-	const char **errs = NULL;
 	int ret;
-	int i = 0;
+	int i;
 
 	if (!inst) {
 		/* Error creating new trace instance */
 	}
 
-	ret = tracefs_function_filter(inst, filters, NULL,
-				      TRACEFS_FL_RESET | TRACEF_FL_CONTINUE,
-				      &errs);
+	for (i = 0; filters[i]; i++) {
+		/*
+		 * Note, only the first call does something
+		 * with TRACEFS_FL_RESET. It is ignored in the following
+		 * calls.
+		 */
+		ret = tracefs_function_filter(inst, filters[i], NULL,
+				      TRACEFS_FL_RESET | TRACEFS_FL_CONTINUE);
 
-	if (ret < 0 && errs) {
-		while (errs[i])
-			printf("%s\n", errs[i++]);
+		if (ret) {
+			if (errno == EINVAL)
+				printf("Filter %s did not match\n", filters[i]);
+			else
+				printf("Failed writing %s\n", filters[i]);
+		}
 	}
-	free(errs);
 
-	ret = tracefs_function_filter(inst, all, "ext4", 0, &errs);
-	if (ret < 0) {
+	ret = tracefs_function_filter(inst, "*", "ext4", 0);
+	if (ret) {
 		printf("Failed to set filters for ext4\n");
 		/* Force the function to commit previous filters */
-		tracefs_function_filter(inst, NULL, NULL, 0, &errs);
+		tracefs_function_filter(inst, NULL, NULL, 0);
 	}
 
 	tracefs_instance_destroy(inst);
