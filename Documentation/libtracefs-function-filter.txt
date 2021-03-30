@@ -1,0 +1,120 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_function_filter - Function to limit kernel functions that are traced
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+int tracefs_function_filter(struct tracefs_instance *instance, const char **filters, const char *module, bool reset, const char ***errs);
+--
+
+DESCRIPTION
+-----------
+This function can be used to limit the Linux kernel functions that were
+traced by the function and function-graph tracers
+
+It will take
+_instance_ , that can be NULL for the top level tracing.
+_filters_, which is an array of the strings that represent a list of filters that should
+be applied to define what functions are to be traced and The array must end
+with a NULL pointer.
+_module_ , name of the module to be traced.
+_reset_ if set will clear the current set of filters and then apply the
+filter list, otherwise the list of filters are added to the current set of
+filters,
+_errs_, is a pointer to an array of strings, which will be allocated if
+any of filters fail to match any available function, If _errs_ is NULL, it will
+be ignored.
+
+returns 0  on success, 1 or -x (where x is an integer) on error.
+
+RETURN VALUE
+------------
+return 0 on success, if there is error, it will return 1 for general errors or
+negative number -x(x denotes number of failed filters), if there are any failed filters.
+
+In case of negative return value, errs have to be checked and must be freed
+using the free()
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <tracefs.h>
+
+#define INST "dummy"
+
+const char *filters[] = { "run_init_process", "try_to_run_init_process", "dummy1", NULL };
+
+int main(int argc, char *argv[])
+{
+	struct tracefs_instance *inst = tracefs_instance_create(INST);
+	const char **errs = NULL;
+	bool reset = 1;
+	int ret;
+	int i = 0;
+
+	if (!inst) {
+		/* Error creating new trace instance*/
+	}
+
+	ret = tracefs_function_filter(inst, filters, NULL, reset, &errs);
+
+	if (ret < 0 && errs) {
+		while (errs[i])
+			printf("%s\n", errs[i++]);
+	}
+
+	tracefs_instance_free(inst);
+	tracefs_instance_destroy(inst);
+	free(errs);
+	return 0;
+}
+--
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+*sameeruddin shaik* <sameeruddin.shaik8@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).
