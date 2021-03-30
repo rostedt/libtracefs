@@ -389,23 +389,17 @@ void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_opt
 		options->mask &= ~(1ULL << (id - 1));
 }
 
-static int controlled_write(const char *filter_path, const char **filters,
-			    const char *module, bool reset, const char ***errs)
+static int controlled_write(int fd, const char **filters,
+			    const char *module, const char ***errs)
 {
-	int flags = reset ? O_TRUNC : O_APPEND;
 	const char **temp = NULL;
 	const char **e = NULL;
 	char *each_str = NULL;
 	int write_size = 0;
 	int size = 0;
-	int fd = -1;
 	int ret = 0;
 	int j = 0;
 	int i;
-
-	fd = open(filter_path, O_WRONLY | flags);
-	if (fd < 0)
-		return 1;
 
 	for (i = 0; filters[i]; i++) {
 		if (module)
@@ -449,7 +443,6 @@ static int controlled_write(const char *filter_path, const char **filters,
  error:
 	if (each_str)
 		free(each_str);
-	close(fd);
 	return ret;
 }
 
@@ -486,6 +479,8 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 {
 	char *ftrace_filter_path;
 	int ret = 0;
+	int flags;
+	int fd;
 
 	if (!filters)
 		return 1;
@@ -494,7 +489,16 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char **filt
 	if (!ftrace_filter_path)
 		return 1;
 
-	ret = controlled_write(ftrace_filter_path, filters, module, reset, errs);
+	flags = reset ? O_TRUNC : O_APPEND;
+
+	fd = open(ftrace_filter_path, O_WRONLY | flags);
 	tracefs_put_tracing_file(ftrace_filter_path);
+	if (fd < 0)
+		return 1;
+
+	ret = controlled_write(fd, filters, module, errs);
+
+	close(fd);
+
 	return ret;
 }
