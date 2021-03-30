@@ -18,6 +18,7 @@
 #include "tracefs-local.h"
 
 #define TRACE_CTRL	"tracing_on"
+#define TRACE_FILTER	"set_ftrace_filter"
 
 static const char * const options_map[] = {
 	"unknown",
@@ -386,4 +387,114 @@ void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_opt
 {
 	if (options && id > TRACEFS_OPTION_INVALID)
 		options->mask &= ~(1ULL << (id - 1));
+}
+
+static int controlled_write(const char *filter_path, const char **filters,
+			    const char *module, bool reset, const char ***errs)
+{
+	int flags = reset ? O_TRUNC : O_APPEND;
+	const char **temp = NULL;
+	const char **e = NULL;
+	char *each_str = NULL;
+	int write_size = 0;
+	int size = 0;
+	int fd = -1;
+	int ret = 0;
+	int j = 0;
+	int i;
+
+	fd = open(filter_path, O_WRONLY | flags);
+	if (fd < 0)
+		return 1;
+
+	for (i = 0; filters[i]; i++) {
+		if (module)
+			write_size = asprintf(&each_str, "%s:mod:%s ", filters[i], module);
+		else
+			write_size = asprintf(&each_str, "%s ", filters[i]);
+		if (write_size < 0) {
+			ret = 1;
+			goto error;
+		}
+		size = write(fd, each_str, write_size);
+		/* compare written bytes*/
+		if (size < write_size) {
+			if (errs) {
+				temp = realloc(e, (j + 1) * (sizeof(char *)));
+				if (!temp) {
+					free(e);
+					ret = 1;
+					goto error;
+				} else
+					e = temp;
+
+				e[j++] = filters[i];
+				ret -= 1;
+			}
+		}
+		free(each_str);
+		each_str = NULL;
+	}
+	if (errs) {
+		temp = realloc(e, (j + 1) * (sizeof(char *)));
+		if (!temp) {
+			free(e);
+			ret = 1;
+			goto error;
+		} else
+			e = temp;
+		e[j] = NULL;
+		*errs = e;
+	}
+ error:
+	if (each_str)
+		free(each_str);
+	close(fd);
+	return ret;
+}
+
+/**
+ * tracefs_function_filter - write to set_ftrace_filter file to trace
+ * particular functions
+ * @instance: ftrace instance, can be NULL for top tracing instance
+ * @filters: An array of function names ending with a NULL pointer
+ * @module: Module to be traced
+ * @reset: set to true to reset the file before applying the filter
+ * @errs: A pointer to array of constant strings that will be allocated
+ * on negative return of this function, pointing to the filters that
+ * failed.May be NULL, in which case this field will be ignored.
+ *
+ * The @filters is an array of strings, where each string will be used
+ * to set a function or functions to be traced.
+ *
+ * If @reset is true, then all functions in the filter are cleared
+ * before adding functions from @filters. Otherwise, the functions set
+ * by @filters will be appended to the filter file
+ *
+ * returns -x on filter errors (where x is number of failed filter
+ * srtings) and if @errs is not NULL will be an allocated string array
+ * pointing to the strings in @filters that failed and must be freed
+ * with free().
+ *
+ * returns 1 on general errors not realted to setting the filter.
+ * @errs is not set even if supplied.
+ *
+ * return 0 on success and @errs is not set.
+ */
+int tracefs_function_filter(struct tracefs_instance *instance, const char **filters,
+			    const char *module, bool reset, const char ***errs)
+{
+	char *ftrace_filter_path;
+	int ret = 0;
+
+	if (!filters)
+		return 1;
+
+	ftrace_filter_path = tracefs_instance_get_file(instance, TRACE_FILTER);
+	if (!ftrace_filter_path)
+		return 1;
+
+	ret = controlled_write(ftrace_filter_path, filters, module, reset, errs);
+	tracefs_put_tracing_file(ftrace_filter_path);
+	return ret;
 }
