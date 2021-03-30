@@ -794,6 +794,10 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 			close(*fd);
 			*fd = -1;
 		}
+		/* Also OK to call if reset flag is set */
+		if (reset)
+			goto open_file;
+
 		goto out;
 	}
 
@@ -804,6 +808,7 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	if (ret)
 		goto out_free;
 
+ open_file:
 	ret = 1;
 	ftrace_filter_path = tracefs_instance_get_file(instance, TRACE_FILTER);
 	if (!ftrace_filter_path)
@@ -819,9 +824,13 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 
 	errno = 0;
 
-	ret = write_func_list(*fd, func_list);
-	if (ret > 0)
-		ret = controlled_write(*fd, &func_filter, module);
+	ret = 0;
+
+	if (filter) {
+		ret = write_func_list(*fd, func_list);
+		if (ret > 0)
+			ret = controlled_write(*fd, &func_filter, module);
+	}
 
 	if (!cont) {
 		close(*fd);
