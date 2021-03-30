@@ -19,11 +19,6 @@
 #include "tracefs-local.h"
 
 #define FLAG_INSTANCE_NEWLY_CREATED	(1 << 0)
-struct tracefs_instance {
-	char	*trace_dir;
-	char	*name;
-	int	flags;
-};
 
 /**
  * instance_alloc - allocate a new ftrace instance

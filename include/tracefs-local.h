@@ -14,6 +14,12 @@
 #define BUILD_BUG_ON(cond)			\
 	do { if (!(1/!(cond))) { } } while (0)
 
+struct tracefs_instance {
+	char	*trace_dir;
+	char	*name;
+	int	flags;
+};
+
 /* Can be overridden */
 void warning(const char *fmt, ...);
 
