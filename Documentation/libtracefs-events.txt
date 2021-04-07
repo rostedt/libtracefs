@@ -37,14 +37,14 @@ local machine, or it may be a path to a copy of the tracefs directory
 from another machine. The last entry in the array as a NULL pointer.
 The array must be freed with _tracefs_list_free()_ API.
 
-The _tracefs_interate_raw_events()_ function will read the tracefs raw
+The _tracefs_iterate_raw_events()_ function will read the tracefs raw
 data buffers and call the specified _callback_ function for every event it
-encounters. An initialized _tep_ handler is required (See
-_tracefs_local_events_(3)). If _instance_ is NULL, then the toplevel
-tracefs buffer is used, otherwise the buffer for the corresponding
-_instance_ is read. To filter only on a subset of CPUs, _cpus_ and
-_cpu_size_ may be set to only call _callback_ with events that occurred on
-the CPUs specified, otherwise if _cpus_ is NULL then the _callback_
+encounters. Events are iterated in sorted order: oldest first. An initialized
+_tep_ handler is required (See _tracefs_local_events_(3)). If _instance_ is
+NULL, then the toplevel tracefs buffer is used, otherwise the buffer for
+the corresponding _instance_ is read. To filter only on a subset of CPUs,
+_cpus_ and _cpu_size_ may be set to only call _callback_ with events that
+occurred on the CPUs specified, otherwise if _cpus_ is NULL then the _callback_
 function will be called for all events, and _cpu_size_ is ignored. The
 _callback_ function will be called with the following parameters: A
 pointer to a struct tep_event that corresponds to the type of event the
