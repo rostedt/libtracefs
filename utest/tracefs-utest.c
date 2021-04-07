@@ -20,7 +20,7 @@
 #define TRACEFS_SUITE		"trasefs library"
 #define TEST_INSTANCE_NAME	"cunit_test_iter"
 #define TEST_TRACE_DIR		"/tmp/trace_utest.XXXXXX"
-#define TEST_ARRAY_SIZE		500
+#define TEST_ARRAY_SIZE		5000
 
 #define ALL_TRACERS	"available_tracers"
 #define CUR_TRACER	"current_tracer"
@@ -36,6 +36,7 @@ struct test_sample {
 };
 static struct test_sample test_array[TEST_ARRAY_SIZE];
 static int test_found;
+static unsigned long long last_ts;
 
 static int test_callback(struct tep_event *event, struct tep_record *record,
 			  int cpu, void *context)
@@ -45,8 +46,13 @@ static int test_callback(struct tep_event *event, struct tep_record *record,
 	int *cpu_test = (int *)context;
 	int i;
 
+	CU_TEST(last_ts <= record->ts);
+	last_ts = record->ts;
+
 	if (cpu_test && *cpu_test >= 0 && *cpu_test != cpu)
 		return 0;
+	CU_TEST(cpu == record->cpu);
+
 	field = tep_find_field(event, "buf");
 	if (field) {
 		sample = ((struct test_sample *)(record->data + field->offset));
@@ -136,6 +142,7 @@ static void test_instance_iter_raw_events(struct tracefs_instance *instance)
 
 	ret = tracefs_iterate_raw_events(NULL, instance, NULL, 0, test_callback, NULL);
 	CU_TEST(ret < 0);
+	last_ts = 0;
 	ret = tracefs_iterate_raw_events(test_tep, NULL, NULL, 0, test_callback, NULL);
 	CU_TEST(ret == 0);
 	ret = tracefs_iterate_raw_events(test_tep, instance, NULL, 0, NULL, NULL);
