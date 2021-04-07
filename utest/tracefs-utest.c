@@ -49,8 +49,9 @@ static int test_callback(struct tep_event *event, struct tep_record *record,
 	CU_TEST(last_ts <= record->ts);
 	last_ts = record->ts;
 
-	if (cpu_test && *cpu_test >= 0 && *cpu_test != cpu)
-		return 0;
+	if (cpu_test && *cpu_test >= 0) {
+		CU_TEST(*cpu_test == cpu);
+	}
 	CU_TEST(cpu == record->cpu);
 
 	field = tep_find_field(event, "buf");
@@ -105,18 +106,30 @@ static void test_iter_write(struct tracefs_instance *instance)
 
 	sched_setaffinity(0, cpu_size, cpusave);
 	close(fd);
+	CPU_FREE(cpuset);
+	CPU_FREE(cpusave);
 }
 
 
 static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu)
 {
+	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	cpu_set_t *cpuset = NULL;
+	int cpu_size = 0;
 	int check = 0;
 	int ret;
 	int i;
 
+	if (cpu >= 0) {
+		cpuset = CPU_ALLOC(cpus);
+		cpu_size = CPU_ALLOC_SIZE(cpus);
+		CPU_ZERO_S(cpu_size, cpuset);
+		CPU_SET(cpu, cpuset);
+	}
 	test_found = 0;
+	last_ts = 0;
 	test_iter_write(instance);
-	ret = tracefs_iterate_raw_events(test_tep, instance, NULL, 0,
+	ret = tracefs_iterate_raw_events(test_tep, instance, cpuset, cpu_size,
 					 test_callback, &cpu);
 	CU_TEST(ret == 0);
 	if (cpu < 0) {
@@ -132,6 +145,9 @@ static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu)
 		}
 		CU_TEST(test_found == check);
 	}
+
+	if (cpuset)
+		CPU_FREE(cpuset);
 }
 
 static void test_instance_iter_raw_events(struct tracefs_instance *instance)
