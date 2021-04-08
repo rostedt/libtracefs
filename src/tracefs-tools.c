@@ -853,7 +853,7 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	open_flags = reset ? O_TRUNC : O_APPEND;
 
 	if (*fd < 0)
-		*fd = open(ftrace_filter_path, O_WRONLY | open_flags);
+		*fd = open(ftrace_filter_path, O_WRONLY | O_CLOEXEC | open_flags);
 	tracefs_put_tracing_file(ftrace_filter_path);
 	if (*fd < 0)
 		goto out_free;
