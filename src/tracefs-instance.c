@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <limits.h>
+#include <pthread.h>
 #include "tracefs.h"
 #include "tracefs-local.h"
 
@@ -42,6 +43,9 @@ static struct tracefs_instance *instance_alloc(const char *trace_dir, const char
 		if (!instance->name)
 			goto error;
 	}
+
+	if (pthread_mutex_init(&instance->lock, NULL) < 0)
+		goto error;
 
 	instance->ftrace_filter_fd = -1;
 	instance->ftrace_notrace_fd = -1;
@@ -76,6 +80,7 @@ void tracefs_instance_free(struct tracefs_instance *instance)
 
 	free(instance->trace_dir);
 	free(instance->name);
+	pthread_mutex_destroy(&instance->lock);
 	free(instance);
 }
 

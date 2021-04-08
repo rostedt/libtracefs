@@ -15,12 +15,15 @@
 	do { if (!(1/!(cond))) { } } while (0)
 
 struct tracefs_instance {
-	char	*trace_dir;
-	char	*name;
-	int	flags;
-	int	ftrace_filter_fd;
-	int	ftrace_notrace_fd;
+	char			*trace_dir;
+	char			*name;
+	pthread_mutex_t		lock;
+	int			flags;
+	int			ftrace_filter_fd;
+	int			ftrace_notrace_fd;
 };
+
+extern pthread_mutex_t toplevel_lock;
 
 /* Can be overridden */
 void warning(const char *fmt, ...);

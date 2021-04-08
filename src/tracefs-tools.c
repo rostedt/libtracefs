@@ -19,6 +19,8 @@
 #include "tracefs.h"
 #include "tracefs-local.h"
 
+__hidden pthread_mutex_t toplevel_lock = PTHREAD_MUTEX_INITIALIZER;
+
 #define TRACE_CTRL		"tracing_on"
 #define TRACE_FILTER		"set_ftrace_filter"
 #define TRACE_NOTRACE		"set_ftrace_notrace"
@@ -27,7 +29,6 @@
 /* File descriptor for Top level set_ftrace_filter  */
 static int ftrace_filter_fd = -1;
 static int ftrace_notrace_fd = -1;
-static pthread_mutex_t filter_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static const char * const options_map[] = {
 	"unknown",
@@ -755,6 +756,7 @@ static int update_filter(const char *filter_path, int *fd,
 	bool reset = flags & TRACEFS_FL_RESET;
 	bool cont = flags & TRACEFS_FL_CONTINUE;
 	bool future = flags & TRACEFS_FL_FUTURE;
+	pthread_mutex_t *lock = instance ? &instance->lock : &toplevel_lock;
 	int open_flags;
 	int ret = 1;
 
@@ -764,7 +766,7 @@ static int update_filter(const char *filter_path, int *fd,
 		return 1;
 	}
 
-	pthread_mutex_lock(&filter_lock);
+	pthread_mutex_lock(lock);
 
 	/* RESET is only allowed if the file is not opened yet */
 	if (reset && *fd >= 0) {
@@ -839,7 +841,7 @@ static int update_filter(const char *filter_path, int *fd,
  out_free:
 	free_func_list(func_list);
  out:
-	pthread_mutex_unlock(&filter_lock);
+	pthread_mutex_unlock(lock);
 
 	return ret;
 }
