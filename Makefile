@@ -10,6 +10,8 @@ export TFS_PATCHLEVEL
 export TFS_EXTRAVERSION
 export TRACEFS_VERSION
 
+LIBTRACEEVENT_MIN_VERSION = 1.1
+
 # taken from trace-cmd
 MAKEFLAGS += --no-print-directory
 
@@ -62,12 +64,14 @@ includedir_SQ = '$(subst ','\'',$(includedir))'
 pkgconfig_dir ?= $(word 1,$(shell $(PKG_CONFIG) 		\
 			--variable pc_path pkg-config | tr ":" " "))
 
-LIBTRACEEVENT_INCLUDES = $(shell $(PKG_CONFIG) --cflags libtraceevent)
-LIBTRACEEVENT_LIBS = $(shell $(PKG_CONFIG) --libs libtraceevent)
+TEST_LIBTRACEEVENT = $(shell sh -c "$(PKG_CONFIG) --atleast-version $(LIBTRACEEVENT_MIN_VERSION) libtraceevent > /dev/null 2>&1 && echo y")
 
-ifneq ($(MAKECMDGOALS),clean)
- ifeq ("$(LIBTRACEEVENT_INCLUDES)","")
-   $(error libtraceevent.so not installed)
+ifeq ("$(TEST_LIBTRACEEVENT)", "y")
+LIBTRACEEVENT_INCLUDES = $(shell sh -c "$(PKG_CONFIG) --cflags libtraceevent")
+LIBTRACEEVENT_LIBS = $(shell sh -c "$(PKG_CONFIG) --libs libtraceevent")
+else
+ ifneq ($(MAKECMDGOALS),clean)
+   $(error libtraceevent.so minimum version of $(LIBTRACEEVENT_MIN_VERSION) not installed)
  endif
 endif
 
