@@ -21,10 +21,12 @@
 
 #define TRACE_CTRL		"tracing_on"
 #define TRACE_FILTER		"set_ftrace_filter"
+#define TRACE_NOTRACE		"set_ftrace_notrace"
 #define TRACE_FILTER_LIST	"available_filter_functions"
 
 /* File descriptor for Top level set_ftrace_filter  */
 static int ftrace_filter_fd = -1;
+static int ftrace_notrace_fd = -1;
 static pthread_mutex_t filter_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static const char * const options_map[] = {
@@ -893,6 +895,37 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 		fd = &instance->ftrace_filter_fd;
 	else
 		fd = &ftrace_filter_fd;
+
+	ret = update_filter(filter_path, fd, instance, filter, module, flags);
+	tracefs_put_tracing_file(filter_path);
+	return ret;
+}
+
+/**
+ * tracefs_function_notrace - filter the functions that are not to be traced
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ * @filter: The filter to filter what functions are not to be traced
+ * @module: Module to be traced or NULL if all functions are to be examined.
+ * @flags: flags on modifying the filter file
+ *
+ * See tracefs_function_filter, as this has the same functionality but
+ * for adding to the "notrace" filter.
+ */
+int tracefs_function_notrace(struct tracefs_instance *instance, const char *filter,
+			     const char *module, unsigned int flags)
+{
+	char *filter_path;
+	int *fd;
+	int ret;
+
+	filter_path = tracefs_instance_get_file(instance, TRACE_NOTRACE);
+	if (!filter_path)
+		return -1;
+
+	if (instance)
+		fd = &instance->ftrace_notrace_fd;
+	else
+		fd = &ftrace_notrace_fd;
 
 	ret = update_filter(filter_path, fd, instance, filter, module, flags);
 	tracefs_put_tracing_file(filter_path);

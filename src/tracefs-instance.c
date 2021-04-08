@@ -44,6 +44,7 @@ static struct tracefs_instance *instance_alloc(const char *trace_dir, const char
 	}
 
 	instance->ftrace_filter_fd = -1;
+	instance->ftrace_notrace_fd = -1;
 
 	return instance;
 
@@ -69,6 +70,9 @@ void tracefs_instance_free(struct tracefs_instance *instance)
 
 	if (instance->ftrace_filter_fd >= 0)
 		close(instance->ftrace_filter_fd);
+
+	if (instance->ftrace_notrace_fd >= 0)
+		close(instance->ftrace_notrace_fd);
 
 	free(instance->trace_dir);
 	free(instance->name);

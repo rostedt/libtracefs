@@ -4,6 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_function_filter - Function to limit kernel functions that are traced
+tracefs_function_notrace - Function to filter kernel functions that not to be traced
 
 SYNOPSIS
 --------
@@ -12,15 +13,18 @@ SYNOPSIS
 *#include <tracefs.h>*
 
 int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_filter_, const char pass:[*]_module_, int _flags_);
+int *tracefs_function_notrace*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_filter_, const char pass:[*]_module_, int _flags_);
 --
 
 DESCRIPTION
 -----------
-This function can be used to limit the Linux kernel functions that would be
-traced by the function and function-graph tracers
+*tracefs_function_filter* and *tracefs_function_notrace* can be used to limit the
+Linux kernel functions that would be traced by the function and function-graph tracers.
+The *tracefs_function_filter* defines a list of functions that can be traced.
+The *tracefs_function_notrace* defines a list of functions that will not be traced.
+If a function is in both lists, it will not be traced.
 
-It will take an
-_instance_ , that can be NULL for the top level tracing,
+They take an _instance_ , that can be NULL for the top level tracing,
 _filter_, a string that represents a filter that should
 be applied to define what functions are to be traced,
 _module_, to limit the filtering on a specific module (or NULL to filter on all functions),
@@ -123,6 +127,13 @@ int main(int argc, char *argv[])
 
 	if (!inst) {
 		/* Error creating new trace instance */
+	}
+
+	/* Do not trace any function with the word "lock" in it */
+	ret = tracefs_function_notrace(inst, "*lock*", NULL, TRACEFS_FL_RESET);
+	if (ret) {
+		printf("Failed to set the notrace filter\n");
+		goto out;
 	}
 
 	/* First reset the filter */

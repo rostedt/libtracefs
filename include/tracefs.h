@@ -160,4 +160,7 @@ enum {
 
 int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,
 			    const char *module, unsigned int flags);
+int tracefs_function_notrace(struct tracefs_instance *instance, const char *filter,
+			     const char *module, unsigned int flags);
+
 #endif /* _TRACE_FS_H */
