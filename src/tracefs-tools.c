@@ -744,54 +744,17 @@ static int write_func_list(int fd, struct func_list *list)
 	return 0;
 }
 
-/**
- * tracefs_function_filter - filter the functions that are traced
- * @instance: ftrace instance, can be NULL for top tracing instance.
- * @filter: The filter to filter what functions are to be traced
- * @module: Module to be traced or NULL if all functions are to be examined.
- * @flags: flags on modifying the filter file
- *
- * @filter may be a full function name, a glob, or a regex. It will be
- * considered a regex, if there's any characters that are not normally in
- * function names or "*" or "?" for a glob.
- *
- * @flags:
- *   TRACEFS_FL_RESET - will clear the functions in the filter file
- *          before applying the @filter. This will error with -1
- *          and errno of EBUSY if this flag is set and a previous
- *          call had the same instance and TRACEFS_FL_CONTINUE set.
- *   TRACEFS_FL_CONTINUE - will keep the filter file open on return.
- *          The filter is updated on closing of the filter file.
- *          With this flag set, the file is not closed, and more filters
- *          may be added before they take effect. The last call of this
- *          function must be called without this flag for the filter
- *          to take effect.
- *   TRACEFS_FL_FUTURE - only applicable if "module" is set. If no match
- *          is made, and the module is not yet loaded, it will still attempt
- *          to write the filter plus the module; "<filter>:mod:<module>"
- *          to the filter file. Starting with Linux kernels 4.13, it is possible
- *          to load the filter file with module functions for a module that
- *          is not yet loaded, and when the module is loaded, it will then
- *          activate the module.
- *
- * Returns 0 on success, 1 if there was an error but the filtering has not
- *  yet started, -1 if there was an error but the filtering has started.
- *  If -1 is returned and TRACEFS_FL_CONTINUE was set, then this function
- *  needs to be called again without the TRACEFS_FL_CONTINUE flag to commit
- *  the changes and close the filter file.
- */
-int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,
-			    const char *module, unsigned int flags)
+static int update_filter(const char *filter_path, int *fd,
+			 struct tracefs_instance *instance, const char *filter,
+			 const char *module, unsigned int flags)
 {
 	struct func_filter func_filter;
 	struct func_list *func_list = NULL;
-	char *ftrace_filter_path;
 	bool reset = flags & TRACEFS_FL_RESET;
 	bool cont = flags & TRACEFS_FL_CONTINUE;
 	bool future = flags & TRACEFS_FL_FUTURE;
 	int open_flags;
 	int ret = 1;
-	int *fd;
 
 	/* future flag is only applicable to modules */
 	if (future && !module) {
@@ -800,10 +763,6 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 	}
 
 	pthread_mutex_lock(&filter_lock);
-	if (instance)
-		fd = &instance->ftrace_filter_fd;
-	else
-		fd = &ftrace_filter_fd;
 
 	/* RESET is only allowed if the file is not opened yet */
 	if (reset && *fd >= 0) {
@@ -846,20 +805,15 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 
  open_file:
 	ret = 1;
-	ftrace_filter_path = tracefs_instance_get_file(instance, TRACE_FILTER);
-	if (!ftrace_filter_path)
-		goto out_free;
 
 	open_flags = reset ? O_TRUNC : O_APPEND;
 
 	if (*fd < 0)
-		*fd = open(ftrace_filter_path, O_WRONLY | O_CLOEXEC | open_flags);
-	tracefs_put_tracing_file(ftrace_filter_path);
+		*fd = open(filter_path, O_WRONLY | O_CLOEXEC | open_flags);
 	if (*fd < 0)
 		goto out_free;
 
 	errno = 0;
-
 	ret = 0;
 
 	if (filter) {
@@ -885,5 +839,62 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
  out:
 	pthread_mutex_unlock(&filter_lock);
 
+	return ret;
+}
+
+/**
+ * tracefs_function_filter - filter the functions that are traced
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ * @filter: The filter to filter what functions are to be traced
+ * @module: Module to be traced or NULL if all functions are to be examined.
+ * @flags: flags on modifying the filter file
+ *
+ * @filter may be a full function name, a glob, or a regex. It will be
+ * considered a regex, if there's any characters that are not normally in
+ * function names or "*" or "?" for a glob.
+ *
+ * @flags:
+ *   TRACEFS_FL_RESET - will clear the functions in the filter file
+ *          before applying the @filter. This will error with -1
+ *          and errno of EBUSY if this flag is set and a previous
+ *          call had the same instance and TRACEFS_FL_CONTINUE set.
+ *   TRACEFS_FL_CONTINUE - will keep the filter file open on return.
+ *          The filter is updated on closing of the filter file.
+ *          With this flag set, the file is not closed, and more filters
+ *          may be added before they take effect. The last call of this
+ *          function must be called without this flag for the filter
+ *          to take effect.
+ *   TRACEFS_FL_FUTURE - only applicable if "module" is set. If no match
+ *          is made, and the module is not yet loaded, it will still attempt
+ *          to write the filter plus the module; "<filter>:mod:<module>"
+ *          to the filter file. Starting with Linux kernels 4.13, it is possible
+ *          to load the filter file with module functions for a module that
+ *          is not yet loaded, and when the module is loaded, it will then
+ *          activate the module.
+ *
+ * Returns 0 on success, 1 if there was an error but the filtering has not
+ *  yet started, -1 if there was an error but the filtering has started.
+ *  If -1 is returned and TRACEFS_FL_CONTINUE was set, then this function
+ *  needs to be called again without the TRACEFS_FL_CONTINUE flag to commit
+ *  the changes and close the filter file.
+ */
+int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,
+			    const char *module, unsigned int flags)
+{
+	char *filter_path;
+	int *fd;
+	int ret;
+
+	filter_path = tracefs_instance_get_file(instance, TRACE_FILTER);
+	if (!filter_path)
+		return -1;
+
+	if (instance)
+		fd = &instance->ftrace_filter_fd;
+	else
+		fd = &ftrace_filter_fd;
+
+	ret = update_filter(filter_path, fd, instance, filter, module, flags);
+	tracefs_put_tracing_file(filter_path);
 	return ret;
 }
