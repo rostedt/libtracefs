@@ -66,6 +66,10 @@ void tracefs_instance_free(struct tracefs_instance *instance)
 {
 	if (!instance)
 		return;
+
+	if (instance->ftrace_filter_fd >= 0)
+		close(instance->ftrace_filter_fd);
+
 	free(instance->trace_dir);
 	free(instance->name);
 	free(instance);
