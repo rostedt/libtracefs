@@ -216,7 +216,7 @@ int tracefs_instance_destroy(struct tracefs_instance *instance)
 	int ret = -1;
 
 	if (!instance || !instance->name) {
-		warning("Cannot remove top instance");
+		tracefs_warning("Cannot remove top instance");
 		return -1;
 	}
 
@@ -278,8 +278,8 @@ char *tracefs_instance_get_dir(struct tracefs_instance *instance)
 
 	ret = asprintf(&path, "%s/instances/%s", instance->trace_dir, instance->name);
 	if (ret < 0) {
-		warning("Failed to allocate path for instance %s",
-			 instance->name);
+		tracefs_warning("Failed to allocate path for instance %s",
+				instance->name);
 		return NULL;
 	}
 
@@ -321,7 +321,7 @@ static int write_file(const char *file, const char *str)
 
 	fd = open(file, O_WRONLY | O_TRUNC);
 	if (fd < 0) {
-		warning("Failed to open '%s'", file);
+		tracefs_warning("Failed to open '%s'", file);
 		return -1;
 	}
 	ret = write(fd, str, strlen(str));

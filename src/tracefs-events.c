@@ -43,7 +43,7 @@ page_to_kbuf(struct tep_handle *tep, void *page, int size)
 
 	kbuffer_load_subbuffer(kbuf, page);
 	if (kbuffer_subbuffer_size(kbuf) > size) {
-		warning("%s: page_size > size", __func__);
+		tracefs_warning("%s: page_size > size", __func__);
 		kbuffer_free(kbuf);
 		kbuf = NULL;
 	}

@@ -13,7 +13,9 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
+#include <traceevent/event-utils.h>
 #include "tracefs.h"
 #include "tracefs-local.h"
 
@@ -23,8 +25,13 @@
 #define _STR(x) #x
 #define STR(x) _STR(x)
 
-void __attribute__((weak)) warning(const char *fmt, ...)
+void __weak tracefs_warning(const char *fmt, ...)
 {
+	va_list ap;
+
+	va_start(ap, fmt);
+	tep_vwarning("libtracefs", fmt, ap);
+	va_end(ap);
 }
 
 static int mount_tracefs(void)
@@ -76,7 +83,7 @@ __hidden char *trace_find_tracing_dir(void)
 
 	fp = fopen("/proc/mounts", "r");
 	if (!fp) {
-		warning("Can't open /proc/mounts for read");
+		tracefs_warning("Can't open /proc/mounts for read");
 		return NULL;
 	}
 
@@ -103,7 +110,7 @@ __hidden char *trace_find_tracing_dir(void)
 				fspath[PATH_MAX] = 0;
 			} else {
 				if (mount_debugfs() < 0) {
-					warning("debugfs not mounted, please mount");
+					tracefs_warning("debugfs not mounted, please mount");
 					free(debug_str);
 					return NULL;
 				}
@@ -200,7 +207,7 @@ __hidden int str_read_file(const char *file, char **buffer)
 
 	fd = open(file, O_RDONLY);
 	if (fd < 0) {
-		warning("File %s not found", file);
+		tracefs_warning("File %s not found", file);
 		return -1;
 	}
 
@@ -210,7 +217,7 @@ __hidden int str_read_file(const char *file, char **buffer)
 			continue;
 		nbuf = realloc(buf, size+r+1);
 		if (!nbuf) {
-			warning("Failed to allocate file buffer");
+			tracefs_warning("Failed to allocate file buffer");
 			size = -1;
 			break;
 		}
