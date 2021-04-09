@@ -239,8 +239,8 @@ static struct tracefs_options_mask *trace_get_options(struct tracefs_instance *i
 				continue;
 		}
 		id = tracefs_option_id(dent->d_name);
-		if (id != TRACEFS_OPTION_INVALID)
-			tracefs_option_set(bitmask, id);
+		if (id > TRACEFS_OPTION_INVALID)
+			bitmask->mask |= (1ULL << (id - 1));
 	}
 	closedir(dir);
 	tracefs_put_tracing_file(dname);
@@ -376,28 +376,6 @@ bool tracefs_option_is_set(struct tracefs_options_mask *options,
 	if (id > TRACEFS_OPTION_INVALID)
 		return options->mask & (1ULL << (id - 1));
 	return false;
-}
-
-/**
- * tracefs_option_set - Set option in options bitmask
- * @options: Pointer to a bitmask with options
- * @id: trace option id
- */
-void tracefs_option_set(struct tracefs_options_mask *options, enum tracefs_option_id id)
-{
-	if (options && id > TRACEFS_OPTION_INVALID)
-		options->mask |= (1ULL << (id - 1));
-}
-
-/**
- * tracefs_option_clear - Clear option from options bitmask
- * @options: Pointer to a bitmask with options
- * @id: trace option id
- */
-void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_option_id id)
-{
-	if (options && id > TRACEFS_OPTION_INVALID)
-		options->mask &= ~(1ULL << (id - 1));
 }
 
 struct func_list {

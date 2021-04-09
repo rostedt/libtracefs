@@ -718,8 +718,6 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 		snprintf(file, PATH_MAX, "options/%s", name);
 
 		if (tracefs_option_is_set(all, i)) {
-			tracefs_option_clear(all, i);
-			CU_TEST(!tracefs_option_is_set(all, i));
 			CU_TEST(check_option(instance, i, true, -1));
 			CU_TEST(tracefs_option_is_supported(instance, i));
 		} else {
@@ -728,8 +726,6 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 		}
 
 		if (tracefs_option_is_set(enabled, i)) {
-			tracefs_option_clear(enabled, i);
-			CU_TEST(!tracefs_option_is_set(enabled, i));
 			CU_TEST(check_option(instance, i, true, 1));
 			CU_TEST(tracefs_option_is_supported(instance, i));
 			CU_TEST(tracefs_option_is_enabled(instance, i));

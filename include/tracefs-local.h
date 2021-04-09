@@ -15,6 +15,10 @@
 #define BUILD_BUG_ON(cond)			\
 	do { if (!(1/!(cond))) { } } while (0)
 
+struct tracefs_options_mask {
+	unsigned long long	mask;
+};
+
 struct tracefs_instance {
 	char			*trace_dir;
 	char			*name;

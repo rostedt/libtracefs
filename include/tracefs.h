@@ -142,11 +142,7 @@ enum tracefs_option_id {
 };
 #define TRACEFS_OPTION_MAX (TRACEFS_OPTION_VERBOSE + 1)
 
-struct tracefs_options_mask {
-	unsigned long long	mask;
-};
-void tracefs_option_set(struct tracefs_options_mask *options, enum tracefs_option_id id);
-void tracefs_option_clear(struct tracefs_options_mask *options, enum tracefs_option_id id);
+struct tracefs_options_mask;
 bool tracefs_option_is_set(struct tracefs_options_mask *options,
 			   enum tracefs_option_id id);
 struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instance *instance);
