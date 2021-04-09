@@ -208,8 +208,8 @@ enum tracefs_option_id tracefs_option_id(const char *name)
 	return TRACEFS_OPTION_INVALID;
 }
 
-static struct tracefs_options_mask *trace_get_options(struct tracefs_instance *instance,
-						      bool enabled)
+const static struct tracefs_options_mask *
+trace_get_options(struct tracefs_instance *instance, bool enabled)
 {
 	pthread_mutex_t *lock = instance ? &instance->lock : &toplevel_lock;
 	struct tracefs_options_mask *bitmask;
@@ -258,7 +258,8 @@ static struct tracefs_options_mask *trace_get_options(struct tracefs_instance *i
  * Returns bitmask structure with all trace options, supported in given instance,
  * or NULL in case of an error.
  */
-struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instance *instance)
+const struct tracefs_options_mask *
+tracefs_options_get_supported(struct tracefs_instance *instance)
 {
 	return trace_get_options(instance, false);
 }
@@ -270,7 +271,8 @@ struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instan
  * Returns bitmask structure with all trace options, enabled in given instance,
  * or NULL in case of an error.
  */
-struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance *instance)
+const struct tracefs_options_mask *
+tracefs_options_get_enabled(struct tracefs_instance *instance)
 {
 	return trace_get_options(instance, true);
 }

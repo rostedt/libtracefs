@@ -145,9 +145,9 @@ enum tracefs_option_id {
 struct tracefs_options_mask;
 bool tracefs_option_mask_is_set(const struct tracefs_options_mask *options,
 				enum tracefs_option_id id);
-struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instance *instance);
+const struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instance *instance);
 bool tracefs_option_is_supported(struct tracefs_instance *instance, enum tracefs_option_id id);
-struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance *instance);
+const struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance *instance);
 bool tracefs_option_is_enabled(struct tracefs_instance *instance, enum tracefs_option_id id);
 int tracefs_option_enable(struct tracefs_instance *instance, enum tracefs_option_id id);
 int tracefs_option_diasble(struct tracefs_instance *instance, enum tracefs_option_id id);
