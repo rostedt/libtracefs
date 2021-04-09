@@ -192,6 +192,120 @@ static const char *get_rand_str(void)
 	return str;
 }
 
+struct marker_find {
+	int data_offset;
+	int event_id;
+	int count;
+	int len;
+	void *data;
+};
+
+static int test_marker_callback(struct tep_event *event, struct tep_record *record,
+				int cpu, void *context)
+{
+	struct marker_find *walk = context;
+
+	if (!walk)
+		return -1;
+	if (event->id != walk->event_id)
+		return 0;
+	if (record->size < (walk->data_offset + walk->len))
+		return 0;
+
+	if (memcmp(walk->data, record->data + walk->data_offset, walk->len) == 0)
+		walk->count++;
+
+	return 0;
+}
+
+static bool find_test_marker(struct tracefs_instance *instance,
+			     void *data, int len, int expected, bool raw)
+{
+	struct tep_format_field *field;
+	struct tep_event *event;
+	struct marker_find walk;
+	int ret;
+
+	if (raw) {
+		event = tep_find_event_by_name(test_tep, "ftrace", "raw_data");
+		if (event)
+			field = tep_find_field(event, "id");
+
+	} else {
+		event = tep_find_event_by_name(test_tep, "ftrace", "print");
+		if (event)
+			field = tep_find_field(event, "buf");
+	}
+
+	if (!event || !field)
+		return false;
+
+	walk.data = data;
+	walk.len = len;
+	walk.count = 0;
+	walk.event_id = event->id;
+	walk.data_offset = field->offset;
+	ret = tracefs_iterate_raw_events(test_tep, instance, NULL, 0,
+					 test_marker_callback, &walk);
+	CU_TEST(ret == 0);
+
+	return walk.count == expected;
+}
+
+static int marker_vprint(struct tracefs_instance *instance, char *fmt, ...)
+{
+	va_list ap;
+	int ret;
+
+	va_start(ap, fmt);
+	ret = tracefs_vprintf(instance, fmt, ap);
+	va_end(ap);
+
+	return ret;
+}
+
+#define MARKERS_WRITE_COUNT	100
+static void test_instance_ftrace_marker(struct tracefs_instance *instance)
+{
+	const char *string = get_rand_str();
+	unsigned int data = 0xdeadbeef;
+	char *str;
+	int i;
+
+	CU_TEST(tracefs_print_init(instance) == 0);
+	tracefs_print_close(instance);
+
+	CU_TEST(tracefs_binary_init(instance) == 0);
+	tracefs_binary_close(instance);
+
+	for (i = 0; i < MARKERS_WRITE_COUNT; i++) {
+		CU_TEST(tracefs_binary_write(instance, &data, sizeof(data)) == 0);
+	}
+	CU_TEST(find_test_marker(instance, &data, sizeof(data), MARKERS_WRITE_COUNT, true));
+
+	for (i = 0; i < MARKERS_WRITE_COUNT; i++) {
+		CU_TEST(tracefs_printf(instance, "Test marker: %s 0x%X", string, data) == 0);
+	}
+	asprintf(&str, "Test marker: %s 0x%X", string, data);
+	CU_TEST(find_test_marker(instance, str, strlen(str) + 1, MARKERS_WRITE_COUNT, false));
+	free(str);
+
+	for (i = 0; i < MARKERS_WRITE_COUNT; i++) {
+		CU_TEST(marker_vprint(instance, "Test marker V: %s 0x%X", string, data) == 0);
+	}
+	asprintf(&str, "Test marker V: %s 0x%X", string, data);
+	CU_TEST(find_test_marker(instance, str, strlen(str) + 1, MARKERS_WRITE_COUNT, false));
+	free(str);
+
+	tracefs_print_close(instance);
+	tracefs_binary_close(instance);
+}
+
+static void test_ftrace_marker(void)
+{
+	test_instance_ftrace_marker(test_instance);
+}
+
 static void test_trace_file(void)
 {
 	const char *tmp = get_rand_str();
@@ -1098,4 +1212,6 @@ void test_tracefs_lib(void)
 		    test_tracing_options);
 	CU_add_test(suite, "custom system directory",
 		    test_custom_trace_dir);
+	CU_add_test(suite, "ftrace marker",
+		    test_ftrace_marker);
 }
