@@ -24,14 +24,13 @@ static inline int *get_marker_fd(struct tracefs_instance *instance, bool raw)
 
 static int marker_init(struct tracefs_instance *instance, bool raw)
 {
+	const char *file = raw ? "trace_marker_raw" : "trace_marker";
 	int *fd = get_marker_fd(instance, raw);
 
 	if (*fd >= 0)
 		return 0;
-	if (raw)
-		*fd = tracefs_instance_file_open(instance, "trace_marker_raw", O_WRONLY | O_CLOEXEC);
-	else
-		*fd = tracefs_instance_file_open(instance, "trace_marker", O_WRONLY | O_CLOEXEC);
+
+	*fd = tracefs_instance_file_open(instance, file, O_WRONLY | O_CLOEXEC);
 
 	return *fd < 0 ? -1 : 0;
 }
@@ -95,7 +94,7 @@ int tracefs_vprintf(struct tracefs_instance *instance, const char *fmt, va_list 
 	ret = vasprintf(&str, fmt, ap);
 	if (ret < 0)
 		return ret;
-	ret = marker_write(instance, false, str, strlen(str) + 1);
+	ret = marker_write(instance, false, str, strlen(str));
 	free(str);
 
 	return ret;
