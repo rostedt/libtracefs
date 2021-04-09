@@ -40,8 +40,7 @@ given _instance_. If _instance_ is NULL, the top trace instance is used.
 RETURN VALUE
 ------------
 The _tracefs_options_get_supported()_ and _tracefs_options_get_enabled()_ functions return pointer
-to allocated bitmask with trace options, or NULL in case of an error. The returned bitmask must be
-freed with free();
+to allocated bitmask with trace options, or NULL in case of an error.
 
 The _tracefs_option_is_supported()_ and _tracefs_option_is_enabled()_ functions return true if the
 option in supported / enabled, or false otherwise.
@@ -52,14 +51,13 @@ EXAMPLE
 --
 #include <tracefs.h>
 ...
-struct tracefs_options_mask *options;
+const struct tracefs_options_mask *options;
 ...
 options = tracefs_options_get_supported(NULL);
 if (!options) {
 	/* Failed to get supported options */
 } else {
 	...
-	free(options);
 }
 ...
 options = tracefs_options_get_enabled(NULL);
@@ -67,7 +65,6 @@ if (!options) {
 	/* Failed to get options, enabled in the top instance */
 } else {
 	...
-	free(options);
 }
 ...
 

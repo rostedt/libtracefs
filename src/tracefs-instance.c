@@ -21,6 +21,21 @@
 
 #define FLAG_INSTANCE_NEWLY_CREATED	(1 << 0)
 
+struct tracefs_options_mask	toplevel_supported_opts;
+struct tracefs_options_mask	toplevel_enabled_opts;
+
+__hidden inline struct tracefs_options_mask *
+supported_opts_mask(struct tracefs_instance *instance)
+{
+	return instance ? &instance->supported_opts : &toplevel_supported_opts;
+}
+
+__hidden inline struct tracefs_options_mask *
+enabled_opts_mask(struct tracefs_instance *instance)
+{
+	return instance ? &instance->enabled_opts : &toplevel_enabled_opts;
+}
+
 /**
  * instance_alloc - allocate a new ftrace instance
  * @trace_dir - Full path to the tracing directory, where the instance is

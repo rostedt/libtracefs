@@ -20,14 +20,16 @@ struct tracefs_options_mask {
 };
 
 struct tracefs_instance {
-	char			*trace_dir;
-	char			*name;
-	pthread_mutex_t		lock;
-	int			flags;
-	int			ftrace_filter_fd;
-	int			ftrace_notrace_fd;
-	int			ftrace_marker_fd;
-	int			ftrace_marker_raw_fd;
+	struct tracefs_options_mask	supported_opts;
+	struct tracefs_options_mask	enabled_opts;
+	char				*trace_dir;
+	char				*name;
+	pthread_mutex_t			lock;
+	int				flags;
+	int				ftrace_filter_fd;
+	int				ftrace_notrace_fd;
+	int				ftrace_marker_fd;
+	int				ftrace_marker_raw_fd;
 };
 
 extern pthread_mutex_t toplevel_lock;
@@ -55,5 +57,11 @@ char *trace_find_tracing_dir(void);
 #ifndef DEFFILEMODE
 #define DEFFILEMODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH) /* 0666*/
 #endif
+
+struct tracefs_options_mask *
+supported_opts_mask(struct tracefs_instance *instance);
+
+struct tracefs_options_mask *
+enabled_opts_mask(struct tracefs_instance *instance);
 
 #endif /* _TRACE_FS_LOCAL_H */

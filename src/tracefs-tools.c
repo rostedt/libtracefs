@@ -211,56 +211,52 @@ enum tracefs_option_id tracefs_option_id(const char *name)
 static struct tracefs_options_mask *trace_get_options(struct tracefs_instance *instance,
 						      bool enabled)
 {
+	pthread_mutex_t *lock = instance ? &instance->lock : &toplevel_lock;
 	struct tracefs_options_mask *bitmask;
 	enum tracefs_option_id id;
+	unsigned long long set;
 	char file[PATH_MAX];
-	struct dirent *dent;
-	char *dname = NULL;
-	DIR *dir = NULL;
+	struct stat st;
 	long long val;
+	char *path;
+	int ret;
 
-	bitmask = calloc(1, sizeof(struct tracefs_options_mask));
-	if (!bitmask)
-		return NULL;
-	dname = tracefs_instance_get_file(instance, "options");
-	if (!dname)
-		goto error;
-	dir = opendir(dname);
-	if (!dir)
-		goto error;
+	bitmask = enabled ? enabled_opts_mask(instance) :
+			   supported_opts_mask(instance);
 
-	while ((dent = readdir(dir))) {
-		if (*dent->d_name == '.')
-			continue;
-		if (enabled) {
-			snprintf(file, PATH_MAX, "options/%s", dent->d_name);
-			if (tracefs_instance_file_read_number(instance, file, &val) != 0 ||
-			    val != 1)
-				continue;
+	for (id = 1; id < TRACEFS_OPTION_MAX; id++) {
+		snprintf(file, PATH_MAX, "options/%s", options_map[id]);
+		path = tracefs_instance_get_file(instance, file);
+		if (!path)
+			return NULL;
+
+		set = 1;
+		ret = stat(path, &st);
+		if (ret < 0 || !S_ISREG(st.st_mode)) {
+			set = 0;
+		} else if (enabled) {
+			ret = tracefs_instance_file_read_number(instance, file, &val);
+			if (ret != 0 || val != 1)
+				set = 0;
 		}
-		id = tracefs_option_id(dent->d_name);
-		if (id > TRACEFS_OPTION_INVALID)
-			bitmask->mask |= (1ULL << (id - 1));
+
+		pthread_mutex_lock(lock);
+		bitmask->mask = (bitmask->mask & ~(1ULL << (id - 1))) | (set << (id - 1));
+		pthread_mutex_unlock(lock);
+
+		tracefs_put_tracing_file(path);
 	}
-	closedir(dir);
-	tracefs_put_tracing_file(dname);
+
 
 	return bitmask;
-
-error:
-	if (dir)
-		closedir(dir);
-	tracefs_put_tracing_file(dname);
-	free(bitmask);
-	return NULL;
 }
 
 /**
  * tracefs_options_get_supported - Get all supported trace options in given instance
  * @instance: ftrace instance, can be NULL for the top instance
  *
- * Returns allocated bitmask structure with all trace options, supported in given
- * instance, or NULL in case of an error. The returned structure must be freed with free()
+ * Returns bitmask structure with all trace options, supported in given instance,
+ * or NULL in case of an error.
  */
 struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instance *instance)
 {
@@ -271,8 +267,8 @@ struct tracefs_options_mask *tracefs_options_get_supported(struct tracefs_instan
  * tracefs_options_get_enabled - Get all currently enabled trace options in given instance
  * @instance: ftrace instance, can be NULL for the top instance
  *
- * Returns allocated bitmask structure with all trace options, enabled in given
- * instance, or NULL in case of an error. The returned structure must be freed with free()
+ * Returns bitmask structure with all trace options, enabled in given instance,
+ * or NULL in case of an error.
  */
 struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance *instance)
 {
@@ -282,7 +278,7 @@ struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance
 static int trace_config_option(struct tracefs_instance *instance,
 			       enum tracefs_option_id id, bool set)
 {
-	char *set_str = set ? "1" : "0";
+	const char *set_str = set ? "1" : "0";
 	char file[PATH_MAX];
 	const char *name;
 
@@ -370,7 +366,7 @@ bool tracefs_option_is_enabled(struct tracefs_instance *instance, enum tracefs_o
  * Returns true if an option with given id is set in the bitmask,
  * false if it is not set.
  */
-bool tracefs_option_is_set(struct tracefs_options_mask *options,
+bool tracefs_option_is_set(const struct tracefs_options_mask *options,
 			   enum tracefs_option_id id)
 {
 	if (id > TRACEFS_OPTION_INVALID)
