@@ -51,6 +51,16 @@ Trace helper functions:
 	int _tracefs_trace_on_get_fd_(struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_trace_on_fd*(int _fd_);
 	int *tracefs_trace_off_fd*(int _fd_);
+
+Writing data in the trace buffer:
+	int *tracefs_print_init*(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_printf*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_fmt_, _..._);
+	int *tracefs_vprintf*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_fmt_, va_list _ap_);
+	void *tracefs_print_close*(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_binary_init*(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_binary_write*(struct tracefs_instance pass:[*]_instance_, void pass:[*]_data_, int _len_);
+	void *tracefs_binary_close*(struct tracefs_instance pass:[*]_instance_);
+
 --
 
 DESCRIPTION
