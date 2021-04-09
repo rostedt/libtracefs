@@ -684,7 +684,7 @@ static bool check_options_mask_empty(struct tracefs_options_mask *mask)
 	int i;
 
 	for (i = 1; i < TRACEFS_OPTION_MAX; i++) {
-		if (tracefs_option_is_set(*mask, i))
+		if (tracefs_option_is_set(mask, i))
 			return false;
 	}
 	return true;
@@ -717,9 +717,9 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 		CU_TEST(strcmp(name, "unknown"));
 		snprintf(file, PATH_MAX, "options/%s", name);
 
-		if (tracefs_option_is_set(*all, i)) {
+		if (tracefs_option_is_set(all, i)) {
 			tracefs_option_clear(all, i);
-			CU_TEST(!tracefs_option_is_set(*all, i));
+			CU_TEST(!tracefs_option_is_set(all, i));
 			CU_TEST(check_option(instance, i, true, -1));
 			CU_TEST(tracefs_option_is_supported(instance, i));
 		} else {
@@ -727,9 +727,9 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 			CU_TEST(!tracefs_option_is_supported(instance, i));
 		}
 
-		if (tracefs_option_is_set(*enabled, i)) {
+		if (tracefs_option_is_set(enabled, i)) {
 			tracefs_option_clear(enabled, i);
-			CU_TEST(!tracefs_option_is_set(*enabled, i));
+			CU_TEST(!tracefs_option_is_set(enabled, i));
 			CU_TEST(check_option(instance, i, true, 1));
 			CU_TEST(tracefs_option_is_supported(instance, i));
 			CU_TEST(tracefs_option_is_enabled(instance, i));
@@ -737,7 +737,7 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 			CU_TEST(check_option(instance, i, true, 0));
 			CU_TEST(tracefs_option_enable(instance, i) == 0);
 			CU_TEST(check_option(instance, i, true, 1));
-		} else if (tracefs_option_is_set(*all_copy, i)) {
+		} else if (tracefs_option_is_set(all_copy, i)) {
 			CU_TEST(check_option(instance, i, true, 0));
 			CU_TEST(tracefs_option_is_supported(instance, i));
 			CU_TEST(!tracefs_option_is_enabled(instance, i));
