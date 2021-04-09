@@ -22,6 +22,8 @@ struct tracefs_instance {
 	int			flags;
 	int			ftrace_filter_fd;
 	int			ftrace_notrace_fd;
+	int			ftrace_marker_fd;
+	int			ftrace_marker_raw_fd;
 };
 
 extern pthread_mutex_t toplevel_lock;

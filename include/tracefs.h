@@ -63,6 +63,17 @@ static inline int tracefs_trace_on_get_fd(struct tracefs_instance *instance)
 	return tracefs_instance_file_open(instance, "tracing_on", O_RDWR);
 }
 
+/* trace print string*/
+int tracefs_print_init(struct tracefs_instance *instance);
+int tracefs_printf(struct tracefs_instance *instance, const char *fmt, ...);
+int tracefs_vprintf(struct tracefs_instance *instance, const char *fmt, va_list ap);
+void tracefs_print_close(struct tracefs_instance *instance);
+
+/* trace write binary data*/
+int tracefs_binary_init(struct tracefs_instance *instance);
+int tracefs_binary_write(struct tracefs_instance *instance, void *data, int len);
+void tracefs_binary_close(struct tracefs_instance *instance);
+
 /* events */
 void tracefs_list_free(char **list);
 char **tracefs_event_systems(const char *tracing_dir);

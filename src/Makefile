@@ -7,6 +7,7 @@ OBJS += tracefs-utils.o
 OBJS += tracefs-instance.o
 OBJS += tracefs-events.o
 OBJS += tracefs-tools.o
+OBJS += tracefs-marker.o
 
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
