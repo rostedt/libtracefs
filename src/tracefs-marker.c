@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "tracefs.h"
 #include "tracefs-local.h"
@@ -25,24 +26,43 @@ static inline int *get_marker_fd(struct tracefs_instance *instance, bool raw)
 static int marker_init(struct tracefs_instance *instance, bool raw)
 {
 	const char *file = raw ? "trace_marker_raw" : "trace_marker";
+	pthread_mutex_t *lock = trace_get_lock(instance);
 	int *fd = get_marker_fd(instance, raw);
+	int ret;
 
 	if (*fd >= 0)
 		return 0;
 
-	*fd = tracefs_instance_file_open(instance, file, O_WRONLY | O_CLOEXEC);
+	/*
+	 * The mutex is only to hold the integrity of the file descriptor
+	 * to prevent opening it more than once, or closing the same
+	 * file descriptor more than once. It does not protect against
+	 * one thread closing the file descriptor and another thread
+	 * writing to it. That is up to the application to prevent
+	 * from happening.
+	 */
+	pthread_mutex_lock(lock);
+	/* The file could have been opened since we taken the lock */
+	if (*fd < 0)
+		*fd = tracefs_instance_file_open(instance, file, O_WRONLY | O_CLOEXEC);
 
-	return *fd < 0 ? -1 : 0;
+	ret = *fd < 0 ? -1 : 0;
+	pthread_mutex_unlock(lock);
+
+	return ret;
 }
 
 static void marker_close(struct tracefs_instance *instance, bool raw)
 {
+	pthread_mutex_t *lock = trace_get_lock(instance);
 	int *fd = get_marker_fd(instance, raw);
 
-	if (*fd < 0)
-		return;
-	close(*fd);
-	*fd = -1;
+	pthread_mutex_lock(lock);
+	if (*fd >= 0) {
+		close(*fd);
+		*fd = -1;
+	}
+	pthread_mutex_unlock(lock);
 }
 
 static int marker_write(struct tracefs_instance *instance, bool raw, void *data, int len)
@@ -50,6 +70,11 @@ static int marker_write(struct tracefs_instance *instance, bool raw, void *data,
 	int *fd = get_marker_fd(instance, raw);
 	int ret;
 
+	/*
+	 * The lock does not need to be taken for writes. As a write
+	 * does not modify the file descriptor. It's up to the application
+	 * to prevent it from being closed if another thread is doing a write.
+	 */
 	if (!data || len < 1)
 		return -1;
 	if (*fd < 0) {
