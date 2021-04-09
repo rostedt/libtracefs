@@ -359,14 +359,14 @@ bool tracefs_option_is_enabled(struct tracefs_instance *instance, enum tracefs_o
 }
 
 /**
- * tracefs_option_is_set - Check if given option is set in the bitmask
+ * tracefs_option_mask_is_set - Check if given option is set in the bitmask
  * @options: Options bitmask
  * @id: trace option id
  *
  * Returns true if an option with given id is set in the bitmask,
  * false if it is not set.
  */
-bool tracefs_option_is_set(const struct tracefs_options_mask *options,
+bool tracefs_option_mask_is_set(const struct tracefs_options_mask *options,
 			   enum tracefs_option_id id)
 {
 	if (id > TRACEFS_OPTION_INVALID)
