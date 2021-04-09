@@ -211,7 +211,7 @@ enum tracefs_option_id tracefs_option_id(const char *name)
 const static struct tracefs_options_mask *
 trace_get_options(struct tracefs_instance *instance, bool enabled)
 {
-	pthread_mutex_t *lock = instance ? &instance->lock : &toplevel_lock;
+	pthread_mutex_t *lock = trace_get_lock(instance);
 	struct tracefs_options_mask *bitmask;
 	enum tracefs_option_id id;
 	unsigned long long set;
