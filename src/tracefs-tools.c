@@ -192,7 +192,7 @@ const char *tracefs_option_name(enum tracefs_option_id id)
  * Returns trace option ID or TRACEFS_OPTION_INVALID in case of an error or
  * unknown option name.
  */
-enum tracefs_option_id tracefs_option_id(char *name)
+enum tracefs_option_id tracefs_option_id(const char *name)
 {
 	int i;
 
