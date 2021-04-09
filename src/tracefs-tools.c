@@ -756,7 +756,7 @@ static int update_filter(const char *filter_path, int *fd,
 	bool reset = flags & TRACEFS_FL_RESET;
 	bool cont = flags & TRACEFS_FL_CONTINUE;
 	bool future = flags & TRACEFS_FL_FUTURE;
-	pthread_mutex_t *lock = instance ? &instance->lock : &toplevel_lock;
+	pthread_mutex_t *lock = trace_get_lock(instance);
 	int open_flags;
 	int ret = 1;
 

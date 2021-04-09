@@ -28,6 +28,11 @@ struct tracefs_instance {
 
 extern pthread_mutex_t toplevel_lock;
 
+static inline pthread_mutex_t *trace_get_lock(struct tracefs_instance *instance)
+{
+	return instance ? &instance->lock : &toplevel_lock;
+}
+
 /* Can be overridden */
 void tracefs_warning(const char *fmt, ...);
 
