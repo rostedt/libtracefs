@@ -196,7 +196,7 @@ void tracefs_put_tracing_file(char *name)
 	free(name);
 }
 
-__hidden int str_read_file(const char *file, char **buffer)
+__hidden int str_read_file(const char *file, char **buffer, bool warn)
 {
 	char stbuf[BUFSIZ];
 	char *buf = NULL;
@@ -207,7 +207,8 @@ __hidden int str_read_file(const char *file, char **buffer)
 
 	fd = open(file, O_RDONLY);
 	if (fd < 0) {
-		tracefs_warning("File %s not found", file);
+		if (warn)
+			tracefs_warning("File %s not found", file);
 		return -1;
 	}
 
@@ -217,7 +218,8 @@ __hidden int str_read_file(const char *file, char **buffer)
 			continue;
 		nbuf = realloc(buf, size+r+1);
 		if (!nbuf) {
-			tracefs_warning("Failed to allocate file buffer");
+			if (warn)
+				tracefs_warning("Failed to allocate file buffer");
 			size = -1;
 			break;
 		}

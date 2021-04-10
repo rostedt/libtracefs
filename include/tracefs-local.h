@@ -42,7 +42,7 @@ static inline pthread_mutex_t *trace_get_lock(struct tracefs_instance *instance)
 /* Can be overridden */
 void tracefs_warning(const char *fmt, ...);
 
-int str_read_file(const char *file, char **buffer);
+int str_read_file(const char *file, char **buffer, bool warn);
 char *trace_append_file(const char *dir, const char *name);
 char *trace_find_tracing_dir(void);
 

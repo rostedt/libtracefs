@@ -485,7 +485,7 @@ char **tracefs_tracers(const char *tracing_dir)
 	if (ret < 0)
 		goto out_free;
 
-	len = str_read_file(available_tracers, &buf);
+	len = str_read_file(available_tracers, &buf, true);
 	if (len <= 0)
 		goto out_free;
 
@@ -545,7 +545,7 @@ static int load_events(struct tep_handle *tep,
 		if (ret < 0)
 			goto next_event;
 
-		len = str_read_file(format, &buf);
+		len = str_read_file(format, &buf, true);
 		if (len <= 0)
 			goto next_event;
 
@@ -575,7 +575,7 @@ static int read_header(struct tep_handle *tep, const char *tracing_dir)
 	if (ret < 0)
 		goto out;
 
-	len = str_read_file(header, &buf);
+	len = str_read_file(header, &buf, true);
 	if (len <= 0)
 		goto out;
 
