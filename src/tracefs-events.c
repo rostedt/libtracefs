@@ -610,8 +610,8 @@ static void load_kallsyms(struct tep_handle *tep)
 	free(buf);
 }
 
-static void load_saved_cmdlines(const char *tracing_dir,
-				struct tep_handle *tep)
+static int load_saved_cmdlines(const char *tracing_dir,
+			       struct tep_handle *tep, bool warn)
 {
 	char *path;
 	char *buf;
@@ -619,15 +619,17 @@ static void load_saved_cmdlines(const char *tracing_dir,
 
 	path = trace_append_file(tracing_dir, "saved_cmdlines");
 	if (!path)
-		return;
+		return -1;
 
 	ret = str_read_file(path, &buf, false);
 	free(path);
 	if (ret < 0)
-		return;
+		return -1;
 
-	tep_parse_saved_cmdlines(tep, buf);
+	ret = tep_parse_saved_cmdlines(tep, buf);
 	free(buf);
+
+	return ret;
 }
 
 static void load_printk_formats(const char *tracing_dir,
@@ -659,8 +661,13 @@ static void load_mappings(const char *tracing_dir,
 			  struct tep_handle *tep)
 {
 	load_kallsyms(tep);
-	load_saved_cmdlines(tracing_dir, tep);
+	load_saved_cmdlines(tracing_dir, tep, false);
 	load_printk_formats(tracing_dir, tep);
+}
+
+int tracefs_load_cmdlines(const char *tracing_dir, struct tep_handle *tep)
+{
+	return load_saved_cmdlines(tracing_dir, tep, true);
 }
 
 static int fill_local_events_system(const char *tracing_dir,

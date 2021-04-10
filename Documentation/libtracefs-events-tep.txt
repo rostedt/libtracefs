@@ -3,7 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_local_events, tracefs_local_events_system, tracefs_fill_local_events -
+tracefs_local_events, tracefs_local_events_system, tracefs_fill_local_events,
+tracefs_load_cmdlines -
 Initialize a tep handler with trace events from the local system.
 
 SYNOPSIS
@@ -15,7 +16,7 @@ SYNOPSIS
 struct tep_handle pass:[*]*tracefs_local_events*(const char pass:[*]_tracing_dir_);
 struct tep_handle pass:[*]*tracefs_local_events_system*(const char pass:[*]_tracing_dir_, const char pass:[*] const pass:[*]_sys_names_);
 int *tracefs_fill_local_events*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_, int pass:[*]_parsing_failures_);
-
+int *tracefs_load_cmdlines*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_);
 --
 
 DESCRIPTION
@@ -46,6 +47,14 @@ a pointer to already allocated tep handler, that is going to be initialized.
 The _parsing_failures_ argument could be NULL or a pointer to an integer,
 where the number of failures while parsing the event files are returned.
 
+The above functions will also load the mappings between pids and the process
+command line names. In some cases the _tep_ handle is created with one
+of the above before tracing begins. As the mappings get updated during the
+trace, there may be a need to read the mappings again after the trace.
+The _tracefs_load_cmdlines()_ does just that. The _tracing_dir_ is
+the director of the mount point to load from, or NULL to use the
+mount point of the tracefs file system.
+
 RETURN VALUE
 ------------
 The _tracefs_local_events()_ and _tracefs_local_events_system()_ functions
@@ -53,6 +62,9 @@ return pointer to allocated and initialized _tep_ handler, or NULL in
 case of an error. The returned _tep_ handler must be freed with _tep_free(3)_.
 
 The _tracefs_fill_local_events()_ function returns -1 in case of an error or
+0 otherwise.
+
+The _tracefs_load_cmdlines()_ function returns -1 in case of an error, or
 0 otherwise.
 
 EXAMPLE
@@ -91,6 +103,7 @@ struct tep_event *tep;
 	if (tracefs_fill_local_events(NULL, tep, &parsing_failures) < 0) {
 		/* Failed to initialise tep handler with local events from top instance */
 	}
+	tracefs_load_cmdlines(NULL, tep);
 ...
 	tep_free(tep);
 --
