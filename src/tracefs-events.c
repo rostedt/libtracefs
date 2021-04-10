@@ -599,6 +599,70 @@ static bool contains(const char *name, const char * const *names)
 	return false;
 }
 
+static void load_kallsyms(struct tep_handle *tep)
+{
+	char *buf;
+
+	if (str_read_file("/proc/kallsyms", &buf, false) < 0)
+		return;
+
+	tep_parse_kallsyms(tep, buf);
+	free(buf);
+}
+
+static void load_saved_cmdlines(const char *tracing_dir,
+				struct tep_handle *tep)
+{
+	char *path;
+	char *buf;
+	int ret;
+
+	path = trace_append_file(tracing_dir, "saved_cmdlines");
+	if (!path)
+		return;
+
+	ret = str_read_file(path, &buf, false);
+	free(path);
+	if (ret < 0)
+		return;
+
+	tep_parse_saved_cmdlines(tep, buf);
+	free(buf);
+}
+
+static void load_printk_formats(const char *tracing_dir,
+				struct tep_handle *tep)
+{
+	char *path;
+	char *buf;
+	int ret;
+
+	path = trace_append_file(tracing_dir, "printk_formats");
+	if (!path)
+		return;
+
+	ret = str_read_file(path, &buf, false);
+	free(path);
+	if (ret < 0)
+		return;
+
+	tep_parse_printk_formats(tep, buf);
+	free(buf);
+}
+
+/*
+ * Do a best effort attempt to load kallsyms, saved_cmdlines and
+ * printk_formats. If they can not be loaded, then this will not
+ * do the mappings. But this does not fail the loading of events.
+ */
+static void load_mappings(const char *tracing_dir,
+			  struct tep_handle *tep)
+{
+	load_kallsyms(tep);
+	load_saved_cmdlines(tracing_dir, tep);
+	load_printk_formats(tracing_dir, tep);
+}
+
 static int fill_local_events_system(const char *tracing_dir,
 				    struct tep_handle *tep,
 				    const char * const *sys_names,
@@ -637,6 +701,8 @@ static int fill_local_events_system(const char *tracing_dir,
 	/* Include ftrace, as it is excluded for not having "enable" file */
 	if (!sys_names || contains("ftrace", sys_names))
 		load_events(tep, tracing_dir, "ftrace");
+
+	load_mappings(tracing_dir, tep);
 
 	/* always succeed because parsing failures are not critical */
 	ret = 0;
