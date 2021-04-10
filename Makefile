@@ -10,7 +10,7 @@ export TFS_PATCHLEVEL
 export TFS_EXTRAVERSION
 export TRACEFS_VERSION
 
-LIBTRACEEVENT_MIN_VERSION = 1.1
+LIBTRACEEVENT_MIN_VERSION = 1.2
 
 # taken from trace-cmd
 MAKEFLAGS += --no-print-directory
