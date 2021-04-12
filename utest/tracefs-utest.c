@@ -287,14 +287,14 @@ static void test_instance_ftrace_marker(struct tracefs_instance *instance)
 		CU_TEST(tracefs_printf(instance, "Test marker: %s 0x%X", string, data) == 0);
 	}
 	asprintf(&str, "Test marker: %s 0x%X", string, data);
-	CU_TEST(find_test_marker(instance, str, strlen(str) + 1, MARKERS_WRITE_COUNT, false));
+	CU_TEST(find_test_marker(instance, str, strlen(str), MARKERS_WRITE_COUNT, false));
 	free(str);
 
 	for (i = 0; i < MARKERS_WRITE_COUNT; i++) {
 		CU_TEST(marker_vprint(instance, "Test marker V: %s 0x%X", string, data) == 0);
 	}
 	asprintf(&str, "Test marker V: %s 0x%X", string, data);
-	CU_TEST(find_test_marker(instance, str, strlen(str) + 1, MARKERS_WRITE_COUNT, false));
+	CU_TEST(find_test_marker(instance, str, strlen(str), MARKERS_WRITE_COUNT, false));
 	free(str);
 
 	tracefs_print_close(instance);
