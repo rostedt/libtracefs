@@ -652,12 +652,27 @@ static void load_mappings(const char *tracing_dir,
 			  struct tep_handle *tep)
 {
 	load_kallsyms(tep);
+
+	/* If there's no tracing_dir no reason to go further */
+	if (!tracing_dir)
+		tracing_dir = tracefs_tracing_dir();
+
+	if (!tracing_dir)
+		return;
+
 	load_saved_cmdlines(tracing_dir, tep, false);
 	load_printk_formats(tracing_dir, tep);
 }
 
 int tracefs_load_cmdlines(const char *tracing_dir, struct tep_handle *tep)
 {
+
+	if (!tracing_dir)
+		tracing_dir = tracefs_tracing_dir();
+
+	if (!tracing_dir)
+		return -1;
+
 	return load_saved_cmdlines(tracing_dir, tep, true);
 }
 
