@@ -603,7 +603,7 @@ static void load_kallsyms(struct tep_handle *tep)
 {
 	char *buf;
 
-	if (str_read_file("/proc/kallsyms", &buf, false) < 0)
+	if (str_read_file("/proc/kallsyms", &buf, false) <= 0)
 		return;
 
 	tep_parse_kallsyms(tep, buf);
@@ -623,7 +623,7 @@ static int load_saved_cmdlines(const char *tracing_dir,
 
 	ret = str_read_file(path, &buf, false);
 	free(path);
-	if (ret < 0)
+	if (ret <= 0)
 		return -1;
 
 	ret = tep_parse_saved_cmdlines(tep, buf);
@@ -645,7 +645,7 @@ static void load_printk_formats(const char *tracing_dir,
 
 	ret = str_read_file(path, &buf, false);
 	free(path);
-	if (ret < 0)
+	if (ret <= 0)
 		return;
 
 	tep_parse_printk_formats(tep, buf);
