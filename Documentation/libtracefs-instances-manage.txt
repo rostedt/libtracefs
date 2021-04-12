@@ -35,8 +35,9 @@ then the new tracefs_instance structure is initialised for the top instance.
 Note that the top instance cannot be created in the system, if it does not
 exist.
 
-The _tracefs_instance_destroy()_ frees the _instance_ structure, and will
-also remove the trace instance from the system.
+The _tracefs_instance_destroy()_ removes the instance from the system, but
+does not free the structure. _tracefs_instance_free()__ must still be called
+on _instance_.
 
 The _tracefs_instance_alloc()_ function allocates a new tracefs_instance structure
 for existing trace instance. If the instance does not exist in the system, the function
@@ -55,11 +56,11 @@ before that.
 RETURN VALUE
 ------------
 The _tracefs_instance_create()_ and _tracefs_instance_alloc()_ functions return a pointer to
-a newly allocated tracefs_instance structure. It must be freed with _tracefs_instance_destroy()_ or
-_tracefs_instance_free()_.
+a newly allocated tracefs_instance structure. It must be freed with _tracefs_instance_free()_.
 
-The _tracefs_instance_destroy()_ function returns -1 in case of an error,
-or 0 otherwise.
+The _tracefs_instance_destroy()_ function returns 0 if it succeeds to remove
+the instance, otherwise it returns -1 if the instance does not exist or it
+fails to remove it.
 
 The _tracefs_instance_is_new()_ function returns true if the
 _tracefs_instance_create()_ that allocated _instance_ also created the
@@ -83,8 +84,7 @@ struct tracefs_instance *inst = tracefs_instance_create("foo");
 
 	if (tracefs_instance_is_new(inst))
 		tracefs_instance_destroy(inst);
-	else
-		tracefs_instance_free(inst);
+	tracefs_instance_free(inst);
 ...
 
 struct tracefs_instance *inst = tracefs_instance_alloc(NULL, "bar");
