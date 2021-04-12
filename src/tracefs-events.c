@@ -20,37 +20,6 @@
 #include "tracefs.h"
 #include "tracefs-local.h"
 
-static struct kbuffer *
-page_to_kbuf(struct tep_handle *tep, void *page, int size)
-{
-	enum kbuffer_long_size long_size;
-	enum kbuffer_endian endian;
-	struct kbuffer *kbuf;
-
-	if (tep_is_file_bigendian(tep))
-		endian = KBUFFER_ENDIAN_BIG;
-	else
-		endian = KBUFFER_ENDIAN_LITTLE;
-
-	if (tep_get_header_page_size(tep) == 8)
-		long_size = KBUFFER_LSIZE_8;
-	else
-		long_size = KBUFFER_LSIZE_4;
-
-	kbuf = kbuffer_alloc(long_size, endian);
-	if (!kbuf)
-		return NULL;
-
-	kbuffer_load_subbuffer(kbuf, page);
-	if (kbuffer_subbuffer_size(kbuf) > size) {
-		tracefs_warning("%s: page_size > size", __func__);
-		kbuffer_free(kbuf);
-		kbuf = NULL;
-	}
-
-	return kbuf;
-}
-
 struct cpu_iterate {
 	struct tep_record record;
 	struct tep_event *event;
@@ -88,13 +57,34 @@ static int read_kbuf_record(struct cpu_iterate *cpu)
 
 int read_next_page(struct tep_handle *tep, struct cpu_iterate *cpu)
 {
+	enum kbuffer_long_size long_size;
+	enum kbuffer_endian endian;
+
 	cpu->rsize = read(cpu->fd, cpu->page, cpu->psize);
 	if (cpu->rsize <= 0)
 		return -1;
 
-	cpu->kbuf = page_to_kbuf(tep, cpu->page, cpu->rsize);
-	if (!cpu->kbuf)
+	if (!cpu->kbuf) {
+		if (tep_is_file_bigendian(tep))
+			endian = KBUFFER_ENDIAN_BIG;
+		else
+			endian = KBUFFER_ENDIAN_LITTLE;
+
+		if (tep_get_header_page_size(tep) == 8)
+			long_size = KBUFFER_LSIZE_8;
+		else
+			long_size = KBUFFER_LSIZE_4;
+
+		cpu->kbuf = kbuffer_alloc(long_size, endian);
+		if (!cpu->kbuf)
+			return -1;
+	}
+
+	kbuffer_load_subbuffer(cpu->kbuf, cpu->page);
+	if (kbuffer_subbuffer_size(cpu->kbuf) > cpu->rsize) {
+		tracefs_warning("%s: page_size > %d", __func__, cpu->rsize);
 		return -1;
+	}
 
 	return 0;
 }
@@ -256,6 +246,7 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 out:
 	if (all_cpus) {
 		for (i = 0; i < count; i++) {
+			kbuffer_free(all_cpus[i].kbuf);
 			close(all_cpus[i].fd);
 			free(all_cpus[i].page);
 		}
