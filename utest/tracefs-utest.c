@@ -679,21 +679,11 @@ out:
 	return ret;
 }
 
-static bool check_options_mask_empty(struct tracefs_options_mask *mask)
-{
-	int i;
-
-	for (i = 1; i < TRACEFS_OPTION_MAX; i++) {
-		if (tracefs_option_mask_is_set(mask, i))
-			return false;
-	}
-	return true;
-}
-
 static void test_instance_tracing_options(struct tracefs_instance *instance)
 {
-	struct tracefs_options_mask *enabled;
-	struct tracefs_options_mask *all, *all_copy;
+	const struct tracefs_options_mask *enabled;
+	const struct tracefs_options_mask *all_copy;
+	const struct tracefs_options_mask *all;
 	enum tracefs_option_id i = 1;
 	char file[PATH_MAX];
 	const char *name;
@@ -743,11 +733,6 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 			CU_TEST(check_option(instance, i, true, 0));
 		}
 	}
-	CU_TEST(check_options_mask_empty(all));
-	CU_TEST(check_options_mask_empty(enabled));
-
-	free(all);
-	free(enabled);
 }
 
 static void test_tracing_options(void)
