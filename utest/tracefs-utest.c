@@ -28,6 +28,11 @@
 #define TRACE_ON	"tracing_on"
 #define TRACE_CLOCK	"trace_clock"
 
+#define KPROB_EVTS	"kprobe_events"
+#define KPROBE_1	"p:mkdir do_mkdirat path=+u0($arg2):ustring"
+#define KPROBE_1_RM	"-:mkdir"
+#define KPROBE_2	"p:open do_sys_openat2 file=+u0($arg2):ustring flags=+0($arg3):x64"
+
 static struct tracefs_instance *test_instance;
 static struct tep_handle *test_tep;
 struct test_sample {
@@ -375,6 +380,7 @@ static void test_instance_file(void)
 	char *inst_file;
 	char *inst_dir;
 	struct stat st;
+	char *kprobes;
 	char *fname;
 	char *file1;
 	char *file2;
@@ -442,6 +448,32 @@ static void test_instance_file(void)
 	CU_TEST(strncmp(file2, tracer, strlen(tracer)) == 0);
 	free(file1);
 	free(file2);
+
+	ret = tracefs_instance_file_write(NULL, KPROB_EVTS, KPROBE_1);
+	CU_TEST(ret == strlen(KPROBE_1));
+	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
+	CU_TEST(kprobes != NULL);
+	CU_TEST(strstr(kprobes, KPROBE_1 + 2) != NULL);
+	free(kprobes);
+
+	ret = tracefs_instance_file_append(NULL, KPROB_EVTS, KPROBE_2);
+	CU_TEST(ret == strlen(KPROBE_2));
+	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
+	CU_TEST(kprobes != NULL);
+	CU_TEST(strstr(kprobes, KPROBE_2 + 2) != NULL);
+	free(kprobes);
+
+	ret = tracefs_instance_file_append(NULL, KPROB_EVTS, KPROBE_1_RM);
+	CU_TEST(ret == strlen(KPROBE_1_RM));
+	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
+	CU_TEST(kprobes != NULL);
+	CU_TEST(strstr(kprobes, KPROBE_1 + 2) == NULL);
+	free(kprobes);
+
+	ret = tracefs_instance_file_clear(NULL, KPROB_EVTS);
+	CU_TEST(ret == 0);
+	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
+	CU_TEST(kprobes == NULL);
 
 	tracefs_put_tracing_file(inst_file);
 	free(fname);
