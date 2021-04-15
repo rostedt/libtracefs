@@ -337,21 +337,41 @@ const char *tracefs_instance_get_trace_dir(struct tracefs_instance *instance)
 	return NULL;
 }
 
-static int write_file(const char *file, const char *str)
+static int write_file(const char *file, const char *str, int flags)
 {
-	int ret;
+	int ret = 0;
 	int fd;
 
-	fd = open(file, O_WRONLY | O_TRUNC);
+	fd = open(file, flags);
 	if (fd < 0) {
 		tracefs_warning("Failed to open '%s'", file);
 		return -1;
 	}
-	ret = write(fd, str, strlen(str));
+
+	if (str)
+		ret = write(fd, str, strlen(str));
+
 	close(fd);
 	return ret;
 }
 
+static int instance_file_write(struct tracefs_instance *instance,
+			       const char *file, const char *str, int flags)
+{
+	struct stat st;
+	char *path;
+	int ret;
+
+	path = tracefs_instance_get_file(instance, file);
+	if (!path)
+		return -1;
+	ret = stat(path, &st);
+	if (ret == 0)
+		ret = write_file(path, str, flags);
+	tracefs_put_tracing_file(path);
+
+	return ret;
+}
 
 /**
  * tracefs_instance_file_write - Write in trace file of specific instance.
@@ -364,19 +384,43 @@ static int write_file(const char *file, const char *str)
 int tracefs_instance_file_write(struct tracefs_instance *instance,
 				 const char *file, const char *str)
 {
-	struct stat st;
-	char *path;
-	int ret;
+	return instance_file_write(instance, file, str, O_WRONLY | O_TRUNC);
+}
 
-	path = tracefs_instance_get_file(instance, file);
-	if (!path)
-		return -1;
-	ret = stat(path, &st);
-	if (ret == 0)
-		ret = write_file(path, str);
-	tracefs_put_tracing_file(path);
+/**
+ * tracefs_instance_file_append - Append to a trace file of specific instance.
+ * @instance: ftrace instance, can be NULL for the top instance.
+ * @file: name of the file.
+ * @str: nul terminated string, that will be appended to the file.
+ *
+ * Returns the number of appended bytes, or -1 in case of an error.
+ */
+int tracefs_instance_file_append(struct tracefs_instance *instance,
+				 const char *file, const char *str)
+{
+	return instance_file_write(instance, file, str, O_WRONLY);
+}
 
-	return ret;
+/**
+ * tracefs_instance_file_clear - Clear a trace file of specific instance.
+ * Note, it only opens with O_TRUNC and closes the file. If the file has
+ * content that does not get cleared in this way, this will not have any
+ * effect. For example, set_ftrace_filter can have probes that are not
+ * cleared by O_TRUNC:
+ *
+ * echo "schedule:stacktrace" > set_ftrace_filter
+ *
+ * This function will not clear the above "set_ftrace_filter" after that
+ * command.
+ * @instance: ftrace instance, can be NULL for the top instance.
+ * @file: name of the file to clear.
+ *
+ * Returns 0 on success, or -1 in case of an error.
+ */
+int tracefs_instance_file_clear(struct tracefs_instance *instance,
+				const char *file)
+{
+	return instance_file_write(instance, file, NULL, O_WRONLY | O_TRUNC);
 }
 
 /**
