@@ -994,7 +994,7 @@ static void current_clock_check(struct tracefs_instance *instance, const char *c
 	char *str;
 
 	clocks = tracefs_instance_file_read(instance, TRACE_CLOCK, &size);
-	CU_TEST(clocks != NULL);
+	CU_TEST_FATAL(clocks != NULL);
 	CU_TEST(size > strlen(clock));
 	str = strstr(clocks, clock);
 	CU_TEST(str != NULL);
@@ -1009,7 +1009,7 @@ static void test_instance_get_clock(struct tracefs_instance *instance)
 	const char *clock;
 
 	clock = tracefs_get_clock(instance);
-	CU_TEST(clock != NULL);
+	CU_TEST_FATAL(clock != NULL);
 	current_clock_check(instance, clock);
 	free((char *)clock);
 }
