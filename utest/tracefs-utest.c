@@ -452,21 +452,21 @@ static void test_instance_file(void)
 	ret = tracefs_instance_file_write(NULL, KPROB_EVTS, KPROBE_1);
 	CU_TEST(ret == strlen(KPROBE_1));
 	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST(kprobes != NULL);
+	CU_TEST_FATAL(kprobes != NULL);
 	CU_TEST(strstr(kprobes, &KPROBE_1[2]) != NULL);
 	free(kprobes);
 
 	ret = tracefs_instance_file_append(NULL, KPROB_EVTS, KPROBE_2);
 	CU_TEST(ret == strlen(KPROBE_2));
 	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST(kprobes != NULL);
+	CU_TEST_FATAL(kprobes != NULL);
 	CU_TEST(strstr(kprobes, &KPROBE_2[2]) != NULL);
 	free(kprobes);
 
 	ret = tracefs_instance_file_append(NULL, KPROB_EVTS, KPROBE_1_RM);
 	CU_TEST(ret == strlen(KPROBE_1_RM));
 	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST(kprobes != NULL);
+	CU_TEST_FATAL(kprobes != NULL);
 	CU_TEST(strstr(kprobes, &KPROBE_1[2]) == NULL);
 	free(kprobes);
 
@@ -1026,7 +1026,7 @@ static void current_clock_check(struct tracefs_instance *instance, const char *c
 	char *str;
 
 	clocks = tracefs_instance_file_read(instance, TRACE_CLOCK, &size);
-	CU_TEST(clocks != NULL);
+	CU_TEST_FATAL(clocks != NULL);
 	CU_TEST(size > strlen(clock));
 	str = strstr(clocks, clock);
 	CU_TEST(str != NULL);
@@ -1041,7 +1041,7 @@ static void test_instance_get_clock(struct tracefs_instance *instance)
 	const char *clock;
 
 	clock = tracefs_get_clock(instance);
-	CU_TEST(clock != NULL);
+	CU_TEST_FATAL(clock != NULL);
 	current_clock_check(instance, clock);
 	free((char *)clock);
 }
