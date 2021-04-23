@@ -659,7 +659,7 @@ static bool check_option(struct tracefs_instance *instance,
 	bool supported;
 	struct stat st;
 	char buf[10];
-	int fd;
+	int fd = 0;
 	int r;
 	int rstat;
 
