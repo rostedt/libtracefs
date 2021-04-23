@@ -1061,7 +1061,7 @@ static void copy_trace_file(const char *from, char *to)
 	fd_from = open(from, O_RDONLY);
 	if (fd_from < 0)
 		goto out;
-	fd_to = open(to, O_WRONLY | O_TRUNC | O_CREAT);
+	fd_to = open(to, O_WRONLY | O_TRUNC | O_CREAT, S_IRWXU | S_IRWXG);
 	if (fd_to < 0)
 		goto out;
 
