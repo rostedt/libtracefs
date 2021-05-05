@@ -777,3 +777,152 @@ int tracefs_fill_local_events(const char *tracing_dir,
 	return fill_local_events_system(tracing_dir, tep,
 					NULL, parsing_failures);
 }
+
+static bool match(const char *str, regex_t *re)
+{
+	return regexec(re, str, 0, NULL, 0) == 0;
+}
+
+static int enable_disable_event(struct tracefs_instance *instance,
+				const char *system, const char *event,
+				bool enable)
+{
+	const char *str = enable ? "1" : "0";
+	char *system_event;
+	int ret;
+
+	ret = asprintf(&system_event, "events/%s/%s/enable", system, event);
+	if (ret < 0)
+		return ret;
+
+	ret = tracefs_instance_file_write(instance, system_event, str);
+	free(system_event);
+
+	return ret;
+}
+
+static int enable_disable_system(struct tracefs_instance *instance,
+				 const char *system, bool enable)
+{
+	const char *str = enable ? "1" : "0";
+	char *system_path;
+	int ret;
+
+	ret = asprintf(&system_path, "events/%s/enable", system);
+	if (ret < 0)
+		return ret;
+
+	ret = tracefs_instance_file_write(instance, system_path, str);
+	free(system_path);
+
+	return ret;
+}
+
+static int enable_disable_all(struct tracefs_instance *instance,
+			      bool enable)
+{
+	const char *str = enable ? "1" : "0";
+
+	return tracefs_instance_file_write(instance, "events/enable", str);
+}
+
+static int event_enable_disable(struct tracefs_instance *instance,
+				const char *system, const char *event,
+				bool enable)
+{
+	regex_t system_re, event_re;
+	char **systems;
+	char **events = NULL;
+	int ret = -1;
+	int s, e;
+
+	/* Handle all events first */
+	if (!system && !event)
+		return enable_disable_all(instance, enable);
+
+	systems = tracefs_event_systems(NULL);
+	if (!systems)
+		goto out_free;
+
+	if (system) {
+		ret = regcomp(&system_re, system, REG_ICASE|REG_NOSUB);
+		if (ret < 0)
+			goto out_free;
+	}
+	if (event) {
+		ret = regcomp(&event_re, event, REG_ICASE|REG_NOSUB);
+		if (ret < 0) {
+			if (system)
+				regfree(&system_re);
+			goto out_free;
+		}
+	}
+
+	for (s = 0; systems[s]; s++) {
+		if (system && !match(systems[s], &system_re))
+			continue;
+
+		/* Check for the short cut first */
+		if (!event) {
+			ret = enable_disable_system(instance, systems[s], enable);
+			if (ret < 0)
+				break;
+			ret = 0;
+			continue;
+		}
+
+		events = tracefs_system_events(NULL, systems[s]);
+		if (!events)
+			continue; /* Error? */
+
+		for (e = 0; events[e]; e++) {
+			if (!match(events[e], &event_re))
+				continue;
+			ret = enable_disable_event(instance, systems[s],
+						   events[e], enable);
+			if (ret < 0)
+				break;
+			ret = 0;
+		}
+		tracefs_list_free(events);
+		events = NULL;
+	}
+	if (system)
+		regfree(&system_re);
+	if (event)
+		regfree(&event_re);
+
+ out_free:
+	tracefs_list_free(systems);
+	tracefs_list_free(events);
+	return ret;
+}
+
+/**
+ * tracefs_event_enable - enable specified events
+ * @instance: ftrace instance, can be NULL for the top instance
+ * @system: A regex of a system (NULL to match all systems)
+ * @event: A regex of the event in the system (NULL to match all events)
+ *
+ * This will enable events that match the @system and @event.
+ * If both @system and @event are NULL, then it will enable all events.
+ * If @system is NULL, it will look at all systems for matching events
+ * to @event.
+ * If @event is NULL, then it will enable all events in the systems
+ * that match @system.
+ *
+ * Returns 0 on success, and -1 if it encountered an error,
+ * or if no events matched. If no events matched, then -1 is set
+ * but errno will not be.
+ */
+int tracefs_event_enable(struct tracefs_instance *instance,
+			 const char *system, const char *event)
+{
+	return event_enable_disable(instance, system, event, true);
+}
+
+int tracefs_event_disable(struct tracefs_instance *instance,
+			  const char *system, const char *event)
+{
+	return event_enable_disable(instance, system, event, false);
+}
