@@ -816,6 +816,7 @@ static int update_filter(const char *filter_path, int *fd,
 	}
 
  out_free:
+	regfree(&func_filter.re);
 	free_func_list(func_list);
  out:
 	pthread_mutex_unlock(lock);
