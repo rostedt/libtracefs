@@ -61,6 +61,8 @@ Writing data in the trace buffer:
 	int *tracefs_binary_write*(struct tracefs_instance pass:[*]_instance_, void pass:[*]_data_, int _len_);
 	void *tracefs_binary_close*(struct tracefs_instance pass:[*]_instance_);
 
+Control library logs:
+	int *tracefs_set_loglevel*(enum tep_loglevel _level_);
 --
 
 DESCRIPTION
