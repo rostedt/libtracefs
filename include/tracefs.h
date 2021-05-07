@@ -180,4 +180,8 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 int tracefs_function_notrace(struct tracefs_instance *instance, const char *filter,
 			     const char *module, unsigned int flags);
 
+
+/* Control library logs */
+void tracefs_set_loglevel(enum tep_loglevel level);
+
 #endif /* _TRACE_FS_H */

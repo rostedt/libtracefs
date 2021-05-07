@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <traceevent/event-parse.h>
 #include <traceevent/event-utils.h>
 #include "tracefs.h"
 #include "tracefs-local.h"
@@ -25,12 +26,27 @@
 #define _STR(x) #x
 #define STR(x) _STR(x)
 
+static int log_level = TEP_LOG_CRITICAL;
+
+/**
+ * tracefs_set_loglevel - set log level of the library
+ * @level: desired level of the library messages
+ */
+void tracefs_set_loglevel(enum tep_loglevel level)
+{
+	log_level = level;
+	tep_set_loglevel(level);
+}
+
 void __weak tracefs_warning(const char *fmt, ...)
 {
 	va_list ap;
 
+	if (log_level < TEP_LOG_WARNING)
+		return;
+
 	va_start(ap, fmt);
-	tep_vwarning("libtracefs", fmt, ap);
+	tep_vprint("libtracefs", TEP_LOG_WARNING, true, fmt, ap);
 	va_end(ap);
 }
 
