@@ -19,11 +19,6 @@ enum unit_tests {
 	RUN_ALL		= 0xFFFF
 };
 
-int tep_vwarning(const char *name, const char *fmt, va_list ap)
-{
-	return 0;
-}
-
 static void print_help(char **argv)
 {
 	printf("Usage: %s [OPTIONS]\n", basename(argv[0]));
