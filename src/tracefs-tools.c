@@ -25,6 +25,30 @@ __hidden pthread_mutex_t toplevel_lock = PTHREAD_MUTEX_INITIALIZER;
 #define TRACE_FILTER		"set_ftrace_filter"
 #define TRACE_NOTRACE		"set_ftrace_notrace"
 #define TRACE_FILTER_LIST	"available_filter_functions"
+#define CUR_TRACER		"current_tracer"
+
+#define TRACERS \
+	C(NOP,                  "nop"),			\
+	C(FUNCTION,             "function"),            \
+	C(FUNCTION_GRAPH,       "function_graph"),      \
+	C(IRQSOFF,              "irqsoff"),             \
+	C(PREEMPTOFF,           "preemptoff"),          \
+	C(PREEMPTIRQSOFF,       "preemptirqsoff"),      \
+	C(WAKEUP,               "wakeup"),              \
+	C(WAKEUP_RT,            "wakeup_rt"),	\
+	C(WAKEUP_DL,            "wakeup_dl"),           \
+	C(MMIOTRACE,            "mmiotrace"),           \
+	C(HWLAT,                "hwlat"),               \
+	C(BRANCH,               "branch"),              \
+	C(BLOCK,                "block")
+
+#undef C
+#define C(a, b) b
+const char *tracers[] = { TRACERS };
+
+#undef C
+#define C(a, b) TRACEFS_TRACER_##a
+const int tracer_enums[] = { TRACERS };
 
 /* File descriptor for Top level set_ftrace_filter  */
 static int ftrace_filter_fd = -1;
@@ -911,4 +935,69 @@ int tracefs_function_notrace(struct tracefs_instance *instance, const char *filt
 	ret = update_filter(filter_path, fd, instance, filter, module, flags);
 	tracefs_put_tracing_file(filter_path);
 	return ret;
+}
+
+int write_tracer(int fd, const char *tracer)
+{
+	int ret;
+
+	ret = write(fd, tracer, strlen(tracer));
+	if (ret < strlen(tracer))
+		return -1;
+	return ret;
+}
+
+/**
+ * tracefs_set_tracer - function to set the tracer
+ * @instance: ftrace instance, can be NULL for top tracing instance
+ * @tracer: Tracer that has to be set, which can be integer from 0 - 12
+ * or enum value
+ */
+
+int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers tracer)
+{
+	char *tracer_path = NULL;
+	const char *t = NULL;
+	int ret = -1;
+	int fd = -1;
+	int i;
+
+	tracer_path = tracefs_instance_get_file(instance, CUR_TRACER);
+	if (!tracer_path)
+		return -1;
+
+	fd = open(tracer_path, O_WRONLY);
+	if (fd < 0) {
+		errno = -ENOENT;
+		goto out;
+	}
+
+	if (tracer < 0 || tracer > ARRAY_SIZE(tracers)) {
+		errno = -ENODEV;
+		goto out;
+	}
+	if (tracer == tracer_enums[tracer])
+		t = tracers[tracer];
+	else {
+		for (i = 0; i < ARRAY_SIZE(tracer_enums); i++) {
+			if (tracer == tracer_enums[i]) {
+				t = tracers[i];
+				break;
+			}
+		}
+	}
+	if (!t) {
+		errno = -EINVAL;
+		goto out;
+	}
+	ret = write_tracer(fd, t);
+ out:
+	tracefs_put_tracing_file(tracer_path);
+	close(fd);
+	return ret;
+}
+
+int  tracefs_tracer_clear(struct tracefs_instance *instance)
+{
+	return tracefs_tracer_set(instance, TRACEFS_TRACER_NOP);
 }

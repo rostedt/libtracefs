@@ -184,4 +184,23 @@ int tracefs_function_notrace(struct tracefs_instance *instance, const char *filt
 /* Control library logs */
 void tracefs_set_loglevel(enum tep_loglevel level);
 
+enum tracefs_tracers {
+	TRACEFS_TRACER_NOP = 0,
+	TRACEFS_TRACER_FUNCTION,
+	TRACEFS_TRACER_FUNCTION_GRAPH,
+	TRACEFS_TRACER_IRQSOFF,
+	TRACEFS_TRACER_PREEMPTOFF,
+	TRACEFS_TRACER_PREEMPTIRQSOFF,
+	TRACEFS_TRACER_WAKEUP,
+	TRACEFS_TRACER_WAKEUP_RT,
+	TRACEFS_TRACER_WAKEUP_DL,
+	TRACEFS_TRACER_MMIOTRACE,
+	TRACEFS_TRACER_HWLAT,
+	TRACEFS_TRACER_BRANCH,
+	TRACEFS_TRACER_BLOCK,
+};
+
+int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers tracer);
+
+int tracefs_tracer_clear(struct tracefs_instance *instance);
 #endif /* _TRACE_FS_H */
