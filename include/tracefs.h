@@ -159,7 +159,7 @@ bool tracefs_option_is_supported(struct tracefs_instance *instance, enum tracefs
 const struct tracefs_options_mask *tracefs_options_get_enabled(struct tracefs_instance *instance);
 bool tracefs_option_is_enabled(struct tracefs_instance *instance, enum tracefs_option_id id);
 int tracefs_option_enable(struct tracefs_instance *instance, enum tracefs_option_id id);
-int tracefs_option_diasble(struct tracefs_instance *instance, enum tracefs_option_id id);
+int tracefs_option_disable(struct tracefs_instance *instance, enum tracefs_option_id id);
 const char *tracefs_option_name(enum tracefs_option_id id);
 enum tracefs_option_id tracefs_option_id(const char *name);
 

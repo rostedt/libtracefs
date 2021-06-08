@@ -307,13 +307,13 @@ int tracefs_option_enable(struct tracefs_instance *instance, enum tracefs_option
 }
 
 /**
- * tracefs_option_diasble - Disable trace option
+ * tracefs_option_disable - Disable trace option
  * @instance: ftrace instance, can be NULL for the top instance
  * @id: trace option id
  *
  * Returns -1 in case of an error or 0 otherwise
  */
-int tracefs_option_diasble(struct tracefs_instance *instance, enum tracefs_option_id id)
+int tracefs_option_disable(struct tracefs_instance *instance, enum tracefs_option_id id)
 {
 	return trace_config_option(instance, id, false);
 }
