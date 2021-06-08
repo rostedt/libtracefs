@@ -835,7 +835,7 @@ static int event_enable_disable(struct tracefs_instance *instance,
 	regex_t system_re, event_re;
 	char **systems;
 	char **events = NULL;
-	int ret = -1;
+	int ret;
 	int s, e;
 
 	/* Handle all events first */
@@ -860,6 +860,7 @@ static int event_enable_disable(struct tracefs_instance *instance,
 		}
 	}
 
+	ret = -1;
 	for (s = 0; systems[s]; s++) {
 		if (system && !match(systems[s], &system_re))
 			continue;
