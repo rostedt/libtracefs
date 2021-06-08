@@ -822,8 +822,10 @@ static int enable_disable_all(struct tracefs_instance *instance,
 			      bool enable)
 {
 	const char *str = enable ? "1" : "0";
+	int ret;
 
-	return tracefs_instance_file_write(instance, "events/enable", str);
+	ret = tracefs_instance_file_write(instance, "events/enable", str);
+	return ret < 0 ? ret : 0;
 }
 
 static int event_enable_disable(struct tracefs_instance *instance,
