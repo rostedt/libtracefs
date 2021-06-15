@@ -5,6 +5,7 @@ NAME
 ----
 tracefs_function_filter - Function to limit kernel functions that are traced
 tracefs_function_notrace - Function to filter kernel functions that not to be traced
+tracefs_filter_functions - Function to list the functions that are available for filtering
 
 SYNOPSIS
 --------
@@ -14,6 +15,7 @@ SYNOPSIS
 
 int *tracefs_function_filter*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_filter_, const char pass:[*]_module_, int _flags_);
 int *tracefs_function_notrace*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_filter_, const char pass:[*]_module_, int _flags_);
+int *tracefs_filter_functions*(const char pass:[*]_filter_, const char pass:[*]_module_, char pass:[*]pass:[*]pass:[*]_list_);
 --
 
 DESCRIPTION
@@ -31,7 +33,12 @@ _module_, to limit the filtering on a specific module (or NULL to filter on all 
 _flags_ which holds control knobs on how the filters will be handled (see *FLAGS*)
 section below.
 
-The _filter may be either a straight match of a
+The *tracefs_filter_functions* returns a list of functions that can be filtered on
+via the _filter_ and _module_ that are supplied. If both _filter_ and _module_ are
+NULL then, all available functions that can be filtered is returned.
+On success, _list_ must be freed with *tracefs_list_free()*(3).
+
+The _filter_ may be either a straight match of a
 function, a glob or regex(3). A glob is where 'pass:[*]' matches zero or more
 characters, '?' will match zero or one character, and '.' only matches a
 period. If the _filter_ is determined to be a regex (where it contains
@@ -86,13 +93,21 @@ regular expression.
 
 RETURN VALUE
 ------------
-Returns 0 on success. If the there is an error but the filtering was not
+
+For _tracefs_function_filter_() and _tracefs_function_notrace()_ a
+return of 0 means success. If the there is an error but the filtering was not
 started, then 1 is returned. If filtering was started but an error occurs,
 then -1 is returned. The state of the filtering may be in an unknown state.
 
 If *TRACEFS_FL_CONTINUE* was set, and 0 or -1 was returned, then another call
 to tracefs_function_filter() must be done without *TRACEFS_FL_CONTINUE* set
 in order to commit (and close) the filtering.
+
+For _tracefs_filter_functions_(), a return of 0 means success, and the _list_
+parameter is filled with a list of function names that matched _filter_ and
+_module_. _list_ is a string array, where the last string pointer in the
+array is NULL. The _list_ must be freed with _tracefs_list_free()_.
+On failure, a negative is returned, and _list_ is ignored.
 
 ERRORS
 ------
@@ -122,12 +137,22 @@ static const char *filters[] = { "run_init_process", "try_to_run_init_process", 
 int main(int argc, char *argv[])
 {
 	struct tracefs_instance *inst = tracefs_instance_create(INST);
+	char **func_list;
 	int ret;
 	int i;
 
 	if (!inst) {
 		/* Error creating new trace instance */
 	}
+
+	if (tracefs_filter_functions("*lock*", NULL, &func_list) < 0) {
+		printf("Failed to read filter functions\n");
+		goto out;
+	}
+	printf("Ignoring the following functions:\n");
+	for (i = 0; func_list[i]; i++)
+		printf("  %s\n", func_list[i]);
+	tracefs_free_list(func_list);
 
 	/* Do not trace any function with the word "lock" in it */
 	ret = tracefs_function_notrace(inst, "*lock*", NULL, TRACEFS_FL_RESET);

@@ -179,6 +179,7 @@ int tracefs_function_filter(struct tracefs_instance *instance, const char *filte
 			    const char *module, unsigned int flags);
 int tracefs_function_notrace(struct tracefs_instance *instance, const char *filter,
 			     const char *module, unsigned int flags);
+int tracefs_filter_functions(const char *filter, const char *module, char ***list);
 
 
 /* Control library logs */

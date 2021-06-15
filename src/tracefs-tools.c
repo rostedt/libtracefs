@@ -404,6 +404,7 @@ bool tracefs_option_mask_is_set(const struct tracefs_options_mask *options,
 
 struct func_list {
 	struct func_list	*next;
+	char			*func;
 	unsigned int		start;
 	unsigned int		end;
 };
@@ -547,6 +548,25 @@ static int add_func(struct func_list ***next_func_ptr, unsigned int index)
 	return add_func(next_func_ptr, index);
 }
 
+static int add_func_str(struct func_list ***next_func_ptr, const char *func)
+{
+	struct func_list **next_func = *next_func_ptr;
+	struct func_list *func_list = *next_func;
+
+	if (!func_list) {
+		func_list = calloc(1, sizeof(*func_list));
+		if (!func_list)
+			return -1;
+		func_list->func = strdup(func);
+		if (!func_list->func)
+			return -1;
+		*next_func = func_list;
+		return 0;
+	}
+	*next_func_ptr = &func_list->next;
+	return add_func_str(next_func_ptr, func);
+}
+
 static void free_func_list(struct func_list *func_list)
 {
 	struct func_list *f;
@@ -554,6 +574,7 @@ static void free_func_list(struct func_list *func_list)
 	while (func_list) {
 		f = func_list;
 		func_list = f->next;
+		free(f->func);
 		free(f);
 	}
 }
@@ -562,6 +583,7 @@ enum match_type {
 	FILTER_CHECK	= (1 << 0),
 	FILTER_WRITE	= (1 << 1),
 	FILTER_FUTURE	= (1 << 2),
+	SAVE_STRING	= (1 << 2),
 };
 
 static int match_filters(int fd, struct func_filter *func_filter,
@@ -569,6 +591,7 @@ static int match_filters(int fd, struct func_filter *func_filter,
 			 int flags)
 {
 	enum match_type type = flags & (FILTER_CHECK | FILTER_WRITE);
+	bool save_str = flags & SAVE_STRING;
 	bool future = flags & FILTER_FUTURE;
 	bool mod_match = false;
 	char *line = NULL;
@@ -619,7 +642,10 @@ static int match_filters(int fd, struct func_filter *func_filter,
 		case FILTER_CHECK:
 			if (match(tok, func_filter)) {
 				func_filter->set = true;
-				ret = add_func(&func_list, index);
+				if (save_str)
+					ret = add_func_str(&func_list, tok);
+				else
+					ret = add_func(&func_list, index);
 				if (ret)
 					goto out;
 			}
@@ -660,6 +686,16 @@ static int check_available_filters(struct func_filter *func_filter,
 				   bool future)
 {
 	int flags = FILTER_CHECK | (future ? FILTER_FUTURE : 0);
+
+	return match_filters(-1, func_filter, module, func_list, flags);
+}
+
+
+static int list_available_filters(struct func_filter *func_filter,
+				   const char *module,
+				   struct func_list **func_list)
+{
+	int flags = FILTER_CHECK | SAVE_STRING;
 
 	return match_filters(-1, func_filter, module, func_list, flags);
 }
@@ -1180,4 +1216,61 @@ void tracefs_trace_pipe_stop(struct tracefs_instance *instance)
 		instance->pipe_keep_going = false;
 	else
 		top_pipe_keep_going = false;
+}
+
+/**
+ * tracefs_filter_functions - return a list of available functons that can be filtered
+ * @filter: The filter to filter what functions to list (can be NULL for all)
+ * @module: Module to be traced or NULL if all functions are to be examined.
+ * @list: The list to return the list from (freed by tracefs_list_free() on success)
+ *
+ * Returns a list of function names that match @filter and @module. If both
+ * @filter and @module is NULL, then all available functions that can be filtered
+ * will be returned. (Note, there can be duplicates, if there are more than
+ * one function with the same name.
+ *
+ * On success, zero is returned, and @list contains a list of functions that were
+ * found, and must be freed with tracefs_list_free().
+ * On failure, a negative number is returned, and @list is ignored.
+ */
+int tracefs_filter_functions(const char *filter, const char *module, char ***list)
+{
+	struct func_filter func_filter;
+	struct func_list *func_list, *f;
+	char **funcs = NULL;
+	int cnt = 0;
+	int ret;
+
+	if (!filter)
+		filter = ".*";
+
+	ret = init_func_filter(&func_filter, filter);
+	if (ret < 0)
+		return ret;
+
+	ret = list_available_filters(&func_filter, module, &func_list);
+	if (ret < 0)
+		goto out;
+
+	ret = -1;
+	for (f = func_list; f; f = f->next) {
+		char **tmp;
+
+		tmp = realloc(funcs, sizeof(*funcs) * (cnt + 2));
+		if (!tmp) {
+			tracefs_list_free(funcs);
+			goto out;
+		}
+		tmp[cnt++] = f->func;
+		tmp[cnt] = NULL;
+		f->func = NULL;
+		funcs = tmp;
+	}
+
+	*list = funcs;
+	ret = 0;
+out:
+	regfree(&func_filter.re);
+	free_func_list(func_list);
+	return ret;
 }
