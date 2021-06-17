@@ -182,11 +182,28 @@ libtracefs.so: $(LIBTRACEFS_SHARED)
 
 libs: libtracefs.a libtracefs.so
 
+VALGRIND = $(shell which valgrind)
+UTEST_DIR = utest
+UTEST_BINARY = trace-utest
+
 test: force $(LIBTRACEFS_STATIC)
 ifneq ($(CUNIT_INSTALLED),1)
 	$(error CUnit framework not installed, cannot build unit tests))
 endif
-	$(Q)$(MAKE) -C $(src)/utest $@
+	$(Q)$(MAKE) -C $(src)/$(UTEST_DIR) $@
+
+test_mem: test
+ifeq (, $(VALGRIND))
+	$(error "No valgrind in $(PATH), cannot run memory test")
+endif
+ifneq ($(shell id -u), 0)
+	$(error "The unit test should be run as root, as it reuqires full access to tracefs")
+endif
+	CK_FORK=no LD_LIBRARY_PATH=$(bdir) $(VALGRIND) \
+		--show-leak-kinds=all --leak-resolution=high \
+		--leak-check=full --show-possibly-lost=yes \
+		--track-origins=yes -s \
+		$(src)/$(UTEST_DIR)/$(UTEST_BINARY)
 
 define find_tag_files
 	find . -name '\.pc' -prune -o -name '*\.[ch]' -print -o -name '*\.[ch]pp' \
