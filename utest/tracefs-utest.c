@@ -729,7 +729,7 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 	CU_TEST(!tracefs_option_is_supported(instance, TRACEFS_OPTION_INVALID));
 	CU_TEST(!tracefs_option_is_enabled(instance, TRACEFS_OPTION_INVALID));
 	CU_TEST(tracefs_option_enable(instance, TRACEFS_OPTION_INVALID) == -1);
-	CU_TEST(tracefs_option_diasble(instance, TRACEFS_OPTION_INVALID) == -1);
+	CU_TEST(tracefs_option_disable(instance, TRACEFS_OPTION_INVALID) == -1);
 	name = tracefs_option_name(TRACEFS_OPTION_INVALID);
 	CU_TEST(!strcmp(name, "unknown"));
 	/* Test all valid options */
@@ -751,7 +751,7 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 			CU_TEST(check_option(instance, i, true, 1));
 			CU_TEST(tracefs_option_is_supported(instance, i));
 			CU_TEST(tracefs_option_is_enabled(instance, i));
-			CU_TEST(tracefs_option_diasble(instance, i) == 0);
+			CU_TEST(tracefs_option_disable(instance, i) == 0);
 			CU_TEST(check_option(instance, i, true, 0));
 			CU_TEST(tracefs_option_enable(instance, i) == 0);
 			CU_TEST(check_option(instance, i, true, 1));
@@ -761,7 +761,7 @@ static void test_instance_tracing_options(struct tracefs_instance *instance)
 			CU_TEST(!tracefs_option_is_enabled(instance, i));
 			CU_TEST(tracefs_option_enable(instance, i) == 0);
 			CU_TEST(check_option(instance, i, true, 1));
-			CU_TEST(tracefs_option_diasble(instance, i) == 0);
+			CU_TEST(tracefs_option_disable(instance, i) == 0);
 			CU_TEST(check_option(instance, i, true, 0));
 		}
 	}
