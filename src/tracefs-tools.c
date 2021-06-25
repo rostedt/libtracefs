@@ -979,12 +979,12 @@ int tracefs_tracer_set(struct tracefs_instance *instance,
 
 	fd = open(tracer_path, O_WRONLY);
 	if (fd < 0) {
-		errno = -ENOENT;
+		errno = ENOENT;
 		goto out;
 	}
 
 	if (tracer < 0 || tracer > ARRAY_SIZE(tracers)) {
-		errno = -ENODEV;
+		errno = EINVAL;
 		goto out;
 	}
 
@@ -1005,10 +1005,16 @@ int tracefs_tracer_set(struct tracefs_instance *instance,
 		}
 	}
 	if (!t) {
-		errno = -EINVAL;
+		errno = EINVAL;
 		goto out;
 	}
 	ret = write_tracer(fd, t);
+	/*
+	 * If the tracer does not exist, EINVAL is returned,
+	 * but let the user know this as ENODEV.
+	 */
+	if (ret < 0 && errno == EINVAL)
+		errno = ENODEV;
  out:
 	tracefs_put_tracing_file(tracer_path);
 	close(fd);
