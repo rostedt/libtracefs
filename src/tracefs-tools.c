@@ -973,6 +973,11 @@ int tracefs_tracer_set(struct tracefs_instance *instance,
 	int fd = -1;
 	int i;
 
+	if (tracer < 0 || tracer > ARRAY_SIZE(tracers)) {
+		errno = EINVAL;
+		return -1;
+	}
+
 	tracer_path = tracefs_instance_get_file(instance, CUR_TRACER);
 	if (!tracer_path)
 		return -1;
@@ -980,11 +985,6 @@ int tracefs_tracer_set(struct tracefs_instance *instance,
 	fd = open(tracer_path, O_WRONLY);
 	if (fd < 0) {
 		errno = ENOENT;
-		goto out;
-	}
-
-	if (tracer < 0 || tracer > ARRAY_SIZE(tracers)) {
-		errno = EINVAL;
 		goto out;
 	}
 
