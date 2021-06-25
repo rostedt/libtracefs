@@ -186,6 +186,7 @@ void tracefs_set_loglevel(enum tep_loglevel level);
 
 enum tracefs_tracers {
 	TRACEFS_TRACER_NOP = 0,
+	TRACEFS_TRACER_CUSTOM,
 	TRACEFS_TRACER_FUNCTION,
 	TRACEFS_TRACER_FUNCTION_GRAPH,
 	TRACEFS_TRACER_IRQSOFF,
@@ -200,7 +201,7 @@ enum tracefs_tracers {
 	TRACEFS_TRACER_BLOCK,
 };
 
-int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers tracer);
+int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers tracer, ...);
 
 int tracefs_tracer_clear(struct tracefs_instance *instance);
 #endif /* _TRACE_FS_H */

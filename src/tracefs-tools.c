@@ -7,6 +7,7 @@
  *
  */
 #include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -29,6 +30,7 @@ __hidden pthread_mutex_t toplevel_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #define TRACERS \
 	C(NOP,                  "nop"),			\
+	C(CUSTOM,		"CUSTOM"),		\
 	C(FUNCTION,             "function"),            \
 	C(FUNCTION_GRAPH,       "function_graph"),      \
 	C(IRQSOFF,              "irqsoff"),             \
@@ -950,11 +952,20 @@ int write_tracer(int fd, const char *tracer)
 /**
  * tracefs_set_tracer - function to set the tracer
  * @instance: ftrace instance, can be NULL for top tracing instance
- * @tracer: Tracer that has to be set, which can be integer from 0 - 12
- * or enum value
+ * @tracer: The tracer enum that defines the tracer to be set
+ * @t: A tracer name if TRACEFS_TRACER_CUSTOM is passed in for @tracer
+ *
+ * Set the tracer for the instance based on the tracefs_tracer enums.
+ * If the user wishes to enable a tracer that is not defined by
+ * the enum (new or custom kernel), the tracer can be set to
+ * TRACEFS_TRACER_CUSTOM, and pass in a const char * name for
+ * the tracer to set.
+ *
+ * Returns 0 on succes, negative on error.
  */
 
-int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers tracer)
+int tracefs_tracer_set(struct tracefs_instance *instance,
+		       enum tracefs_tracers tracer, ...)
 {
 	char *tracer_path = NULL;
 	const char *t = NULL;
@@ -976,9 +987,16 @@ int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers t
 		errno = -ENODEV;
 		goto out;
 	}
-	if (tracer == tracer_enums[tracer])
+
+	if (tracer == TRACEFS_TRACER_CUSTOM) {
+		va_list ap;
+
+		va_start(ap, tracer);
+		t = va_arg(ap, const char *);
+		va_end(ap);
+	} else if (tracer == tracer_enums[tracer]) {
 		t = tracers[tracer];
-	else {
+	} else {
 		for (i = 0; i < ARRAY_SIZE(tracer_enums); i++) {
 			if (tracer == tracer_enums[i]) {
 				t = tracers[i];
