@@ -1,0 +1,113 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_trace_pipe_stream, tracefs_trace_pipe_print, tracefs_trace_pipe_stop -
+redirect the stream of trace data to an output or stdout.
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+ssize_t tracefs_trace_pipe_stream(int fd, struct tracefs_instance *instance, int flags);
+ssize_t tracefs_trace_pipe_print(struct tracefs_instance *instance, int flags);
+void tracefs_trace_pipe_stop(struct tracefs_instance *instance);
+
+
+--
+
+DESCRIPTION
+-----------
+If NULL is passed as _instance_, the top trace instance is used.
+
+The reading of the trace_pipe file can be stopped by calling tracefs_trace_pipe_stop()
+which could be placed in a signal handler in case the application wants to stop the
+reading, for example, with the user pressing Ctrl-C.
+
+The _tracefs_trace_pipe_stream()_ function redirects the stream of trace data to an output
+file. The "splice" system call is used to moves the data without copying between kernel
+address space and user address space. The _fd_ is the file descriptor of the output file
+and _flags_ is a bit mask of flags to be passed to the open system call of the trace_pipe
+file (see ). If flags contain O_NONBLOCK, then that is also passed to the splice calls
+that may read the file to the output stream file descriptor.
+
+The _tracefs_trace_pipe_print()_ function is similar to _tracefs_trace_pipe_stream()_, but
+the stream of trace data is redirected to stdout.
+
+
+RETURN VALUE
+------------
+The _tracefs_trace_pipe_stream()_, and _tracefs_trace_pipe_print()_ functions return the
+number of bytes transfered if the operation is successful, or -1 in case of an error.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <unistd.h>
+#include <signal.h>
+
+#include <tracefs.h>
+
+void stop(int sig)
+{
+	tracefs_trace_pipe_stop(NULL);
+}
+
+int main()
+{
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	const char *filename = "trace.txt";
+	int fd = creat(filename, mode);
+	int ret;
+
+	signal(SIGINT, stop);
+	ret = tracefs_trace_pipe_stream(fd, NULL, SPLICE_F_NONBLOCK);
+	close(fd);
+
+	return ret;
+}
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_,
+Documentation/trace/ftrace.rst from the Linux kernel tree
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2021 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

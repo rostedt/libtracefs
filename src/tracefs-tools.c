@@ -1025,3 +1025,159 @@ int  tracefs_tracer_clear(struct tracefs_instance *instance)
 {
 	return tracefs_tracer_set(instance, TRACEFS_TRACER_NOP);
 }
+
+static bool splice_safe(int fd, int pfd)
+{
+	int ret;
+
+	errno = 0;
+	ret = splice(pfd, NULL, fd, NULL,
+		     10, SPLICE_F_NONBLOCK | SPLICE_F_MOVE);
+
+	return !ret || (ret < 0 && errno == EAGAIN);
+}
+
+static ssize_t read_trace_pipe(bool *keep_going, int in_fd, int out_fd)
+{
+	char buf[BUFSIZ];
+	ssize_t bread = 0;
+	int ret;
+
+	while (*(volatile bool *)keep_going) {
+		int r;
+		ret = read(in_fd, buf, BUFSIZ);
+		if (ret <= 0)
+			break;
+		r = ret;
+		ret = write(out_fd, buf, r);
+		if (ret < 0)
+			break;
+		bread += ret;
+		/*
+		 * If the write does a partial write, then
+		 * the iteration should stop. This can happen if
+		 * the destination file system ran out of disk space.
+		 * Sure, it probably lost a little from the read
+		 * but there's not much more that can be
+		 * done. Just return what was transferred.
+		 */
+		if (ret < r)
+			break;
+	}
+
+	if (ret < 0 && (errno == EAGAIN || errno == EINTR))
+		ret = 0;
+
+	return ret < 0 ? ret : bread;
+}
+
+static bool top_pipe_keep_going;
+
+/**
+ * tracefs_trace_pipe_stream - redirect the stream of trace data to an output
+ * file. The "splice" system call is used to moves the data without copying
+ * between kernel address space and user address space. The user can interrupt
+ * the streaming of the data by pressing Ctrl-c.
+ * @fd: The file descriptor of the output file.
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ * @flags: flags for opening the trace_pipe file.
+ *
+ * Returns -1 in case of an error or number of bytes transferred otherwise.
+ */
+ssize_t tracefs_trace_pipe_stream(int fd, struct tracefs_instance *instance,
+				 int flags)
+{
+	bool *keep_going = instance ? &instance->pipe_keep_going :
+				      &top_pipe_keep_going;
+	const char *file = "trace_pipe";
+	int brass[2], in_fd, ret = -1;
+	int sflags = flags & O_NONBLOCK ? SPLICE_F_NONBLOCK : 0;
+	off_t data_size;
+	ssize_t bread = 0;
+
+	(*(volatile bool *)keep_going) = true;
+
+	in_fd = tracefs_instance_file_open(instance, file, O_RDONLY | flags);
+	if (in_fd < 0) {
+		tracefs_warning("Failed to open 'trace_pipe'.");
+		return ret;
+	}
+
+	if(pipe(brass) < 0) {
+		tracefs_warning("Failed to open pipe.");
+		goto close_file;
+	}
+
+	data_size = fcntl(brass[0], F_GETPIPE_SZ);
+	if (data_size <= 0) {
+		tracefs_warning("Failed to open pipe (size=0).");
+		goto close_all;
+	}
+
+	/* Test if the output is splice safe */
+	if (!splice_safe(fd, brass[0])) {
+		bread = read_trace_pipe(keep_going, in_fd, fd);
+		ret = 0; /* Force return of bread */
+		goto close_all;
+	}
+
+	errno = 0;
+
+	while (*(volatile bool *)keep_going) {
+		ret = splice(in_fd, NULL,
+			     brass[1], NULL,
+			     data_size, sflags);
+		if (ret < 0)
+			break;
+
+		ret = splice(brass[0], NULL,
+			     fd, NULL,
+			     data_size, sflags);
+		if (ret < 0)
+			break;
+		bread += ret;
+	}
+
+	/*
+	 * Do not return error in the case when the "splice" system call
+	 * was interrupted by the user (pressing Ctrl-c).
+	 * Or if NONBLOCK was specified.
+	 */
+	if (!keep_going || errno == EAGAIN || errno == EINTR)
+		ret = 0;
+
+ close_all:
+	close(brass[0]);
+	close(brass[1]);
+ close_file:
+	close(in_fd);
+
+	return ret ? ret : bread;
+}
+
+/**
+ * tracefs_trace_pipe_print - redirect the stream of trace data to "stdout".
+ * The "splice" system call is used to moves the data without copying
+ * between kernel address space and user address space.
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ * @flags: flags for opening the trace_pipe file.
+ *
+ * Returns -1 in case of an error or number of bytes transferred otherwise.
+ */
+
+ssize_t tracefs_trace_pipe_print(struct tracefs_instance *instance, int flags)
+{
+	return tracefs_trace_pipe_stream(STDOUT_FILENO, instance, flags);
+}
+
+/**
+ * tracefs_trace_pipe_stop - stop the streaming of trace data.
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ */
+void tracefs_trace_pipe_stop(struct tracefs_instance *instance)
+{
+	if (instance)
+		instance->pipe_keep_going = false;
+	else
+		top_pipe_keep_going = false;
+}

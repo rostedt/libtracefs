@@ -204,4 +204,8 @@ enum tracefs_tracers {
 int tracefs_tracer_set(struct tracefs_instance *instance, enum tracefs_tracers tracer, ...);
 
 int tracefs_tracer_clear(struct tracefs_instance *instance);
+
+ssize_t tracefs_trace_pipe_stream(int fd, struct tracefs_instance *instance, int flags);
+ssize_t tracefs_trace_pipe_print(struct tracefs_instance *instance, int flags);
+void tracefs_trace_pipe_stop(struct tracefs_instance *instance);
 #endif /* _TRACE_FS_H */

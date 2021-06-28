@@ -30,6 +30,7 @@ struct tracefs_instance {
 	int				ftrace_notrace_fd;
 	int				ftrace_marker_fd;
 	int				ftrace_marker_raw_fd;
+	bool				pipe_keep_going;
 };
 
 extern pthread_mutex_t toplevel_lock;
