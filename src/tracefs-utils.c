@@ -23,6 +23,8 @@
 #define TRACEFS_PATH "/sys/kernel/tracing"
 #define DEBUGFS_PATH "/sys/kernel/debug"
 
+#define ERROR_LOG "error_log"
+
 #define _STR(x) #x
 #define STR(x) _STR(x)
 
@@ -252,4 +254,113 @@ __hidden int str_read_file(const char *file, char **buffer, bool warn)
 		free(buf);
 
 	return size;
+}
+
+/**
+ * tracefs_error_all - return the content of the error log
+ * @instance: The instance to read the error log from (NULL for top level)
+ *
+ * Return NULL if the log is empty, or on error (where errno will be
+ * set. Otherwise the content of the entire log is returned in a string
+ * that must be freed with free().
+ */
+char *tracefs_error_all(struct tracefs_instance *instance)
+{
+	char *content;
+	char *path;
+	int size;
+
+	errno = 0;
+
+	path = tracefs_instance_get_file(instance, ERROR_LOG);
+	if (!path)
+		return NULL;
+	size = str_read_file(path, &content, false);
+	tracefs_put_tracing_file(path);
+
+	if (size <= 0)
+		return NULL;
+
+	return content;
+}
+
+enum line_states {
+	START,
+	CARROT,
+};
+
+/**
+ * tracefs_error_last - return the last error logged
+ * @instance: The instance to read the error log from (NULL for top level)
+ *
+ * Return NULL if the log is empty, or on error (where errno will be
+ * set. Otherwise a string containing the content of the last error shown
+* in the log that must be freed with free().
+ */
+char *tracefs_error_last(struct tracefs_instance *instance)
+{
+	enum line_states state = START;
+	char *content;
+	char *ret;
+	bool done = false;
+	int size;
+	int i;
+
+	content = tracefs_error_all(instance);
+	if (!content)
+		return NULL;
+
+	size = strlen(content);
+	if (!size) /* Should never happen */
+		return content;
+
+	for (i = size - 1; i > 0; i--) {
+		switch (state) {
+		case START:
+			if (content[i] == '\n') {
+				/* Remove extra new lines */
+				content[i] = '\0';
+				break;
+			}
+			if (content[i] == '^')
+				state = CARROT;
+			break;
+		case CARROT:
+			if (content[i] == '\n') {
+				/* Remember last new line */
+				size = i;
+				break;
+			}
+			if (content[i] == '^') {
+				/* Go just passed the last newline */
+				i = size + 1;
+				done = true;
+			}
+			break;
+		}
+		if (done)
+			break;
+	}
+
+	if (i) {
+		ret = strdup(content + i);
+		free(content);
+	} else {
+		ret = content;
+	}
+
+	return ret;
+}
+
+/**
+ * tracefs_error_clear - clear the error log of an instance
+ * @instance: The instance to clear (NULL for top level)
+ *
+ * Clear the content of the error log.
+ *
+ * Returns 0 on success, -1 otherwise.
+ */
+int tracefs_error_clear(struct tracefs_instance *instance)
+{
+	return tracefs_instance_file_clear(instance, ERROR_LOG);
 }

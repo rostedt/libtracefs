@@ -58,6 +58,10 @@ int tracefs_trace_off_fd(int fd);
 int tracefs_event_enable(struct tracefs_instance *instance, const char *system, const char *event);
 int tracefs_event_disable(struct tracefs_instance *instance, const char *system, const char *event);
 
+char *tracefs_error_last(struct tracefs_instance *instance);
+char *tracefs_error_all(struct tracefs_instance *instance);
+int tracefs_error_clear(struct tracefs_instance *instance);
+
 /**
  * tracefs_trace_on_get_fd - Get a file descriptor of "tracing_on" in given instance
  * @instance: ftrace instance, can be NULL for the top instance
