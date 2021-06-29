@@ -828,6 +828,26 @@ static int enable_disable_all(struct tracefs_instance *instance,
 	return ret < 0 ? ret : 0;
 }
 
+static int make_regex(regex_t *re, const char *match)
+{
+	int len = strlen(match);
+	char str[len + 3];
+	char *p = &str[0];
+
+	if (!len || match[0] != '^')
+		*(p++) = '^';
+
+	strcpy(p, match);
+	p += len;
+
+	if (!len || match[len-1] != '$')
+		*(p++) = '$';
+
+	*p = '\0';
+
+	return regcomp(re, str, REG_ICASE|REG_NOSUB);
+}
+
 static int event_enable_disable(struct tracefs_instance *instance,
 				const char *system, const char *event,
 				bool enable)
@@ -847,12 +867,13 @@ static int event_enable_disable(struct tracefs_instance *instance,
 		goto out_free;
 
 	if (system) {
+		ret = make_regex(&system_re, system);
 		ret = regcomp(&system_re, system, REG_ICASE|REG_NOSUB);
 		if (ret < 0)
 			goto out_free;
 	}
 	if (event) {
-		ret = regcomp(&event_re, event, REG_ICASE|REG_NOSUB);
+		ret = make_regex(&event_re, event);
 		if (ret < 0) {
 			if (system)
 				regfree(&system_re);
