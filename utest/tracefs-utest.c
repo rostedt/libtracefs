@@ -28,10 +28,21 @@
 #define TRACE_ON	"tracing_on"
 #define TRACE_CLOCK	"trace_clock"
 
-#define KPROB_EVTS	"kprobe_events"
-#define KPROBE_1	"p:mkdir do_mkdirat path=+u0($arg2):ustring"
-#define KPROBE_1_RM	"-:mkdir"
-#define KPROBE_2	"p:open do_sys_openat2 file=+u0($arg2):ustring flags=+0($arg3):x64"
+#define KPROBE_EVENTS	"kprobe_events"
+
+#define KPROBE_1_NAME	"mkdir"
+#define KPROBE_1_GROUP	"kprobes"
+#define KPROBE_1_ADDR	"do_mkdirat"
+#define KPROBE_1_FMT	"path=+u0($arg2):ustring"
+
+#define KPROBE_2_NAME	"open"
+#define KPROBE_2_GROUP	"myprobe"
+#define KPROBE_2_ADDR	"do_sys_openat2"
+#define KPROBE_2_FMT	"file=+u0($arg2):ustring flags=+0($arg3):x64"
+
+#define KRETPROBE_NAME	"retopen"
+#define KRETPROBE_ADDR	"do_sys_openat2"
+#define KRETPROBE_FMT	"ret=$retval"
 
 static struct tracefs_instance *test_instance;
 static struct tep_handle *test_tep;
@@ -374,19 +385,24 @@ static void test_instance_file(void)
 {
 	struct tracefs_instance *instance = NULL;
 	struct tracefs_instance *second = NULL;
+	enum tracefs_kprobe_type type;
 	const char *name = get_rand_str();
 	const char *inst_name = NULL;
 	const char *tdir;
 	char *inst_file;
 	char *inst_dir;
 	struct stat st;
-	char *kprobes;
+	char **kprobes;
+	char *kformat;
+	char *ktype;
+	char *kaddr;
 	char *fname;
 	char *file1;
 	char *file2;
 	char *tracer;
 	int size;
 	int ret;
+	int i;
 
 	tdir  = tracefs_tracing_dir();
 	CU_TEST(tdir != NULL);
@@ -449,31 +465,152 @@ static void test_instance_file(void)
 	free(file1);
 	free(file2);
 
-	ret = tracefs_instance_file_write(NULL, KPROB_EVTS, KPROBE_1);
-	CU_TEST(ret == strlen(KPROBE_1));
-	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST_FATAL(kprobes != NULL);
-	CU_TEST(strstr(kprobes, &KPROBE_1[2]) != NULL);
-	free(kprobes);
-
-	ret = tracefs_instance_file_append(NULL, KPROB_EVTS, KPROBE_2);
-	CU_TEST(ret == strlen(KPROBE_2));
-	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST_FATAL(kprobes != NULL);
-	CU_TEST(strstr(kprobes, &KPROBE_2[2]) != NULL);
-	free(kprobes);
-
-	ret = tracefs_instance_file_append(NULL, KPROB_EVTS, KPROBE_1_RM);
-	CU_TEST(ret == strlen(KPROBE_1_RM));
-	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST_FATAL(kprobes != NULL);
-	CU_TEST(strstr(kprobes, &KPROBE_1[2]) == NULL);
-	free(kprobes);
-
-	ret = tracefs_instance_file_clear(NULL, KPROB_EVTS);
+	ret = tracefs_kprobe_clear_all(true);
 	CU_TEST(ret == 0);
-	kprobes = tracefs_instance_file_read(NULL, KPROB_EVTS, &size);
-	CU_TEST(kprobes == NULL);
+	ret = tracefs_kprobe_raw(NULL, KPROBE_1_NAME, KPROBE_1_ADDR, KPROBE_1_FMT);
+	CU_TEST(ret == 0);
+	ret = tracefs_kprobe_raw(KPROBE_2_GROUP, KPROBE_2_NAME, KPROBE_2_ADDR,
+				 KPROBE_2_FMT);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_kretprobe_raw(KPROBE_2_GROUP, KRETPROBE_NAME, KRETPROBE_ADDR,
+				 KRETPROBE_FMT);
+	CU_TEST(ret == 0);
+
+	type = tracefs_kprobe_info(KPROBE_1_GROUP, KPROBE_1_NAME, &ktype,
+				   &kaddr, &kformat);
+	CU_TEST(type == TRACEFS_KPROBE);
+	CU_TEST(ktype && *ktype == 'p');
+	CU_TEST(kaddr && !strcmp(kaddr, KPROBE_1_ADDR));
+	CU_TEST(kformat && !strcmp(kformat, KPROBE_1_FMT));
+	free(ktype);
+	free(kaddr);
+	free(kformat);
+
+	type = tracefs_kprobe_info(KPROBE_2_GROUP, KPROBE_2_NAME, &ktype,
+				   &kaddr, &kformat);
+	CU_TEST(type == TRACEFS_KPROBE);
+	CU_TEST(ktype && *ktype == 'p');
+	CU_TEST(kaddr && !strcmp(kaddr, KPROBE_2_ADDR));
+	CU_TEST(kformat && !strcmp(kformat, KPROBE_2_FMT));
+	free(ktype);
+	free(kaddr);
+	free(kformat);
+
+	type = tracefs_kprobe_info(KPROBE_2_GROUP, KRETPROBE_NAME, &ktype,
+				   &kaddr, &kformat);
+	CU_TEST(type == TRACEFS_KRETPROBE);
+	CU_TEST(ktype && *ktype == 'r');
+	CU_TEST(kaddr && !strcmp(kaddr, KRETPROBE_ADDR));
+	CU_TEST(kformat && !strcmp(kformat, KRETPROBE_FMT));
+	free(ktype);
+	free(kaddr);
+	free(kformat);
+
+	kprobes = tracefs_get_kprobes(TRACEFS_ALL_KPROBES);
+	CU_TEST(kprobes != NULL);
+
+	for (i = 0; kprobes[i]; i++) {
+		char *system = strtok(kprobes[i], "/");
+		char *event = strtok(NULL, "");
+		bool found = false;
+		if (!strcmp(system, KPROBE_1_GROUP)) {
+			CU_TEST(!strcmp(event, KPROBE_1_NAME));
+			found = true;
+		} else if (!strcmp(system, KPROBE_2_GROUP)) {
+			switch (tracefs_kprobe_info(system, event, NULL, NULL, NULL)) {
+			case TRACEFS_KPROBE:
+				CU_TEST(!strcmp(event, KPROBE_2_NAME));
+				found = true;
+				break;
+			case TRACEFS_KRETPROBE:
+				CU_TEST(!strcmp(event, KRETPROBE_NAME));
+				found = true;
+				break;
+			default:
+				break;
+			}
+		}
+		CU_TEST(found);
+	}
+	tracefs_list_free(kprobes);
+	CU_TEST(i == 3);
+
+	kprobes = tracefs_get_kprobes(TRACEFS_KPROBE);
+	CU_TEST(kprobes != NULL);
+
+	for (i = 0; kprobes[i]; i++) {
+		char *system = strtok(kprobes[i], "/");
+		char *event = strtok(NULL, "");
+		bool found = false;
+		if (!strcmp(system, KPROBE_1_GROUP)) {
+			CU_TEST(!strcmp(event, KPROBE_1_NAME));
+			found = true;
+		} else if (!strcmp(system, KPROBE_2_GROUP)) {
+			CU_TEST(!strcmp(event, KPROBE_2_NAME));
+			found = true;
+		}
+		CU_TEST(found);
+	}
+	tracefs_list_free(kprobes);
+	CU_TEST(i == 2);
+
+	kprobes = tracefs_get_kprobes(TRACEFS_KRETPROBE);
+	CU_TEST(kprobes != NULL);
+
+	for (i = 0; kprobes[i]; i++) {
+		char *system = strtok(kprobes[i], "/");
+		char *event = strtok(NULL, "");
+		bool found = false;
+		if (!strcmp(system, KPROBE_2_GROUP)) {
+			CU_TEST(!strcmp(event, KRETPROBE_NAME));
+			found = true;
+		}
+		CU_TEST(found);
+	}
+	tracefs_list_free(kprobes);
+	CU_TEST(i == 1);
+
+	ret = tracefs_event_enable(instance, KPROBE_1_GROUP, KPROBE_1_NAME);
+	CU_TEST(ret == 0);
+	ret = tracefs_event_enable(instance, KPROBE_2_GROUP, KPROBE_2_NAME);
+	CU_TEST(ret == 0);
+	ret = tracefs_event_enable(instance, KPROBE_2_GROUP, KRETPROBE_NAME);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_kprobe_clear_all(false);
+	CU_TEST(ret < 0);
+
+	ret = tracefs_kprobe_clear_probe(KPROBE_2_GROUP, NULL, false);
+	CU_TEST(ret < 0);
+
+	ret = tracefs_kprobe_clear_probe(KPROBE_2_GROUP, NULL, true);
+	CU_TEST(ret == 0);
+
+	kprobes = tracefs_get_kprobes(TRACEFS_ALL_KPROBES);
+	CU_TEST(kprobes != NULL);
+
+	for (i = 0; kprobes[i]; i++) {
+		char *system = strtok(kprobes[i], "/");
+		char *event = strtok(NULL, "");
+		bool found = false;
+		if (!strcmp(system, KPROBE_1_GROUP)) {
+			CU_TEST(!strcmp(event, KPROBE_1_NAME));
+			found = true;
+		}
+		CU_TEST(found);
+	}
+	tracefs_list_free(kprobes);
+	CU_TEST(i == 1);
+
+	ret = tracefs_kprobe_clear_all(true);
+	CU_TEST(ret == 0);
+
+	kprobes = tracefs_get_kprobes(TRACEFS_ALL_KPROBES);
+	CU_TEST(kprobes != NULL);
+
+	CU_TEST(kprobes[0] == NULL);
+	tracefs_list_free(kprobes);
 
 	tracefs_put_tracing_file(inst_file);
 	free(fname);
