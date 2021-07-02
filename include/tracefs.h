@@ -217,5 +217,6 @@ void tracefs_trace_pipe_stop(struct tracefs_instance *instance);
 
 int tracefs_kprobe_raw(const char *system, const char *event,
 		       const char *addr, const char *format);
-
+int tracefs_kretprobe_raw(const char *system, const char *event,
+			  const char *addr, const char *format);
 #endif /* _TRACE_FS_H */
