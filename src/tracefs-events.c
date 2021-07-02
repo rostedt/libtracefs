@@ -868,7 +868,6 @@ static int event_enable_disable(struct tracefs_instance *instance,
 
 	if (system) {
 		ret = make_regex(&system_re, system);
-		ret = regcomp(&system_re, system, REG_ICASE|REG_NOSUB);
 		if (ret < 0)
 			goto out_free;
 	}
