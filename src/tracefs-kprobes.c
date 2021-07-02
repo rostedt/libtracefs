@@ -310,3 +310,101 @@ enum tracefs_kprobe_type tracefs_kprobe_info(const char *group, const char *even
 	free(content);
 	return rtype;
 }
+
+static void disable_events(const char *system, const char *event,
+			   char **list)
+{
+	struct tracefs_instance *instance;
+	int i;
+
+	/*
+	 * Note, this will not fail even on error.
+	 * That is because even if something fails, it may still
+	 * work enough to clear the kprobes. If that's the case
+	 * the clearing after the loop will succeed and the function
+	 * is a success, even though other parts had failed. If
+	 * one of the kprobe events is enabled in one of the
+	 * instances that fail, then the clearing will fail too
+	 * and the function will return an error.
+	 */
+
+	tracefs_event_disable(NULL, system, event);
+	/* No need to test results */
+
+	if (!list)
+		return;
+
+	for (i = 0; list[i]; i++) {
+		instance = tracefs_instance_alloc(NULL, list[i]);
+		/* If this fails, try the next one */
+		if (!instance)
+			continue;
+		tracefs_event_disable(instance, system, event);
+		tracefs_instance_free(instance);
+	}
+	return;
+}
+
+/**
+ * tracefs_kprobe_clear_all - clear kprobe events
+ * @force: Will attempt to disable all kprobe events and clear them
+ *
+ * Will remove all defined kprobe events. If any of them are enabled,
+ * and @force is not set, then it will error with -1 and errno to be
+ * EBUSY. If @force is set, then it will attempt to disable all the kprobe
+ * events in all instances, and try again.
+ *
+ * Returns zero on success, -1 otherwise.
+ */
+int tracefs_kprobe_clear_all(bool force)
+{
+	char **instance_list;
+	char **kprobe_list;
+	char *saveptr;
+	char *system;
+	char *kprobe;
+	char *event;
+	int ret;
+	int i;
+
+	ret = tracefs_instance_file_clear(NULL, KPROBE_EVENTS);
+	if (!ret)
+		return 0;
+
+	if (!force)
+		return -1;
+
+	kprobe_list = tracefs_get_kprobes(TRACEFS_ALL_KPROBES);
+	if (!kprobe_list)
+		return -1;
+
+	instance_list = tracefs_instances(NULL);
+	/*
+	 * Even if the above failed and instance_list is NULL,
+	 * keep going, as the enabled event may simply be in the
+	 * top level.
+	 */
+
+	for (i = 0; kprobe_list[i]; i++) {
+		kprobe = kprobe_list[i];
+
+		system = strtok_r(kprobe, "/", &saveptr);
+		if (!system)
+			goto out;
+
+		event = strtok_r(NULL," ", &saveptr);
+		if (!event)
+			goto out;
+
+		disable_events(system, event, instance_list);
+
+		ret = tracefs_instance_file_clear(NULL, KPROBE_EVENTS);
+		/* On success stop the loop */
+		if (!ret)
+			goto out;
+	}
+ out:
+	tracefs_list_free(instance_list);
+	tracefs_list_free(kprobe_list);
+	return ret;
+}
