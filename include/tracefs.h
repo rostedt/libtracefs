@@ -215,8 +215,15 @@ ssize_t tracefs_trace_pipe_stream(int fd, struct tracefs_instance *instance, int
 ssize_t tracefs_trace_pipe_print(struct tracefs_instance *instance, int flags);
 void tracefs_trace_pipe_stop(struct tracefs_instance *instance);
 
+enum tracefs_kprobe_type {
+	TRACEFS_ALL_KPROBES,
+	TRACEFS_KPROBE,
+	TRACEFS_KRETPROBE,
+};
+
 int tracefs_kprobe_raw(const char *system, const char *event,
 		       const char *addr, const char *format);
 int tracefs_kretprobe_raw(const char *system, const char *event,
 			  const char *addr, const char *format);
+char **tracefs_get_kprobes(enum tracefs_kprobe_type type);
 #endif /* _TRACE_FS_H */
