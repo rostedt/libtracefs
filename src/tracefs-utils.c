@@ -364,3 +364,23 @@ int tracefs_error_clear(struct tracefs_instance *instance)
 {
 	return tracefs_instance_file_clear(instance, ERROR_LOG);
 }
+
+/**
+ * tracefs_list_free - free list if strings, returned by APIs
+ *			tracefs_event_systems()
+ *			tracefs_system_events()
+ *
+ *@list pointer to a list of strings, the last one must be NULL
+ */
+void tracefs_list_free(char **list)
+{
+	int i;
+
+	if (!list)
+		return;
+
+	for (i = 0; list[i]; i++)
+		free(list[i]);
+
+	free(list);
+}

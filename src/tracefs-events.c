@@ -306,26 +306,6 @@ __hidden char *trace_append_file(const char *dir, const char *name)
 }
 
 /**
- * tracefs_list_free - free list if strings, returned by APIs
- *			tracefs_event_systems()
- *			tracefs_system_events()
- *
- *@list pointer to a list of strings, the last one must be NULL
- */
-void tracefs_list_free(char **list)
-{
-	int i;
-
-	if (!list)
-		return;
-
-	for (i = 0; list[i]; i++)
-		free(list[i]);
-
-	free(list);
-}
-
-/**
  * tracefs_event_systems - return list of systems for tracing
  * @tracing_dir: directory holding the "events" directory
  *		 if NULL, top tracing directory is used
