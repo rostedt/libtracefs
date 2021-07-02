@@ -104,6 +104,58 @@ int tracefs_kretprobe_raw(const char *system, const char *event,
 	return insert_kprobe("r", system, event, addr, format);
 }
 
+/*
+ * Helper function to parse kprobes.
+ * @content: The content of kprobe_events on the first iteration.
+ *           NULL on next iterations.
+ * @saveptr: Same as saveptr for strtok_r
+ * @type: Where to store the type (before ':')
+ * @system: Store the system of the kprobe (NULL to have event contain
+ *          both system and event, as in "kprobes/myprobe").
+ * @event: Where to store the event.
+ * @addr: Where to store the addr (may be NULL to ignore)
+ * @format: Where to store the format (may be NULL to ignore)
+ */
+static int parse_kprobe(char *content, char **saveptr,
+			char **type, char **system, char **event,
+			char **addr, char **format)
+{
+	char *p;
+
+	p = strtok_r(content, ":", saveptr);
+	if (!p)
+		return 1; /* eof */
+	*type = p;
+
+	if (system) {
+		p = strtok_r(NULL, "/", saveptr);
+		if (!p)
+			return -1;
+		*system = p;
+	}
+
+	p = strtok_r(NULL, " ", saveptr);
+	if (!p)
+		return -1;
+	*event = p;
+
+	if (addr || format) {
+		p = strtok_r(NULL, " ", saveptr);
+		if (!p)
+			return -1;
+		if (addr)
+			*addr = p;
+	}
+
+	p = strtok_r(NULL, "\n", saveptr);
+	if (!p)
+		return -1;
+	if (format)
+		*format = p;
+
+	return 0;
+}
+
 /**
  * tracefs_get_kprobes - return a list kprobes (by group/event name)
  * @type: The type of kprobes to return.
@@ -127,8 +179,9 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 	char *content;
 	char *saveptr;
 	char *event;
-	char *p;
+	char *ktype;
 	int cnt = 0;
+	int ret;
 
 	errno = 0;
 	content = tracefs_instance_file_read(NULL, KPROBE_EVENTS, NULL);
@@ -140,13 +193,13 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 		return list;
 	}
 
-	p = strtok_r(content, ":", &saveptr);
+	ret = parse_kprobe(content, &saveptr, &ktype, NULL, &event, NULL, NULL);
 
-	while (p) {
+	while (!ret) {
 		char **tmp;
 
 		if (type != TRACEFS_ALL_KPROBES) {
-			switch (*p) {
+			switch (*ktype) {
 			case 'p':
 				if (type != TRACEFS_KPROBE)
 					goto next;
@@ -160,12 +213,7 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 			}
 		}
 
-		/* Failed parsing always return a failure */
-		p = strtok_r(NULL, " ", &saveptr);
-		if (!p)
-			break;
-
-		event = strdup(p);
+		event = strdup(event);
 		if (!event)
 			goto fail;
 
@@ -177,13 +225,7 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 		list[cnt++] = event;
 		list[cnt] = NULL;
  next:
-		p = strtok_r(NULL, "\n", &saveptr);
-		/* Could be end of content */
-		if (!p)
-			break;
-
-		/* p is NULL on end of content */
-		p = strtok_r(NULL, ":", &saveptr);
+		ret = parse_kprobe(NULL, &saveptr, &ktype, NULL, &event, NULL, NULL);
 	}
 
 	if (!list)
