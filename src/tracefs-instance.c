@@ -14,6 +14,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <regex.h>
 #include <limits.h>
 #include <pthread.h>
 #include "tracefs.h"
@@ -628,6 +629,81 @@ out:
 		closedir(dir);
 	tracefs_put_tracing_file(path);
 	return fret;
+}
+
+static inline bool match(const char *str, regex_t *re)
+{
+	if (!re)
+		return true;
+	return regexec(re, str, 0, NULL, 0) == 0;
+}
+
+struct instance_list {
+	regex_t		*re;
+	char		**list;
+	int		size;
+	int		failed;
+};
+
+static int build_list(const char *name, void *data)
+{
+	struct instance_list *list = data;
+	char **instances;
+	int ret = -1;
+
+	if (!match(name, list->re))
+		return 0;
+
+	instances = realloc(list->list, sizeof(*instances) * (list->size + 2));
+	if (!instances)
+		goto out;
+
+	list->list = instances;
+	instances[list->size] = strdup(name);
+	if (!instances[list->size])
+		goto out;
+
+	list->size++;
+	instances[list->size] = NULL;
+	ret = 0;
+
+ out:
+	list->failed = ret;
+	return ret;
+}
+
+/**
+ * tracefs_instances - return a list of instance names
+ * @regex: A regex of instances to filter on (NULL to match all)
+ *
+ * Returns a list of names of existing instances, that must be
+ * freed with tracefs_list_free(). Note, if there are no matches
+ * then an empty list will be returned (not NULL).
+ * NULL on error.
+ */
+char **tracefs_instances(const char *regex)
+{
+	struct instance_list list = { .re = NULL, .list = NULL };
+	regex_t re;
+	int ret;
+
+	if (regex) {
+		ret = regcomp(&re, regex, REG_ICASE|REG_NOSUB);
+		if (ret < 0)
+			return NULL;
+		list.re = &re;
+	}
+
+	ret = tracefs_instances_walk(build_list, &list);
+	if (ret < 0 || list.failed) {
+		tracefs_list_free(list.list);
+		list.list = NULL;
+	} else {
+		/* No matches should produce an empty list */
+		if (!list.list)
+			list.list = calloc(1, sizeof(*list.list));
+	}
+	return list.list;
 }
 
 /**
