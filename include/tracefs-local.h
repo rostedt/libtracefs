@@ -66,4 +66,5 @@ supported_opts_mask(struct tracefs_instance *instance);
 struct tracefs_options_mask *
 enabled_opts_mask(struct tracefs_instance *instance);
 
+char **trace_list_create_empty(void);
 #endif /* _TRACE_FS_LOCAL_H */

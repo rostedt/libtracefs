@@ -63,6 +63,9 @@ char *tracefs_error_last(struct tracefs_instance *instance);
 char *tracefs_error_all(struct tracefs_instance *instance);
 int tracefs_error_clear(struct tracefs_instance *instance);
 
+void tracefs_list_free(char **list);
+char **tracefs_list_add(char **list, const char *string);
+
 /**
  * tracefs_trace_on_get_fd - Get a file descriptor of "tracing_on" in given instance
  * @instance: ftrace instance, can be NULL for the top instance
@@ -87,7 +90,6 @@ int tracefs_binary_write(struct tracefs_instance *instance, void *data, int len)
 void tracefs_binary_close(struct tracefs_instance *instance);
 
 /* events */
-void tracefs_list_free(char **list);
 char **tracefs_event_systems(const char *tracing_dir);
 char **tracefs_system_events(const char *tracing_dir, const char *system);
 int tracefs_iterate_raw_events(struct tep_handle *tep,

@@ -1238,7 +1238,6 @@ int tracefs_filter_functions(const char *filter, const char *module, char ***lis
 	struct func_filter func_filter;
 	struct func_list *func_list, *f;
 	char **funcs = NULL;
-	int cnt = 0;
 	int ret;
 
 	if (!filter)
@@ -1256,14 +1255,11 @@ int tracefs_filter_functions(const char *filter, const char *module, char ***lis
 	for (f = func_list; f; f = f->next) {
 		char **tmp;
 
-		tmp = realloc(funcs, sizeof(*funcs) * (cnt + 2));
+		tmp = tracefs_list_add(funcs, f->func);
 		if (!tmp) {
 			tracefs_list_free(funcs);
 			goto out;
 		}
-		tmp[cnt++] = f->func;
-		tmp[cnt] = NULL;
-		f->func = NULL;
 		funcs = tmp;
 	}
 

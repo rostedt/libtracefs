@@ -641,7 +641,6 @@ static inline bool match(const char *str, regex_t *re)
 struct instance_list {
 	regex_t		*re;
 	char		**list;
-	int		size;
 	int		failed;
 };
 
@@ -654,17 +653,11 @@ static int build_list(const char *name, void *data)
 	if (!match(name, list->re))
 		return 0;
 
-	instances = realloc(list->list, sizeof(*instances) * (list->size + 2));
+	instances = tracefs_list_add(list->list, name);
 	if (!instances)
 		goto out;
 
 	list->list = instances;
-	instances[list->size] = strdup(name);
-	if (!instances[list->size])
-		goto out;
-
-	list->size++;
-	instances[list->size] = NULL;
 	ret = 0;
 
  out:

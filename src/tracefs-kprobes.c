@@ -181,7 +181,6 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 	char *saveptr;
 	char *event;
 	char *ktype;
-	int cnt = 0;
 	int ret;
 
 	errno = 0;
@@ -190,8 +189,7 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 		if (errno)
 			return NULL;
 		/* content is NULL on empty file, return an empty list */
-		list = calloc(1, sizeof(*list));
-		return list;
+		return trace_list_create_empty();
 	}
 
 	ret = parse_kprobe(content, &saveptr, &ktype, NULL, &event, NULL, NULL);
@@ -214,28 +212,21 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 			}
 		}
 
-		event = strdup(event);
-		if (!event)
-			goto fail;
-
-		tmp = realloc(list, sizeof(*list) * (cnt + 2));
+		tmp = tracefs_list_add(list, event);
 		if (!tmp)
 			goto fail;
-
 		list = tmp;
-		list[cnt++] = event;
-		list[cnt] = NULL;
  next:
 		ret = parse_kprobe(NULL, &saveptr, &ktype, NULL, &event, NULL, NULL);
 	}
 
 	if (!list)
-		list = calloc(1, sizeof(*list));
+		list = trace_list_create_empty();
  out:
 	free(content);
 	return list;
  fail:
-	free(list);
+	tracefs_list_free(list);
 	list = NULL;
 	goto out;
 }

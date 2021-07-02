@@ -277,22 +277,19 @@ void tracefs_iterate_stop(struct tracefs_instance *instance)
 		top_iterate_keep_going = false;
 }
 
-static char **add_list_string(char **list, const char *name, int len)
+static int add_list_string(char ***list, const char *name)
 {
-	if (!list)
-		list = malloc(sizeof(*list) * 2);
-	else
-		list = realloc(list, sizeof(*list) * (len + 2));
-	if (!list)
-		return NULL;
+	char **tmp;
 
-	list[len] = strdup(name);
-	if (!list[len])
-		return NULL;
+	tmp = tracefs_list_add(*list, name);
+	if (!tmp) {
+		tracefs_list_free(*list);
+		*list = NULL;
+		return -1;
+	}
 
-	list[len + 1] = NULL;
-
-	return list;
+	*list = tmp;
+	return 0;
 }
 
 __hidden char *trace_append_file(const char *dir, const char *name)
@@ -321,7 +318,6 @@ char **tracefs_event_systems(const char *tracing_dir)
 	char *events_dir;
 	struct stat st;
 	DIR *dir;
-	int len = 0;
 	int ret;
 
 	if (!tracing_dir)
@@ -365,9 +361,10 @@ char **tracefs_event_systems(const char *tracing_dir)
 		enable = trace_append_file(sys, "enable");
 
 		ret = stat(enable, &st);
-		if (ret >= 0)
-			systems = add_list_string(systems, name, len++);
-
+		if (ret >= 0) {
+			if (add_list_string(&systems, name) < 0)
+				goto out_free;
+		}
 		free(enable);
 		free(sys);
 	}
@@ -395,7 +392,6 @@ char **tracefs_system_events(const char *tracing_dir, const char *system)
 	char *system_dir = NULL;
 	struct stat st;
 	DIR *dir;
-	int len = 0;
 	int ret;
 
 	if (!tracing_dir)
@@ -431,7 +427,8 @@ char **tracefs_system_events(const char *tracing_dir, const char *system)
 			continue;
 		}
 
-		events = add_list_string(events, name, len++);
+		if (add_list_string(&events, name) < 0)
+			goto out_free;
 
 		free(event);
 	}
@@ -449,7 +446,7 @@ char **tracefs_system_events(const char *tracing_dir, const char *system)
  * @tracing_dir: The directory that contains the tracing directory
  *
  * Returns an allocate list of plugins. The array ends with NULL
- * Both the plugin names and array must be freed with free()
+ * Both the plugin names and array must be freed with tracefs_list_free()
  */
 char **tracefs_tracers(const char *tracing_dir)
 {
@@ -481,7 +478,6 @@ char **tracefs_tracers(const char *tracing_dir)
 	if (len <= 0)
 		goto out_free;
 
-	len = 0;
 	for (str = buf; ; str = NULL) {
 		plugin = strtok_r(str, " ", &saveptr);
 		if (!plugin)
@@ -499,7 +495,8 @@ char **tracefs_tracers(const char *tracing_dir)
 		    strcmp(plugin, "none") == 0)
 			continue;
 
-		plugins = add_list_string(plugins, plugin, len++);
+		if (add_list_string(&plugins, plugin) < 0)
+			break;
 	}
 	free(buf);
 

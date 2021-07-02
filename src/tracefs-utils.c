@@ -382,5 +382,68 @@ void tracefs_list_free(char **list)
 	for (i = 0; list[i]; i++)
 		free(list[i]);
 
+	/* The allocated list is before the user visible portion */
+	list--;
 	free(list);
+}
+
+
+__hidden char ** trace_list_create_empty(void)
+{
+	char **list;
+
+	list = calloc(2, sizeof(*list));
+
+	return list ? &list[1] : NULL;
+}
+
+/**
+ * tracefs_list_add - create or extend a string list
+ * @list: The list to add to (NULL to create a new one)
+ * @string: The string to append to @list.
+ *
+ * If @list is NULL, a new list is created with the first element
+ * a copy of @string, and the second element is NULL.
+ *
+ * If @list is not NULL, it is then reallocated to include
+ * a new element and a NULL terminator, and will return the new
+ * allocated array on success, and the one passed in should be
+ * ignored.
+ *
+ * Returns an allocated string array that must be freed with
+ * tracefs_list_free() on success. On failure, NULL is returned
+ * and the @list is untouched.
+ */
+char **tracefs_list_add(char **list, const char *string)
+{
+	unsigned long size = 0;
+	char *str = strdup(string);
+	char **new_list;
+
+	if (!str)
+		return NULL;
+
+	/*
+	 * The returned list is really the address of the
+	 * second entry of the list (&list[1]), the first
+	 * entry contains the number of strings in the list.
+	 */
+	if (list) {
+		list--;
+		size = *(unsigned long *)list;
+	}
+
+	new_list = realloc(list, sizeof(*list) * (size + 3));
+	if (!new_list) {
+		free(str);
+		return NULL;
+	}
+
+	list = new_list;
+	list[0] = (char *)(size + 1);
+	list++;
+	list[size++] = str;
+	list[size] = NULL;
+
+	return list;
 }
