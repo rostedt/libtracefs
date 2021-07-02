@@ -345,6 +345,83 @@ static void disable_events(const char *system, const char *event,
 	return;
 }
 
+static int clear_kprobe(const char *system, const char *event)
+{
+	/* '-' + ':' + '/' + '\n' + '\0' = 5 bytes */
+	int len = strlen(system) + strlen(event) + 5;
+	char content[len];
+
+	sprintf(content, "-:%s/%s", system, event);
+	return tracefs_instance_file_append(NULL, KPROBE_EVENTS, content);
+}
+
+static int kprobe_clear_probes(const char *group, bool force)
+{
+	char **instance_list;
+	char **kprobe_list;
+	char *saveptr;
+	char *system;
+	char *kprobe;
+	char *event;
+	int ret;
+	int i;
+
+	kprobe_list = tracefs_get_kprobes(TRACEFS_ALL_KPROBES);
+	if (!kprobe_list)
+		return -1;
+
+	instance_list = tracefs_instances(NULL);
+	/*
+	 * Even if the above failed and instance_list is NULL,
+	 * keep going, as the enabled event may simply be in the
+	 * top level.
+	 */
+
+	/*
+	 * If a system is defined, the default is to pass unless
+	 * an event fails to be removed. If a system is not defined,
+	 * the default is to fail, unless all are removed.
+	 */
+	ret = group ? 0 : -1;
+
+	for (i = 0; kprobe_list[i]; i++) {
+		kprobe = kprobe_list[i];
+
+		system = strtok_r(kprobe, "/", &saveptr);
+		if (!system)
+			goto out;
+
+		event = strtok_r(NULL," ", &saveptr);
+		if (!event)
+			goto out;
+
+		/* Skip if this does not match a given system */
+		if (group && strcmp(system, group) != 0)
+			continue;
+
+		if (force)
+			disable_events(system, event, instance_list);
+
+		if (group) {
+			ret = clear_kprobe(system, event);
+			if (ret < 0)
+				goto out;
+		} else {
+			ret = tracefs_instance_file_clear(NULL, KPROBE_EVENTS);
+			/* On success stop the loop */
+			if (!ret)
+				goto out;
+		}
+
+		/* Set the default for whether a system is defined or not */
+		ret = group ? 0 : -1;
+	}
+ out:
+	tracefs_list_free(instance_list);
+	tracefs_list_free(kprobe_list);
+	return ret;
+}
+
 /**
  * tracefs_kprobe_clear_all - clear kprobe events
  * @force: Will attempt to disable all kprobe events and clear them
@@ -358,53 +435,51 @@ static void disable_events(const char *system, const char *event,
  */
 int tracefs_kprobe_clear_all(bool force)
 {
-	char **instance_list;
-	char **kprobe_list;
-	char *saveptr;
-	char *system;
-	char *kprobe;
-	char *event;
-	int ret;
-	int i;
-
-	ret = tracefs_instance_file_clear(NULL, KPROBE_EVENTS);
-	if (!ret)
+	if (tracefs_instance_file_clear(NULL, KPROBE_EVENTS) == 0)
 		return 0;
 
 	if (!force)
 		return -1;
 
-	kprobe_list = tracefs_get_kprobes(TRACEFS_ALL_KPROBES);
-	if (!kprobe_list)
-		return -1;
+	/* Attempt to disable all kprobe events */
+	return kprobe_clear_probes(NULL, force);
+}
 
-	instance_list = tracefs_instances(NULL);
+/**
+ * tracefs_kprobe_clear_all - clear kprobe events
+ * @system: System to clear (NULL means default)
+ * @event: Name of probe to clear in system (NULL for all probes in system)
+ * @force: Will attempt to disable all kprobe events and clear them
+ *
+ * Will remove the kprobes that match the @system and @event. If @system
+ * is NULL, then "kprobes" is used and will ignore all other system
+ * groups of kprobes. The @event is NULL then all events under the given
+ * @system are removed, otherwise only the event that matches.
+ *
+ * Returns zero on success, -1 otherwise.
+ */
+int tracefs_kprobe_clear_probe(const char *system, const char *event, bool force)
+{
+	char **instance_list;
+	int ret;
+
+	if (!system)
+		system = "kprobes";
+
+	if (!event)
+		return kprobe_clear_probes(system, force);
+
 	/*
-	 * Even if the above failed and instance_list is NULL,
-	 * keep going, as the enabled event may simply be in the
-	 * top level.
+	 * Since we know we are disabling a specific event, try
+	 * to disable it first before clearing it.
 	 */
-
-	for (i = 0; kprobe_list[i]; i++) {
-		kprobe = kprobe_list[i];
-
-		system = strtok_r(kprobe, "/", &saveptr);
-		if (!system)
-			goto out;
-
-		event = strtok_r(NULL," ", &saveptr);
-		if (!event)
-			goto out;
-
+	if (force) {
+		instance_list = tracefs_instances(NULL);
 		disable_events(system, event, instance_list);
-
-		ret = tracefs_instance_file_clear(NULL, KPROBE_EVENTS);
-		/* On success stop the loop */
-		if (!ret)
-			goto out;
+		tracefs_list_free(instance_list);
 	}
- out:
-	tracefs_list_free(instance_list);
-	tracefs_list_free(kprobe_list);
-	return ret;
+
+	ret = clear_kprobe(system, event);
+
+	return ret < 0 ? -1 : 0;
 }
