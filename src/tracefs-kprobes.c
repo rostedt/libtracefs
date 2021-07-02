@@ -18,6 +18,7 @@
 #include "tracefs-local.h"
 
 #define KPROBE_EVENTS "kprobe_events"
+#define KPROBE_DEFAULT_GROUP "kprobes"
 
 static int insert_kprobe(const char *type, const char *system,
 			 const char *event, const char *addr,
@@ -237,4 +238,75 @@ char **tracefs_get_kprobes(enum tracefs_kprobe_type type)
 	free(list);
 	list = NULL;
 	goto out;
+}
+
+/**
+ * tracefs_kprobe_info - return the type of kprobe specified.
+ * @group: The group the kprobe is in (NULL for the default "kprobes")
+ * @event: The name of the kprobe to find.
+ * @type: String to return kprobe type (before ':') NULL to ignore.
+ * @addr: String to return address kprobe is attached to. NULL to ignore.
+ * @format: String to return kprobe format. NULL to ignore.
+ *
+ * If @type, @addr, or @format is non NULL, then the returned string
+ * must be freed with free(). They will also be set to NULL, and
+ * even on error, they may contain strings to be freed. If they are
+ * not NULL, then they still need to be freed.
+ *
+ * Returns TRACEFS_ALL_KPROBES if an error occurs or the kprobe is not found,
+ *            or the probe is of an unknown type.
+ * TRACEFS_KPROBE if the type of kprobe found is a normal kprobe.
+ * TRACEFS_KRETPROBE if the type of kprobe found is a kretprobe.
+ */
+enum tracefs_kprobe_type tracefs_kprobe_info(const char *group, const char *event,
+					     char **type, char **addr, char **format)
+{
+	enum tracefs_kprobe_type rtype = TRACEFS_ALL_KPROBES;
+	char *saveptr;
+	char *content;
+	char *system;
+	char *probe;
+	char *ktype;
+	char *kaddr;
+	char *kfmt;
+	int ret;
+
+	if (!group)
+		group = KPROBE_DEFAULT_GROUP;
+
+	if (type)
+		*type = NULL;
+	if (addr)
+		*addr = NULL;
+	if (format)
+		*format = NULL;
+
+	content = tracefs_instance_file_read(NULL, KPROBE_EVENTS, NULL);
+	if (!content)
+		return rtype;
+
+	ret = parse_kprobe(content, &saveptr, &ktype, &system, &probe,
+			   &kaddr, &kfmt);
+
+	while (!ret) {
+
+		if (!strcmp(system, group) && !strcmp(probe, event)) {
+			if (type)
+				*type = strdup(ktype);
+			if (addr)
+				*addr = strdup(kaddr);
+			if (format)
+				*format = strdup(kfmt);
+
+			switch (*ktype) {
+			case 'p': rtype = TRACEFS_KPROBE; break;
+			case 'r': rtype = TRACEFS_KRETPROBE; break;
+			}
+			break;
+		}
+		ret = parse_kprobe(NULL, &saveptr, &ktype, &system, &probe,
+				   &kaddr, &kfmt);
+	}
+	free(content);
+	return rtype;
 }

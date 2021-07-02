@@ -226,4 +226,6 @@ int tracefs_kprobe_raw(const char *system, const char *event,
 int tracefs_kretprobe_raw(const char *system, const char *event,
 			  const char *addr, const char *format);
 char **tracefs_get_kprobes(enum tracefs_kprobe_type type);
+enum tracefs_kprobe_type tracefs_kprobe_info(const char *group, const char *event,
+					     char **type, char **addr, char **format);
 #endif /* _TRACE_FS_H */
