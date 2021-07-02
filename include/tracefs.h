@@ -214,4 +214,8 @@ int tracefs_tracer_clear(struct tracefs_instance *instance);
 ssize_t tracefs_trace_pipe_stream(int fd, struct tracefs_instance *instance, int flags);
 ssize_t tracefs_trace_pipe_print(struct tracefs_instance *instance, int flags);
 void tracefs_trace_pipe_stop(struct tracefs_instance *instance);
+
+int tracefs_kprobe_raw(const char *system, const char *event,
+		       const char *addr, const char *format);
+
 #endif /* _TRACE_FS_H */
