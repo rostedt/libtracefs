@@ -97,6 +97,7 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 						struct tep_record *,
 						int, void *),
 				void *callback_context);
+void tracefs_iterate_stop(struct tracefs_instance *instance);
 
 char **tracefs_tracers(const char *tracing_dir);
 

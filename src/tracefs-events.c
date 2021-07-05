@@ -109,7 +109,8 @@ static int read_cpu_pages(struct tep_handle *tep, struct cpu_iterate *cpus, int 
 			  int (*callback)(struct tep_event *,
 					  struct tep_record *,
 					  int, void *),
-			  void *callback_context)
+			  void *callback_context,
+			  bool *keep_going)
 {
 	bool has_data = false;
 	int ret;
@@ -121,7 +122,7 @@ static int read_cpu_pages(struct tep_handle *tep, struct cpu_iterate *cpus, int 
 			has_data = true;
 	}
 
-	while (has_data) {
+	while (has_data && *(volatile bool *)keep_going) {
 		j = count;
 		for (i = 0; i < count; i++) {
 			if (!cpus[i].event)
@@ -205,6 +206,8 @@ out:
 	return ret;
 }
 
+static bool top_iterate_keep_going;
+
 /*
  * tracefs_iterate_raw_events - Iterate through events in trace_pipe_raw,
  *				per CPU trace buffers
@@ -230,10 +233,14 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 						int, void *),
 				void *callback_context)
 {
+	bool *keep_going = instance ? &instance->pipe_keep_going :
+				      &top_iterate_keep_going;
 	struct cpu_iterate *all_cpus = NULL;
 	int count = 0;
 	int ret;
 	int i;
+
+	(*(volatile bool *)keep_going) = true;
 
 	if (!tep || !callback)
 		return -1;
@@ -241,7 +248,9 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 	ret = open_cpu_files(instance, cpus, cpu_size, &all_cpus, &count);
 	if (ret < 0)
 		goto out;
-	ret = read_cpu_pages(tep, all_cpus, count, callback, callback_context);
+	ret = read_cpu_pages(tep, all_cpus, count,
+			     callback, callback_context,
+			     keep_going);
 
 out:
 	if (all_cpus) {
@@ -254,6 +263,18 @@ out:
 	}
 
 	return ret;
+}
+
+/**
+ * tracefs_iterate_stop - stop the iteration over the raw events.
+ * @instance: ftrace instance, can be NULL for top tracing instance.
+ */
+void tracefs_iterate_stop(struct tracefs_instance *instance)
+{
+	if (instance)
+		instance->iterate_keep_going = false;
+	else
+		top_iterate_keep_going = false;
 }
 
 static char **add_list_string(char **list, const char *name, int len)
