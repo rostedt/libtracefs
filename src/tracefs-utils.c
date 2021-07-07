@@ -447,3 +447,19 @@ char **tracefs_list_add(char **list, const char *string)
 
 	return list;
 }
+
+/**
+ * tracefs_list_size - Return the number of strings in the list
+ * @list: The list to determine the size.
+ *
+ * Returns the number of elements in the list.
+ * If @list is NULL, then zero is returned.
+ */
+int tracefs_list_size(char **list)
+{
+	if (!list)
+		return 0;
+
+	list--;
+	return (int)*(unsigned long *)list;
+}

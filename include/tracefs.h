@@ -65,6 +65,7 @@ int tracefs_error_clear(struct tracefs_instance *instance);
 
 void tracefs_list_free(char **list);
 char **tracefs_list_add(char **list, const char *string);
+int tracefs_list_size(char **list);
 
 /**
  * tracefs_trace_on_get_fd - Get a file descriptor of "tracing_on" in given instance
