@@ -20,7 +20,11 @@
 #include "tracefs.h"
 #include "tracefs-local.h"
 
-#define FLAG_INSTANCE_NEWLY_CREATED	(1 << 0)
+enum {
+	FLAG_INSTANCE_NEWLY_CREATED	= (1 << 0),
+	FLAG_INSTANCE_DELETED		= (1 << 1),
+};
+
 
 struct tracefs_options_mask	toplevel_supported_opts;
 struct tracefs_options_mask	toplevel_enabled_opts;
@@ -79,15 +83,30 @@ error:
 	return NULL;
 }
 
-/**
- * tracefs_instance_free - Free an instance, previously allocated by
-			   tracefs_instance_create()
- * @instance: Pointer to the instance to be freed
- *
- */
-void tracefs_instance_free(struct tracefs_instance *instance)
+
+__hidden int trace_get_instance(struct tracefs_instance *instance)
 {
-	if (!instance)
+	int ret;
+
+	pthread_mutex_lock(&instance->lock);
+	if (instance->flags & FLAG_INSTANCE_DELETED) {
+		ret = -1;
+	} else {
+		instance->ref++;
+		ret = 0;
+	}
+	pthread_mutex_unlock(&instance->lock);
+	return ret;
+}
+
+__hidden void trace_put_instance(struct tracefs_instance *instance)
+{
+	pthread_mutex_lock(&instance->lock);
+	if (--instance->ref < 0)
+		instance->flags |= FLAG_INSTANCE_DELETED;
+	pthread_mutex_unlock(&instance->lock);
+
+	if (!(instance->flags & FLAG_INSTANCE_DELETED))
 		return;
 
 	if (instance->ftrace_filter_fd >= 0)
@@ -106,6 +125,20 @@ void tracefs_instance_free(struct tracefs_instance *instance)
 	free(instance->name);
 	pthread_mutex_destroy(&instance->lock);
 	free(instance);
+}
+
+/**
+ * tracefs_instance_free - Free an instance, previously allocated by
+			   tracefs_instance_create()
+ * @instance: Pointer to the instance to be freed
+ *
+ */
+void tracefs_instance_free(struct tracefs_instance *instance)
+{
+	if (!instance)
+		return;
+
+	trace_put_instance(instance);
 }
 
 static mode_t get_trace_file_permissions(char *name)
@@ -248,6 +281,11 @@ int tracefs_instance_destroy(struct tracefs_instance *instance)
 	if (path)
 		ret = rmdir(path);
 	tracefs_put_tracing_file(path);
+	if (ret) {
+		pthread_mutex_lock(&instance->lock);
+		instance->flags |= FLAG_INSTANCE_DELETED;
+		pthread_mutex_unlock(&instance->lock);
+	}
 
 	return ret;
 }

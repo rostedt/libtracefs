@@ -25,6 +25,7 @@ struct tracefs_instance {
 	char				*trace_dir;
 	char				*name;
 	pthread_mutex_t			lock;
+	int				ref;
 	int				flags;
 	int				ftrace_filter_fd;
 	int				ftrace_notrace_fd;
@@ -40,6 +41,9 @@ static inline pthread_mutex_t *trace_get_lock(struct tracefs_instance *instance)
 {
 	return instance ? &instance->lock : &toplevel_lock;
 }
+
+void trace_put_instance(struct tracefs_instance *instance);
+int trace_get_instance(struct tracefs_instance *instance);
 
 /* Can be overridden */
 void tracefs_warning(const char *fmt, ...);
