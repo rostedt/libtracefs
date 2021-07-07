@@ -253,4 +253,50 @@ enum tracefs_kprobe_type tracefs_kprobe_info(const char *group, const char *even
 					     char **type, char **addr, char **format);
 int tracefs_kprobe_clear_all(bool force);
 int tracefs_kprobe_clear_probe(const char *system, const char *event, bool force);
+
+enum tracefs_hist_key_type {
+	TRACEFS_HIST_KEY_NORMAL = 0,
+	TRACEFS_HIST_KEY_HEX,
+	TRACEFS_HIST_KEY_SYM,
+	TRACEFS_HIST_KEY_SYM_OFFSET,
+	TRACEFS_HIST_KEY_SYSCALL,
+	TRACEFS_HIST_KEY_EXECNAME,
+	TRACEFS_HIST_KEY_LOG,
+	TRACEFS_HIST_KEY_USECS,
+};
+
+enum tracefs_hist_sort_direction {
+	TRACEFS_HIST_SORT_ASCENDING,
+	TRACEFS_HIST_SORT_DESCENDING,
+};
+
+#define TRACEFS_HIST_TIMESTAMP		"common_timestamp"
+#define TRACEFS_HIST_TIMESTAMP_USECS	"common_timestamp.usecs"
+#define TRACEFS_HIST_CPU		"cpu"
+
+#define TRACEFS_HIST_HITCOUNT		"hitcount"
+
+struct tracefs_hist;
+
+void tracefs_hist_free
+(struct tracefs_hist *hist);
+struct tracefs_hist *
+tracefs_hist_alloc(struct tracefs_instance * instance,
+		       const char *system, const char *event,
+		       const char *key, enum tracefs_hist_key_type type);
+int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
+			 enum tracefs_hist_key_type type);
+int tracefs_hist_add_value(struct tracefs_hist *hist, const char *value);
+int tracefs_hist_add_sort_key(struct tracefs_hist *hist,
+			      const char *sort_key, ...);
+int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
+				    const char *sort_key,
+				    enum tracefs_hist_sort_direction dir);
+int tracefs_hist_add_name(struct tracefs_hist *hist, const char *name);
+int tracefs_hist_start(struct tracefs_hist *hist);
+int tracefs_hist_pause(struct tracefs_hist *hist);
+int tracefs_hist_continue(struct tracefs_hist *hist);
+int tracefs_hist_reset(struct tracefs_hist *hist);
+int tracefs_hist_destroy(struct tracefs_hist *hist);
+
 #endif /* _TRACE_FS_H */

@@ -1,0 +1,290 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_hist_alloc, tracefs_hist_free, tracefs_hist_add_key, tracefs_hist_add_value, tracefs_hist_add_name, tracefs_hist_start,
+tracefs_hist_destory, tracefs_hist_add_sort_key, tracefs_hist_sort_key_direction - Create and update event histograms
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_instance pass:[*] instance,
+			const char pass:[*]system, const char pass:[*]event,
+			const char pass:[*]key, enum tracefs_hist_key_type type);
+void tracefs_hist_free(struct tracefs_hist pass:[*]hist);
+int tracefs_hist_add_key(struct tracefs_hist pass:[*]hist, const char pass:[*]key,
+			 enum tracefs_hist_key_type type);
+int tracefs_hist_add_value(struct tracefs_hist pass:[*]hist, const char pass:[*]value);
+int tracefs_hist_add_sort_key(struct tracefs_hist pass:[*]hist,
+			      const char pass:[*]sort_key, ...);
+int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
+				    const char pass:[*]sort_key,
+				    enum tracefs_hist_sort_direction dir);
+int tracefs_hist_add_name(struct tracefs_hist pass:[*]hist, const char pass:[*]name);
+int tracefs_hist_start(struct tracefs_hist pass:[*]hist);
+int tracefs_hist_destory(struct tracefs_hist pass:[*]hist);
+--
+
+DESCRIPTION
+-----------
+Event histograms are created by the trigger file in the event directory.
+The syntax can be complex and difficult to get correct. This API handles the
+syntax, and facilitates the creation and interaction with the event histograms.
+See https://www.kernel.org/doc/html/latest/trace/histogram.html for more information.
+
+*tracefs_hist_alloc*() allocates a "struct tracefs_hist" descriptor and returns
+the address of it. This descriptor must be freed by *tracefs_hist_free*().
+The _instance_ is the instance that contains the event that the histogram will be
+attached to. The _system_ is the system or group of the event. The _event_ is the event
+to attach the histogram to. The _key_ is a field of the event that will be used as
+the key of the histogram. The _type_ is the type of the _key_. See KEY TYPES below.
+
+*tracefs_hist_free*() frees the _tracefs_hist_ descriptor. Note, it does not stop
+or disable the running histogram if it was started. *tracefs_hist_destroy*() needs
+to be called to do so.
+
+*tracefs_hist_add_key*() Adds a secondary or tertiary key to the histogram.
+The key passed to *tracefs_hist_alloc*() is the primary key of the histogram.
+The first time this function is called, it will add a secondary key (or two dimensional
+histogram). If this function is called again on the same histogram, it will add
+a _tertiary_ key (or three dimensional histogram). The _hist_ parameter is the
+histrogram descriptor to add the _key_ to. The _type_ is the type of key to add
+(See KEY TYPES below).
+
+*tracefs_hist_add_value*() will add a value to record. By default, the value is
+simply the "hitcount" of the number of times a instance of the histogram's
+key was hit. The _hist_ is the histogram descriptor to add the value to.
+The _value_ is a field in the histogram to add to when an instane of the
+key is hit.
+
+*tracefs_hist_add_sort_key*() will add a key to sort on. Th _hist_ is the
+the histrogram descriptor to add the sort key to. The _sort_key_ is a string
+that must match either an already defined key of the histogram, or an already
+defined value. Multiple sort keys may be added to denote a secondary, sort order
+and so on, but all sort keys must match an existing key or value, or be
+TRACEFS_HIST_HITCOUNT. The last parameter of *tracefs_hist_add_sort_key*() must
+be NULL.
+
+*tracefs_hist_sort_key_direction*() allows to change the direction of an
+existing sort key of _hist_. The _sort_key_ is the sort key to change, and
+_dir_ can be either TRACEFS_HIST_SORT_ASCENDING or TRACEFS_HIST_SORT_DESCENDING,
+to make the direction of the sort key either ascending or descending respectively.
+
+*tracefs_hist_add_name*() adds a name to a histogram. A histogram may be
+named and if the name matches between more than one event, and they have
+compatible keys, the multiple histograms with the same name will be merged
+into a single histogram (shown by either event's hist file). The _hist_
+is the histogram to name, and the _name_ is the name to give it.
+
+*tracefs_hist_start* is called to actually start the histogram _hist_.
+
+*tracefs_hist_pause* is called to pause the histogram _hist_.
+
+*tracefs_hist_continue* is called to continue a paused histogram _hist_.
+
+*tracefs_hist_reset* is called to clear / reset the histogram _hist_.
+
+*tracefs_hist_destory* is called to delete the histogram where it will no longer
+exist.
+
+
+KEY TYPES
+---------
+
+*tracefs_hist_alloc*() and *tracefs_hist_add_key*() both add a key and requires
+that key to have a type. The types may be:
+
+ *TRACEFS_HIST_KEY_NORMAL* or zero (0) which is to not modify the type.
+
+ *TRACEFS_HIST_KEY_HEX* to display the key in hex.
+
+ *TRACEFS_HIST_KEY_SYM* to display the key as a kernel symbol (if found). If
+the key is an address, this is useful as it will display the function names instead
+of just a number.
+
+ *TRACEFS_HIST_KEY_SYM_OFFSET* similar to *TRACEFS_HIST_KEY_SYM* but will also include
+the offset of the function to match the exact address.
+
+*TRACEFS_HIST_KEY_SYSCALL* If the key is a system call "id" (the number passed from user
+space to the kernel to tell it what system call it is calling), then the name of
+the system call is displayed.
+
+*TRACEFS_HIST_KEY_EXECNAME* If "common_pid" is the key (the pid of the executing task),
+instead of showing the number, show the name of the running task.
+
+*TRACEFS_HIST_KEY_LOG* will display the key in a binary logarithmic scale.
+
+*TRACEFS_HIST_KEY_USECS* for use with "common_timestamp" or TRACEFS_HIST_TIMESTAMP,
+in which case it will show the timestamp in microseconds instead of nanoseconds.
+
+
+RETURN VALUE
+------------
+*tracefs_hist_alloc*() returns an allocated histogram descriptor which must
+be freed by *tracefs_hist_free*() or NULL on error.
+
+All the other functions return zero on success or -1 on error.
+
+If *tracefs_hist_start*() returns an error, a message may be displayed
+in the kernel that can be retrieved by *tracefs_error_last()*.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <tracefs/tracefs.h>
+
+enum commands {
+	START,
+	PAUSE,
+	CONT,
+	RESET,
+	DELETE,
+	SHOW,
+};
+
+int main (int argc, char **argv, char **env)
+{
+	struct tracefs_instance *instance;
+	struct tracefs_hist *hist;
+	enum commands cmd;
+	char *cmd_str;
+	int ret;
+
+	if (argc < 2) {
+		fprintf(stderr, "usage: %s command\n", argv[0]);
+		exit(-1);
+	}
+
+	cmd_str = argv[1];
+
+	if (!strcmp(cmd_str, "start"))
+		cmd = START;
+	else if (!strcmp(cmd_str, "pause"))
+		cmd = PAUSE;
+	else if (!strcmp(cmd_str, "cont"))
+		cmd = CONT;
+	else if (!strcmp(cmd_str, "reset"))
+		cmd = RESET;
+	else if (!strcmp(cmd_str, "delete"))
+		cmd = DELETE;
+	else if (!strcmp(cmd_str, "show"))
+		cmd = SHOW;
+	else {
+		fprintf(stderr, "Unknown command %s\n", cmd_str);
+		exit(-1);
+	}
+
+	instance = tracefs_instance_create("hist_test");
+	if (!instance) {
+		fprintf(stderr, "Failed instance create\n");
+		exit(-1);
+	}
+
+	hist = tracefs_hist_alloc(instance, "kmem", "kmalloc",
+				  "call_site", TRACEFS_HIST_KEY_SYM);
+	if (!hist) {
+		fprintf(stderr, "Failed hist create\n");
+		exit(-1);
+	}
+
+	ret = tracefs_hist_add_key(hist, "bytes_req", 0);
+	ret |= tracefs_hist_add_value(hist, "bytes_alloc");
+	ret |= tracefs_hist_add_sort_key(hist, "bytes_req", "bytes_alloc", NULL);
+
+	ret |= tracefs_hist_sort_key_direction(hist, "bytes_alloc",
+					       TRACEFS_HIST_SORT_DESCENDING);
+	if (ret) {
+		fprintf(stderr, "Failed modifying histogram\n");
+		exit(-1);
+	}
+
+	tracefs_error_clear(instance);
+
+	switch (cmd) {
+	case START:
+		ret = tracefs_hist_start(hist);
+		if (ret) {
+			char *err = tracefs_error_last(instance);
+			if (err)
+				fprintf(stderr, "\n%s\n", err);
+		}
+		break;
+	case PAUSE:
+		ret = tracefs_hist_pause(hist);
+		break;
+	case CONT:
+		ret = tracefs_hist_continue(hist);
+		break;
+	case RESET:
+		ret = tracefs_hist_reset(hist);
+		break;
+	case DELETE:
+		ret = tracefs_hist_destroy(hist);
+		break;
+	case SHOW: {
+		char *content;
+		content = tracefs_event_file_read(instance, "kmem", "kmalloc",
+						  "hist", NULL);
+		ret = content ? 0 : -1;
+		if (content) {
+			printf("%s\n", content);
+			free(content);
+		}
+		break;
+	}
+	}
+	if (ret)
+		fprintf(stderr, "Failed: command\n");
+	exit(ret);
+}
+--
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_,
+_tracefs_hist_pause(3)_,
+_tracefs_hist_continue(3)_,
+_tracefs_hist_reset(3)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+*sameeruddin shaik* <sameeruddin.shaik8@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).
