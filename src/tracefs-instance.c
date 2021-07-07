@@ -694,7 +694,7 @@ char **tracefs_instances(const char *regex)
 	} else {
 		/* No matches should produce an empty list */
 		if (!list.list)
-			list.list = calloc(1, sizeof(*list.list));
+			list.list = trace_list_create_empty();
 	}
 	return list.list;
 }
