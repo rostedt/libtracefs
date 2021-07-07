@@ -102,6 +102,25 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 				void *callback_context);
 void tracefs_iterate_stop(struct tracefs_instance *instance);
 
+char *tracefs_event_get_file(struct tracefs_instance *instance,
+			     const char *system, const char *event,
+			     const char *file);
+char *tracefs_event_file_read(struct tracefs_instance *instance,
+			      const char *system, const char *event,
+			      const char *file, int *psize);
+int tracefs_event_file_write(struct tracefs_instance *instance,
+			     const char *system, const char *event,
+			     const char *file, const char *str);
+int tracefs_event_file_append(struct tracefs_instance *instance,
+			      const char *system, const char *event,
+			      const char *file, const char *str);
+int tracefs_event_file_clear(struct tracefs_instance *instance,
+			     const char *system, const char *event,
+			     const char *file);
+bool tracefs_event_file_exists(struct tracefs_instance *instance,
+			       const char *system, const char *event,
+			       const char *file);
+
 char **tracefs_tracers(const char *tracing_dir);
 
 struct tep_handle *tracefs_local_events(const char *tracing_dir);

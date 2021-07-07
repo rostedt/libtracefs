@@ -302,6 +302,188 @@ __hidden char *trace_append_file(const char *dir, const char *name)
 	return ret < 0 ? NULL : file;
 }
 
+static int event_file(char **path, const char *system,
+		      const char *event, const char *file)
+{
+	if (!system || !event || !file)
+		return -1;
+
+	return asprintf(path, "events/%s/%s/%s",
+			system, event, file);
+}
+
+/**
+ * tracefs_event_get_file - return a file in an event directory
+ * @instance: The instance the event is in (NULL for top level)
+ * @system: The system name that the event file is in
+ * @event: The event name of the event
+ * @file: The name of the file in the event directory.
+ *
+ * Returns a path to a file in the event director.
+ * or NULL on error. The path returned must be freed with
+ * tracefs_put_tracing_file().
+ */
+char *tracefs_event_get_file(struct tracefs_instance *instance,
+			     const char *system, const char *event,
+			     const char *file)
+{
+	char *instance_path;
+	char *path;
+	int ret;
+
+	ret = event_file(&path, system, event, file);
+	if (ret < 0)
+		return NULL;
+
+	instance_path = tracefs_instance_get_file(instance, path);
+	free(path);
+
+	return instance_path;
+}
+
+/**
+ * tracefs_event_file_read - read the content from an event file
+ * @instance: The instance the event is in (NULL for top level)
+ * @system: The system name that the event file is in
+ * @event: The event name of the event
+ * @file: The name of the file in the event directory.
+ * @psize: the size of the content read.
+ *
+ * Reads the content of the event file that is passed via the
+ * arguments and returns the content.
+ *
+ * Return a string containing the content of the file or NULL
+ * on error. The string returned must be freed with free().
+ */
+char *tracefs_event_file_read(struct tracefs_instance *instance,
+			      const char *system, const char *event,
+			      const char *file, int *psize)
+{
+	char *content;
+	char *path;
+	int ret;
+
+	ret = event_file(&path, system, event, file);
+	if (ret < 0)
+		return NULL;
+
+	content = tracefs_instance_file_read(instance, path, psize);
+	free(path);
+	return content;
+}
+
+/**
+ * tracefs_event_file_write - write to an event file
+ * @instance: The instance the event is in (NULL for top level)
+ * @system: The system name that the event file is in
+ * @event: The event name of the event
+ * @file: The name of the file in the event directory.
+ * @str: The string to write into the file
+ *
+ * Writes the content of @str to a file in the instance directory.
+ * The content of the file will be overwritten by @str.
+ *
+ * Return 0 on success, and -1 on error.
+ */
+int tracefs_event_file_write(struct tracefs_instance *instance,
+			     const char *system, const char *event,
+			     const char *file, const char *str)
+{
+	char *path;
+	int ret;
+
+	ret = event_file(&path, system, event, file);
+	if (ret < 0)
+		return -1;
+
+	ret = tracefs_instance_file_write(instance, path, str);
+	free(path);
+	return ret;
+}
+
+/**
+ * tracefs_event_file_append - write to an event file
+ * @instance: The instance the event is in (NULL for top level)
+ * @system: The system name that the event file is in
+ * @event: The event name of the event
+ * @file: The name of the file in the event directory.
+ * @str: The string to write into the file
+ *
+ * Writes the content of @str to a file in the instance directory.
+ * The content of @str will be appended to the content of the file.
+ * The current content should not be lost.
+ *
+ * Return 0 on success, and -1 on error.
+ */
+int tracefs_event_file_append(struct tracefs_instance *instance,
+			      const char *system, const char *event,
+			      const char *file, const char *str)
+{
+	char *path;
+	int ret;
+
+	ret = event_file(&path, system, event, file);
+	if (ret < 0)
+		return -1;
+
+	ret = tracefs_instance_file_append(instance, path, str);
+	free(path);
+	return ret;
+}
+
+/**
+ * tracefs_event_file_clear - clear an event file
+ * @instance: The instance the event is in (NULL for top level)
+ * @system: The system name that the event file is in
+ * @event: The event name of the event
+ * @file: The name of the file in the event directory.
+ *
+ * Clears the content of the event file. That is, it is opened
+ * with O_TRUNC and then closed.
+ *
+ * Return 0 on success, and -1 on error.
+ */
+int tracefs_event_file_clear(struct tracefs_instance *instance,
+			     const char *system, const char *event,
+			     const char *file)
+{
+	char *path;
+	int ret;
+
+	ret = event_file(&path, system, event, file);
+	if (ret < 0)
+		return -1;
+
+	ret = tracefs_instance_file_clear(instance, path);
+	free(path);
+	return ret;
+}
+
+/**
+ * tracefs_event_file_exits - test if a file exists
+ * @instance: The instance the event is in (NULL for top level)
+ * @system: The system name that the event file is in
+ * @event: The event name of the event
+ * @file: The name of the file in the event directory.
+ *
+ * Return true if the file exists, false if it odes not or
+ * an error occurred.
+ */
+bool tracefs_event_file_exists(struct tracefs_instance *instance,
+			       const char *system, const char *event,
+			       const char *file)
+{
+	char *path;
+	bool ret;
+
+	if (event_file(&path, system, event, file) < 0)
+		return false;
+
+	ret = tracefs_file_exists(instance, path);
+	free(path);
+	return ret;
+}
+
 /**
  * tracefs_event_systems - return list of systems for tracing
  * @tracing_dir: directory holding the "events" directory
