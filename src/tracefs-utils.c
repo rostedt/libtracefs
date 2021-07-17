@@ -15,8 +15,8 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <traceevent/event-parse.h>
-#include <traceevent/event-utils.h>
+#include <event-parse.h>
+#include <event-utils.h>
 #include "tracefs.h"
 #include "tracefs-local.h"
 

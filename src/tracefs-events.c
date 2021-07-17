@@ -15,7 +15,7 @@
 #include <fcntl.h>
 #include <limits.h>
 
-#include <traceevent/kbuffer.h>
+#include <kbuffer.h>
 
 #include "tracefs.h"
 #include "tracefs-local.h"
