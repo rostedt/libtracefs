@@ -324,6 +324,9 @@ enum tracefs_synth_compare {
 	TRACEFS_COMPARE_AND,
 };
 
+#define TRACEFS_TIMESTAMP "common_timestamp"
+#define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"
+
 struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
 					 const char *name,
 					 const char *start_system,

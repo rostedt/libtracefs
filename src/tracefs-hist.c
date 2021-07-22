@@ -563,6 +563,18 @@ struct tracefs_synth {
 	int			arg_cnt;
 };
 
+static const struct tep_format_field common_timestamp = {
+	.type			= "u64",
+	.name			= "common_timestamp",
+	.size			= 8,
+};
+
+static const struct tep_format_field common_timestamp_usecs = {
+	.type			= "u64",
+	.name			= "common_timestamp.usecs",
+	.size			= 8,
+};
+
 void tracefs_synth_free(struct tracefs_synth *synth)
 {
 	if (!synth)
@@ -583,21 +595,33 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 	free(synth);
 }
 
+static const struct tep_format_field *get_event_field(struct tep_event *event,
+					 const char *field_name)
+{
+	if (!strcmp(field_name, TRACEFS_TIMESTAMP))
+		return &common_timestamp;
+
+	if (!strcmp(field_name, TRACEFS_TIMESTAMP_USECS))
+		return &common_timestamp_usecs;
+
+	return tep_find_any_field(event, field_name);
+}
+
 static bool verify_event_fields(struct tep_event *start_event,
 				struct tep_event *end_event,
 				const char *start_field_name,
 				const char *end_field_name,
-				struct tep_format_field **ptr_start_field)
+				const struct tep_format_field **ptr_start_field)
 {
-	struct tep_format_field *start_field;
-	struct tep_format_field *end_field;
+	const struct tep_format_field *start_field;
+	const struct tep_format_field *end_field;
 
-	start_field = tep_find_any_field(start_event, start_field_name);
+	start_field = get_event_field(start_event, start_field_name);
 	if (!start_field)
 		goto nodev;
 
 	if (end_event) {
-		end_field = tep_find_any_field(end_event, end_field_name);
+		end_field = get_event_field(end_event, end_field_name);
 		if (!start_field)
 			goto nodev;
 
@@ -644,7 +668,7 @@ static char *append_string(char *str, const char *space, const char *add)
 	return str;
 }
 
-static char *add_synth_field(struct tep_format_field *field,
+static char *add_synth_field(const struct tep_format_field *field,
 			     const char *name)
 {
 	const char *type;
@@ -828,7 +852,7 @@ struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
 }
 
 static int add_synth_fields(struct tracefs_synth *synth,
-			    struct tep_format_field *field,
+			    const struct tep_format_field *field,
 			    const char *name)
 {
 	char **list;
@@ -885,7 +909,7 @@ int tracefs_synth_add_match_field(struct tracefs_synth *synth,
 				  const char *end_match_field,
 				  const char *name)
 {
-	struct tep_format_field *key_field;
+	const struct tep_format_field *key_field;
 	char **list;
 	int ret;
 
@@ -975,7 +999,7 @@ int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
 				    enum tracefs_synth_calc calc,
 				    const char *name)
 {
-	struct tep_format_field *start_field;
+	const struct tep_format_field *start_field;
 	char *start_arg;
 	char *compare;
 	int ret;
@@ -1060,7 +1084,7 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 				  const char *start_field,
 				  const char *name)
 {
-	struct tep_format_field *field;
+	const struct tep_format_field *field;
 	char *start_arg;
 	int ret;
 
@@ -1114,7 +1138,7 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 				const char *end_field,
 				const char *name)
 {
-	struct tep_format_field *field;
+	const struct tep_format_field *field;
 	int ret;
 
 	if (!synth || !end_field) {
@@ -1235,7 +1259,7 @@ int tracefs_synth_add_start_filter(struct tracefs_synth *synth,
 				   const char *val,
 				   bool neg, bool or)
 {
-	struct tep_format_field *start_field;
+	const struct tep_format_field *start_field;
 	bool is_string;
 
 	if (!field || !val)
@@ -1264,7 +1288,7 @@ int tracefs_synth_add_end_filter(struct tracefs_synth *synth,
 				 const char *val,
 				 bool neg, bool or)
 {
-	struct tep_format_field *end_field;
+	const struct tep_format_field *end_field;
 	bool is_string;
 
 	if (!field || !val)
