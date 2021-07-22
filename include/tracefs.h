@@ -300,4 +300,70 @@ int tracefs_hist_continue(struct tracefs_hist *hist);
 int tracefs_hist_reset(struct tracefs_hist *hist);
 int tracefs_hist_destroy(struct tracefs_hist *hist);
 
+struct tracefs_synth;
+
+/*
+ * DELTA_END	- end_field - start_field
+ * DELTA_START	- start_field - end_field
+ * ADD		- start_field + end_field
+ */
+enum tracefs_synth_calc {
+	TRACEFS_SYNTH_DELTA_END,
+	TRACEFS_SYNTH_DELTA_START,
+	TRACEFS_SYNTH_ADD,
+};
+
+enum tracefs_synth_compare {
+	TRACEFS_COMPARE_EQ,
+	TRACEFS_COMPARE_NQ,
+	TRACEFS_COMPARE_GR,
+	TRACEFS_COMPARE_GE,
+	TRACEFS_COMPARE_LT,
+	TRACEFS_COMPARE_LE,
+	TRACEFS_COMPARE_RE,
+	TRACEFS_COMPARE_AND,
+};
+
+struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
+					 const char *name,
+					 const char *start_system,
+					 const char *start_event,
+					 const char *end_system,
+					 const char *end_event,
+					 const char *start_match_field,
+					 const char *end_match_field,
+					 const char *match_name);
+int tracefs_synth_add_match_field(struct tracefs_synth *synth,
+				  const char *start_match_field,
+				  const char *end_match_field,
+				  const char *name);
+int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
+				    const char *start_compare_field,
+				    const char *end_compare_field,
+				    enum tracefs_synth_calc calc,
+				    const char *name);
+int tracefs_synth_add_start_field(struct tracefs_synth *synth,
+				  const char *start_field,
+				  const char *name);
+int tracefs_synth_add_end_field(struct tracefs_synth *synth,
+				const char *end_field,
+				const char *name);
+int tracefs_synth_add_start_filter(struct tracefs_synth *synth,
+				   const char *field,
+				   enum tracefs_synth_compare compare,
+				   const char *val,
+				   bool neg, bool or);
+int tracefs_synth_add_end_filter(struct tracefs_synth *synth,
+				 const char *field,
+				 enum tracefs_synth_compare compare,
+				 const char *val,
+				 bool neg, bool or);
+int tracefs_synth_create(struct tracefs_instance *instance,
+			 struct tracefs_synth *synth);
+int tracefs_synth_destroy(struct tracefs_instance *instance,
+			  struct tracefs_synth *synth);
+void tracefs_synth_free(struct tracefs_synth *synth);
+int tracefs_synth_show(struct trace_seq *seq, struct tracefs_instance *instance,
+		       struct tracefs_synth *synth);
+
 #endif /* _TRACE_FS_H */
