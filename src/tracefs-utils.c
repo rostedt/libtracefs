@@ -449,6 +449,32 @@ char **tracefs_list_add(char **list, const char *string)
 }
 
 /**
+ * tracefs_list_pop - Removes the last string added
+ * @list: The list to remove the last event from
+ *
+ * Returns 0 on success, -1 on error.
+ * Returns 1 if the list is empty or NULL.
+ */
+int tracefs_list_pop(char **list)
+{
+	unsigned long size;
+
+	if (!list || list[0])
+		return 1;
+
+	list--;
+	size = *(unsigned long *)list;
+	/* size must be greater than zero */
+	if (!size)
+		return -1;
+	size--;
+	*list = (char *)size;
+	list++;
+	list[size] = '\0';
+	return 0;
+}
+
+/**
  * tracefs_list_size - Return the number of strings in the list
  * @list: The list to determine the size.
  *
