@@ -215,7 +215,8 @@ define do_make_pkgconfig_file
 	sed -i "s|INSTALL_PREFIX|${1}|g" ${PKG_CONFIG_FILE}; 		\
 	sed -i "s|LIB_VERSION|${TRACEFS_VERSION}|g" ${PKG_CONFIG_FILE}; \
 	sed -i "s|LIB_DIR|${libdir_relative}|g" ${PKG_CONFIG_FILE}; \
-	sed -i "s|HEADER_DIR|$(includedir_relative)|g" ${PKG_CONFIG_FILE};
+	sed -i "s|HEADER_DIR|$(includedir_relative)|g" ${PKG_CONFIG_FILE}; \
+	sed -i "s|LIBTRACEEVENT_MIN|$(LIBTRACEEVENT_MIN_VERSION)|g" ${PKG_CONFIG_FILE};
 endef
 
 BUILD_PREFIX := $(BUILD_OUTPUT)/build_prefix
