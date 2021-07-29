@@ -24,7 +24,7 @@ system mount point and trace files in it.
 
 The _tracefs_get_tracing_file()_ function returns the full path of the
 file with given _name_ in the trace file system. The function works
-only with files in the trasefs main directory, it is not trace instance
+only with files in the tracefs main directory, it is not trace instance
 aware. It is recommended to use _tracefs_instance_get_file()_ and
 _tracefs_instance_get_dir()_ instead. The returned string must be freed
 with _tracefs_put_tracing_file()_.
