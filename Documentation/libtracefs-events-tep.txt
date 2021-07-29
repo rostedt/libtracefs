@@ -73,7 +73,7 @@ EXAMPLE
 --
 #include <tracefs.h>
 
-struct tep_event *tep;
+struct tep_handle *tep;
 ...
 	tep = tracefs_local_events(NULL);
 	if (!tep) {
