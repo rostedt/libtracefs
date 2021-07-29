@@ -122,7 +122,7 @@ static int records_walk(struct tep_event *tep, struct tep_record *record, int cp
 	return 0;
 }
 ...
-struct tep_event *tep = tracefs_local_events(NULL);
+struct tep_handle *tep = tracefs_local_events(NULL);
 
 	if (!tep) {
 		/* Failed to initialise tep handler with local events */
