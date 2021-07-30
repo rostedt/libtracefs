@@ -580,6 +580,15 @@ static const struct tep_format_field common_timestamp_usecs = {
 	.size			= 8,
 };
 
+/**
+ * tracefs_synth_free - free the resources alloced to a synth
+ * @synth: The tracefs_synth descriptor
+ *
+ * Frees the resources allocated for a @synth created with
+ * tracefs_synth_init(). It does not touch the system. That is,
+ * any synthetic event created, will not be destroyed by this
+ * function.
+ */
 void tracefs_synth_free(struct tracefs_synth *synth)
 {
 	if (!synth)
@@ -1354,6 +1363,55 @@ inval:
 	return -1;
 }
 
+/**
+ * tracefs_synth_append_start_filter - create or append a filter
+ * @synth: The tracefs_synth descriptor
+ * @type: The type of element to add to the filter
+ * @field: For @type == TRACEFS_FILTER_COMPARE, the field to compare
+ * @compare: For @type == TRACEFS_FILTER_COMPARE, how to compare @field to @val
+ * @val: For @type == TRACEFS_FILTER_COMPARE, what value @field is to be
+ *
+ * This will put together a filter string for the starting event
+ * of @synth. It check to make sure that what is added is correct compared
+ * to the filter that is already built.
+ *
+ * @type can be:
+ *     TRACEFS_FILTER_COMPARE:        See below
+ *     TRACEFS_FILTER_AND:            Append "&&" to the filter
+ *     TRACEFS_FILTER_OR:             Append "||" to the filter
+ *     TRACEFS_FILTER_NOT:            Append "!" to the filter
+ *     TRACEFS_FILTER_OPEN_PAREN:     Append "(" to the filter
+ *     TRACEFS_FILTER_CLOSE_PAREN:    Append ")" to the filter
+ *
+ * For all types except TRACEFS_FILTER_COMPARE, the @field, @compare,
+ * and @val are ignored.
+ *
+ * For @type == TRACEFS_FILTER_COMPARE.
+ *
+ *  @field is the name of the field for the start event to compare.
+ *         If it is not a field for the start event, this return an
+ *         error.
+ *
+ *  @compare can be one of:
+ *     TRACEFS_COMPARE_EQ:       Test @field == @val
+ *     TRACEFS_COMPARE_NE:       Test @field != @val
+ *     TRACEFS_COMPARE_GT:       Test @field > @val
+ *     TRACEFS_COMPARE_GE:       Test @field >= @val
+ *     TRACEFS_COMPARE_LT:       Test @field < @val
+ *     TRACEFS_COMPARE_LE:       Test @field <= @val
+ *     TRACEFS_COMPARE_RE:       Test @field ~ @val
+ *     TRACEFS_COMPARE_AND:      Test @field & @val
+ *
+ * If the @field is of type string, and @compare is not
+ *   TRACEFS_COMPARE_EQ, TRACEFS_COMPARE_NE or TRACEFS_COMPARE_RE,
+ *   then this will return an error.
+ *
+ * Various other checks are made, for instance, if more CLOSE_PARENs
+ * are added than existing OPEN_PARENs. Or if AND is added after an
+ * OPEN_PAREN or another AND or an OR or a NOT.
+ *
+ * Returns 0 on success and -1 on failure.
+ */
 int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
 				      enum tracefs_filter type,
 				      const char *field,
@@ -1366,6 +1424,17 @@ int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
 				   type, field, compare, val);
 }
 
+/**
+ * tracefs_synth_append_end_filter - create or append a filter
+ * @synth: The tracefs_synth descriptor
+ * @type: The type of element to add to the filter
+ * @field: For @type == TRACEFS_FILTER_COMPARE, the field to compare
+ * @compare: For @type == TRACEFS_FILTER_COMPARE, how to compare @field to @val
+ * @val: For @type == TRACEFS_FILTER_COMPARE, what value @field is to be
+ *
+ * Performs the same thing as tracefs_synth_append_start_filter() but
+ * for the @synth end event.
+ */
 int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				    enum tracefs_filter type,
 				    const char *field,
