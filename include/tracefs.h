@@ -313,7 +313,7 @@ enum tracefs_synth_calc {
 	TRACEFS_SYNTH_ADD,
 };
 
-enum tracefs_synth_compare {
+enum tracefs_compare {
 	TRACEFS_COMPARE_EQ,
 	TRACEFS_COMPARE_NE,
 	TRACEFS_COMPARE_GT,
@@ -332,6 +332,13 @@ enum tracefs_filter {
 	TRACEFS_FILTER_OPEN_PAREN,
 	TRACEFS_FILTER_CLOSE_PAREN,
 };
+
+int tracefs_event_append_filter(struct tep_event *event, char **filter,
+				enum tracefs_filter type,
+				const char *field, enum tracefs_compare compare,
+				const char *val);
+int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
+				char **err);
 
 #define TRACEFS_TIMESTAMP "common_timestamp"
 #define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"
@@ -363,12 +370,12 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
 				      enum tracefs_filter type,
 				      const char *field,
-				      enum tracefs_synth_compare compare,
+				      enum tracefs_compare compare,
 				      const char *val);
 int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				    enum tracefs_filter type,
 				    const char *field,
-				    enum tracefs_synth_compare compare,
+				    enum tracefs_compare compare,
 				    const char *val);
 int tracefs_synth_create(struct tracefs_instance *instance,
 			 struct tracefs_synth *synth);

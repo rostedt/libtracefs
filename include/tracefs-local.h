@@ -71,4 +71,18 @@ struct tracefs_options_mask *
 enabled_opts_mask(struct tracefs_instance *instance);
 
 char **trace_list_create_empty(void);
+
+char *append_string(char *str, const char *delim, const char *add);
+int trace_test_state(int state);
+bool trace_verify_event_field(struct tep_event *event,
+			      const char *field_name,
+			      const struct tep_format_field **ptr_field);
+int trace_append_filter(char **filter, unsigned int *state,
+			unsigned int *open_parens,
+			struct tep_event *event,
+			enum tracefs_filter type,
+			const char *field_name,
+			enum tracefs_compare compare,
+			 const char *val);
+
 #endif /* _TRACE_FS_LOCAL_H */

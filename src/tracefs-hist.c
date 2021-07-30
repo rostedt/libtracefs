@@ -568,18 +568,6 @@ struct tracefs_synth {
 	int			arg_cnt;
 };
 
-static const struct tep_format_field common_timestamp = {
-	.type			= "u64",
-	.name			= "common_timestamp",
-	.size			= 8,
-};
-
-static const struct tep_format_field common_timestamp_usecs = {
-	.type			= "u64",
-	.name			= "common_timestamp.usecs",
-	.size			= 8,
-};
-
 /**
  * tracefs_synth_free - free the resources alloced to a synth
  * @synth: The tracefs_synth descriptor
@@ -609,18 +597,6 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 	free(synth);
 }
 
-static const struct tep_format_field *get_event_field(struct tep_event *event,
-					 const char *field_name)
-{
-	if (!strcmp(field_name, TRACEFS_TIMESTAMP))
-		return &common_timestamp;
-
-	if (!strcmp(field_name, TRACEFS_TIMESTAMP_USECS))
-		return &common_timestamp_usecs;
-
-	return tep_find_any_field(event, field_name);
-}
-
 static bool verify_event_fields(struct tep_event *start_event,
 				struct tep_event *end_event,
 				const char *start_field_name,
@@ -630,14 +606,14 @@ static bool verify_event_fields(struct tep_event *start_event,
 	const struct tep_format_field *start_field;
 	const struct tep_format_field *end_field;
 
-	start_field = get_event_field(start_event, start_field_name);
-	if (!start_field)
-		goto nodev;
+	if (!trace_verify_event_field(start_event, start_field_name,
+				      &start_field))
+		return false;
 
 	if (end_event) {
-		end_field = get_event_field(end_event, end_field_name);
-		if (!start_field)
-			goto nodev;
+		if (!trace_verify_event_field(end_event, end_field_name,
+					      &end_field))
+			return false;
 
 		if (start_field->flags != end_field->flags ||
 		    start_field->size != end_field->size) {
@@ -650,12 +626,9 @@ static bool verify_event_fields(struct tep_event *start_event,
 		*ptr_start_field = start_field;
 
 	return true;
- nodev:
-	errno = ENODEV;
-	return false;
 }
 
-static char *append_string(char *str, const char *space, const char *add)
+__hidden char *append_string(char *str, const char *space, const char *add)
 {
 	char *new;
 	int len;
@@ -1110,8 +1083,7 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 	if (!name)
 		name = start_field;
 
-	if (!verify_event_fields(synth->start_event, NULL,
-				 start_field, NULL, &field))
+	if (!trace_verify_event_field(synth->start_event, start_field, &field))
 		return -1;
 
 	start_arg = new_arg(synth);
@@ -1163,8 +1135,7 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 	if (!name)
 		name = end_field;
 
-	if (!verify_event_fields(synth->end_event, NULL,
-				 end_field, NULL, &field))
+	if (!trace_verify_event_field(synth->end_event, end_field, &field))
 		return -1;
 
 	ret = add_var(&synth->end_vars, name, end_field, false);
@@ -1175,192 +1146,6 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 
  out:
 	return ret;
-}
-
-enum {
-	S_START,
-	S_COMPARE,
-	S_NOT,
-	S_CONJUNCTION,
-	S_OPEN_PAREN,
-	S_CLOSE_PAREN,
-};
-
-static int append_synth_filter(char **filter, unsigned int *state,
-			       unsigned int *open_parens,
-			       struct tep_event *event,
-			       enum tracefs_filter type,
-			       const char *field_name,
-			       enum tracefs_synth_compare compare,
-			       const char *val)
-{
-	const struct tep_format_field *field;
-	bool is_string;
-	char *conj = "||";
-	char *tmp;
-
-	switch (type) {
-	case TRACEFS_FILTER_COMPARE:
-		switch (*state) {
-		case S_START:
-		case S_OPEN_PAREN:
-		case S_CONJUNCTION:
-		case S_NOT:
-			break;
-		default:
-			goto inval;
-		}
-		break;
-
-	case TRACEFS_FILTER_AND:
-		conj = "&&";
-		/* Fall through */
-	case TRACEFS_FILTER_OR:
-		switch (*state) {
-		case S_COMPARE:
-		case S_CLOSE_PAREN:
-			break;
-		default:
-			goto inval;
-		}
-		/* Don't lose old filter on failure */
-		tmp = strdup(*filter);
-		if (!tmp)
-			return -1;
-		tmp = append_string(tmp, NULL, conj);
-		if (!tmp)
-			return -1;
-		free(*filter);
-		*filter = tmp;
-		*state = S_CONJUNCTION;
-		return 0;
-
-	case TRACEFS_FILTER_NOT:
-		switch (*state) {
-		case S_START:
-		case S_OPEN_PAREN:
-		case S_CONJUNCTION:
-		case S_NOT:
-			break;
-		default:
-			goto inval;
-		}
-		if (*filter) {
-			tmp = strdup(*filter);
-			tmp = append_string(tmp, NULL, "!");
-		} else {
-			tmp = strdup("!");
-		}
-		if (!tmp)
-			return -1;
-		free(*filter);
-		*filter = tmp;
-		*state = S_NOT;
-		return 0;
-
-	case TRACEFS_FILTER_OPEN_PAREN:
-		switch (*state) {
-		case S_START:
-		case S_OPEN_PAREN:
-		case S_NOT:
-		case S_CONJUNCTION:
-			break;
-		default:
-			goto inval;
-		}
-		if (*filter) {
-			tmp = strdup(*filter);
-			tmp = append_string(tmp, NULL, "(");
-		} else {
-			tmp = strdup("(");
-		}
-		if (!tmp)
-			return -1;
-		free(*filter);
-		*filter = tmp;
-		*state = S_OPEN_PAREN;
-		(*open_parens)++;
-		return 0;
-
-	case TRACEFS_FILTER_CLOSE_PAREN:
-		switch (*state) {
-		case S_CLOSE_PAREN:
-		case S_COMPARE:
-			break;
-		default:
-			goto inval;
-		}
-		if (!*open_parens)
-			goto inval;
-
-		tmp = strdup(*filter);
-		if (!tmp)
-			return -1;
-		tmp = append_string(tmp, NULL, ")");
-		if (!tmp)
-			return -1;
-		free(*filter);
-		*filter = tmp;
-		*state = S_CLOSE_PAREN;
-		(*open_parens)--;
-		return 0;
-	}
-
-	if (!field_name || !val)
-		goto inval;
-
-	if (!verify_event_fields(event, NULL, field_name, NULL, &field))
-		return -1;
-
-	is_string = field->flags & TEP_FIELD_IS_STRING;
-
-	if (!is_string && (field->flags & TEP_FIELD_IS_ARRAY))
-		goto inval;
-
-	if (*filter) {
-		tmp = strdup(*filter);
-		if (!tmp)
-			return -1;
-		tmp = append_string(tmp, NULL, field_name);
-	} else {
-		tmp = strdup(field_name);
-	}
-
-	switch (compare) {
-	case TRACEFS_COMPARE_EQ: tmp = append_string(tmp, NULL, " == "); break;
-	case TRACEFS_COMPARE_NE: tmp = append_string(tmp, NULL, " != "); break;
-	case TRACEFS_COMPARE_RE:
-		if (!is_string)
-			goto inval;
-		tmp = append_string(tmp, NULL, "~");
-		break;
-	default:
-		if (is_string)
-			goto inval;
-	}
-
-	switch (compare) {
-	case TRACEFS_COMPARE_GT: tmp = append_string(tmp, NULL, " > "); break;
-	case TRACEFS_COMPARE_GE: tmp = append_string(tmp, NULL, " >= "); break;
-	case TRACEFS_COMPARE_LT: tmp = append_string(tmp, NULL, " < "); break;
-	case TRACEFS_COMPARE_LE: tmp = append_string(tmp, NULL, " <= "); break;
-	case TRACEFS_COMPARE_AND: tmp = append_string(tmp, NULL, " & "); break;
-	default: break;
-	}
-
-	tmp = append_string(tmp, NULL, val);
-
-	if (!tmp)
-		return -1;
-
-	free(*filter);
-	*filter = tmp;
-	*state = S_COMPARE;
-
-	return 0;
-inval:
-	errno = EINVAL;
-	return -1;
 }
 
 /**
@@ -1415,10 +1200,10 @@ inval:
 int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
 				      enum tracefs_filter type,
 				      const char *field,
-				      enum tracefs_synth_compare compare,
+				      enum tracefs_compare compare,
 				      const char *val)
 {
-	return append_synth_filter(&synth->start_filter, &synth->start_state,
+	return trace_append_filter(&synth->start_filter, &synth->start_state,
 				   &synth->start_parens,
 				   synth->start_event,
 				   type, field, compare, val);
@@ -1438,10 +1223,10 @@ int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
 int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				    enum tracefs_filter type,
 				    const char *field,
-				    enum tracefs_synth_compare compare,
+				    enum tracefs_compare compare,
 				    const char *val)
 {
-	return append_synth_filter(&synth->end_filter, &synth->end_state,
+	return trace_append_filter(&synth->end_filter, &synth->end_state,
 				   &synth->end_parens,
 				   synth->end_event,
 				   type, field, compare, val);
@@ -1564,23 +1349,10 @@ static char *append_filter(char *hist, char *filter, unsigned int parens)
 	return hist;
 }
 
-static int test_state(int state)
-{
-	switch (state) {
-	case S_START:
-	case S_CLOSE_PAREN:
-	case S_COMPARE:
-		return 0;
-	}
-
-	errno = EBADE;
-	return -1;
-}
-
 static int verify_state(struct tracefs_synth *synth)
 {
-	if (test_state(synth->start_state) < 0 ||
-	    test_state(synth->end_state) < 0)
+	if (trace_test_state(synth->start_state) < 0 ||
+	    trace_test_state(synth->end_state) < 0)
 		return -1;
 	return 0;
 }
