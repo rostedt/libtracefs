@@ -44,6 +44,12 @@
 #define KRETPROBE_ADDR	"do_sys_openat2"
 #define KRETPROBE_FMT	"ret=$retval"
 
+#define SQL_1_EVENT	"wakeup_1"
+#define SQL_1_SQL	"select sched_switch.next_pid as woke_pid, sched_waking.common_pid as waking_pid from sched_waking join sched_switch on sched_switch.next_pid = sched_waking.pid"
+
+#define SQL_2_EVENT	"wakeup_2"
+#define SQL_2_SQL	"select woke.next_pid as woke_pid, wake.common_pid as waking_pid from sched_waking as wake join sched_switch as woke on woke.next_pid = wake.pid"
+
 static struct tracefs_instance *test_instance;
 static struct tep_handle *test_tep;
 struct test_sample {
@@ -320,6 +326,41 @@ static void test_instance_ftrace_marker(struct tracefs_instance *instance)
 static void test_ftrace_marker(void)
 {
 	test_instance_ftrace_marker(test_instance);
+}
+
+static void test_instance_trace_sql(struct tracefs_instance *instance)
+{
+	struct tracefs_synth *synth;
+	struct trace_seq seq;
+	struct tep_handle *tep;
+	int ret;
+
+	tep = tracefs_local_events(NULL);
+	CU_TEST(tep != NULL);
+
+	trace_seq_init(&seq);
+
+	synth = tracefs_sql(tep, SQL_1_EVENT, SQL_1_SQL, NULL);
+	CU_TEST(synth != NULL);
+	ret = tracefs_synth_show(&seq, instance, synth);
+	CU_TEST(ret == 0);
+	tracefs_synth_free(synth);
+	trace_seq_reset(&seq);
+
+	synth = tracefs_sql(tep, SQL_2_EVENT, SQL_2_SQL, NULL);
+	CU_TEST(synth != NULL);
+	ret = tracefs_synth_show(&seq, instance, synth);
+	CU_TEST(ret == 0);
+	tracefs_synth_free(synth);
+	trace_seq_reset(&seq);
+
+	tep_free(tep);
+	trace_seq_destroy(&seq);
+}
+
+static void test_trace_sql(void)
+{
+	test_instance_trace_sql(test_instance);
 }
 
 static void test_trace_file(void)
@@ -1338,6 +1379,8 @@ void test_tracefs_lib(void)
 		fprintf(stderr, "Suite \"%s\" cannot be ceated\n", TRACEFS_SUITE);
 		return;
 	}
+	CU_add_test(suite, "trace sql",
+		    test_trace_sql);
 	CU_add_test(suite, "tracing file / directory APIs",
 		    test_trace_file);
 	CU_add_test(suite, "instance file / directory APIs",
