@@ -545,6 +545,8 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
  * @end_names: The fields in the end event to record
  * @start_filters: The fields in the end event to record
  * @end_filters: The fields in the end event to record
+ * @start_parens: Current parenthesis level for start event
+ * @end_parens: Current parenthesis level for end event
  */
 struct tracefs_synth {
 	struct tep_handle	*tep;
@@ -559,7 +561,10 @@ struct tracefs_synth {
 	char			**end_vars;
 	char			*start_filter;
 	char			*end_filter;
-
+	unsigned int		start_parens;
+	unsigned int		start_state;
+	unsigned int		end_parens;
+	unsigned int		end_state;
 	int			arg_cnt;
 };
 
@@ -1163,152 +1168,214 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 	return ret;
 }
 
-static int add_synth_filter(char **filter, const char *field,
-			    enum tracefs_synth_compare compare,
-			    const char *val, bool is_string,
-			    bool neg, bool or)
+enum {
+	S_START,
+	S_COMPARE,
+	S_NOT,
+	S_CONJUNCTION,
+	S_OPEN_PAREN,
+	S_CLOSE_PAREN,
+};
+
+static int append_synth_filter(char **filter, unsigned int *state,
+			       unsigned int *open_parens,
+			       struct tep_event *event,
+			       enum tracefs_filter type,
+			       const char *field_name,
+			       enum tracefs_synth_compare compare,
+			       const char *val)
 {
-	const char *minus = "";
-	const char *op;
-	char *str = NULL;
-	int ret;
+	const struct tep_format_field *field;
+	bool is_string;
+	char *conj = "||";
+	char *tmp;
 
-	switch (compare) {
-	case TRACEFS_COMPARE_EQ:
-		op = "==";
-		break;
-
-	case TRACEFS_COMPARE_NE:
-		op = "!=";
-		break;
-
-	case TRACEFS_COMPARE_GT:
-		op = ">";
-		if (is_string)
+	switch (type) {
+	case TRACEFS_FILTER_COMPARE:
+		switch (*state) {
+		case S_START:
+		case S_OPEN_PAREN:
+		case S_CONJUNCTION:
+		case S_NOT:
+			break;
+		default:
 			goto inval;
+		}
 		break;
 
-	case TRACEFS_COMPARE_GE:
-		op = ">=";
-		if (is_string)
+	case TRACEFS_FILTER_AND:
+		conj = "&&";
+		/* Fall through */
+	case TRACEFS_FILTER_OR:
+		switch (*state) {
+		case S_COMPARE:
+		case S_CLOSE_PAREN:
+			break;
+		default:
 			goto inval;
-		break;
-
-	case TRACEFS_COMPARE_LT:
-		op = "<";
-		if (is_string)
-			goto inval;
-		break;
-
-	case TRACEFS_COMPARE_LE:
-		op = "<=";
-		if (is_string)
-			goto inval;
-		break;
-
-	case TRACEFS_COMPARE_RE:
-		op = "~";
-		if (!is_string)
-			goto inval;
-		break;
-
-	case TRACEFS_COMPARE_AND:
-		op = "&";
-		if (is_string)
-			goto inval;
-		break;
-	}
-
-	if (neg)
-		minus = "-";
-
-	if (is_string && val[0] != '"')
-		ret = asprintf(&str, "%s(%s %s \"%s\")",
-			       minus, field, op, val);
-	else
-		ret = asprintf(&str, "%s(%s %s %s)",
-			       minus, field, op, val);
-
-	if (ret < 0)
-		return -1;
-
-	if (*filter) {
-		char *new;
-		char *conjunction = or ? "||" : "&&";
-
-		ret = asprintf(&new, "%s %s %s", *filter,
-			       conjunction, str);
-		free(str);
-		if (ret < 0)
+		}
+		/* Don't lose old filter on failure */
+		tmp = strdup(*filter);
+		if (!tmp)
+			return -1;
+		tmp = append_string(tmp, NULL, conj);
+		if (!tmp)
 			return -1;
 		free(*filter);
-		*filter = new;
-	} else {
-		*filter = str;
+		*filter = tmp;
+		*state = S_CONJUNCTION;
+		return 0;
+
+	case TRACEFS_FILTER_NOT:
+		switch (*state) {
+		case S_START:
+		case S_OPEN_PAREN:
+		case S_CONJUNCTION:
+		case S_NOT:
+			break;
+		default:
+			goto inval;
+		}
+		if (*filter) {
+			tmp = strdup(*filter);
+			tmp = append_string(tmp, NULL, "!");
+		} else {
+			tmp = strdup("!");
+		}
+		if (!tmp)
+			return -1;
+		free(*filter);
+		*filter = tmp;
+		*state = S_NOT;
+		return 0;
+
+	case TRACEFS_FILTER_OPEN_PAREN:
+		switch (*state) {
+		case S_START:
+		case S_OPEN_PAREN:
+		case S_NOT:
+		case S_CONJUNCTION:
+			break;
+		default:
+			goto inval;
+		}
+		if (*filter) {
+			tmp = strdup(*filter);
+			tmp = append_string(tmp, NULL, "(");
+		} else {
+			tmp = strdup("(");
+		}
+		if (!tmp)
+			return -1;
+		free(*filter);
+		*filter = tmp;
+		*state = S_OPEN_PAREN;
+		(*open_parens)++;
+		return 0;
+
+	case TRACEFS_FILTER_CLOSE_PAREN:
+		switch (*state) {
+		case S_CLOSE_PAREN:
+		case S_COMPARE:
+			break;
+		default:
+			goto inval;
+		}
+		if (!*open_parens)
+			goto inval;
+
+		tmp = strdup(*filter);
+		if (!tmp)
+			return -1;
+		tmp = append_string(tmp, NULL, ")");
+		if (!tmp)
+			return -1;
+		free(*filter);
+		*filter = tmp;
+		*state = S_CLOSE_PAREN;
+		(*open_parens)--;
+		return 0;
 	}
+
+	if (!field_name || !val)
+		goto inval;
+
+	if (!verify_event_fields(event, NULL, field_name, NULL, &field))
+		return -1;
+
+	is_string = field->flags & TEP_FIELD_IS_STRING;
+
+	if (!is_string && (field->flags & TEP_FIELD_IS_ARRAY))
+		goto inval;
+
+	if (*filter) {
+		tmp = strdup(*filter);
+		if (!tmp)
+			return -1;
+		tmp = append_string(tmp, NULL, field_name);
+	} else {
+		tmp = strdup(field_name);
+	}
+
+	switch (compare) {
+	case TRACEFS_COMPARE_EQ: tmp = append_string(tmp, NULL, " == "); break;
+	case TRACEFS_COMPARE_NE: tmp = append_string(tmp, NULL, " != "); break;
+	case TRACEFS_COMPARE_RE:
+		if (!is_string)
+			goto inval;
+		tmp = append_string(tmp, NULL, "~");
+		break;
+	default:
+		if (is_string)
+			goto inval;
+	}
+
+	switch (compare) {
+	case TRACEFS_COMPARE_GT: tmp = append_string(tmp, NULL, " > "); break;
+	case TRACEFS_COMPARE_GE: tmp = append_string(tmp, NULL, " >= "); break;
+	case TRACEFS_COMPARE_LT: tmp = append_string(tmp, NULL, " < "); break;
+	case TRACEFS_COMPARE_LE: tmp = append_string(tmp, NULL, " <= "); break;
+	case TRACEFS_COMPARE_AND: tmp = append_string(tmp, NULL, " & "); break;
+	default: break;
+	}
+
+	tmp = append_string(tmp, NULL, val);
+
+	if (!tmp)
+		return -1;
+
+	free(*filter);
+	*filter = tmp;
+	*state = S_COMPARE;
 
 	return 0;
 inval:
-	errno = -EINVAL;
+	errno = EINVAL;
 	return -1;
 }
 
-int tracefs_synth_add_start_filter(struct tracefs_synth *synth,
-				   const char *field,
-				   enum tracefs_synth_compare compare,
-				   const char *val,
-				   bool neg, bool or)
+int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
+				      enum tracefs_filter type,
+				      const char *field,
+				      enum tracefs_synth_compare compare,
+				      const char *val)
 {
-	const struct tep_format_field *start_field;
-	bool is_string;
-
-	if (!field || !val)
-		goto inval;
-
-	if (!verify_event_fields(synth->start_event, NULL,
-				 field, NULL, &start_field))
-		return -1;
-
-	is_string = start_field->flags & TEP_FIELD_IS_STRING;
-
-	if (!is_string && (start_field->flags & TEP_FIELD_IS_ARRAY))
-		goto inval;
-
-	return add_synth_filter(&synth->start_filter,
-				field, compare, val, is_string,
-				neg, or);
-inval:
-	errno = -EINVAL;
-	return -1;
+	return append_synth_filter(&synth->start_filter, &synth->start_state,
+				   &synth->start_parens,
+				   synth->start_event,
+				   type, field, compare, val);
 }
 
-int tracefs_synth_add_end_filter(struct tracefs_synth *synth,
-				 const char *field,
-				 enum tracefs_synth_compare compare,
-				 const char *val,
-				 bool neg, bool or)
+int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
+				    enum tracefs_filter type,
+				    const char *field,
+				    enum tracefs_synth_compare compare,
+				    const char *val)
 {
-	const struct tep_format_field *end_field;
-	bool is_string;
-
-	if (!field || !val)
-		goto inval;
-
-	if (!verify_event_fields(synth->end_event, NULL,
-				 field, NULL, &end_field))
-		return -1;
-
-	is_string = end_field->flags & TEP_FIELD_IS_STRING;
-
-	if (!is_string && (end_field->flags & TEP_FIELD_IS_ARRAY))
-		goto inval;
-
-	return add_synth_filter(&synth->end_filter,
-				field, compare, val, is_string,
-				neg, or);
-inval:
-	errno = -EINVAL;
-	return -1;
+	return append_synth_filter(&synth->end_filter, &synth->end_state,
+				   &synth->end_parens,
+				   synth->end_event,
+				   type, field, compare, val);
 }
 
 static char *create_synthetic_event(struct tracefs_synth *synth)
@@ -1414,6 +1481,41 @@ static char *create_end_hist(struct tracefs_synth *synth)
 	return append_string(end_hist, NULL, ")");
 }
 
+static char *append_filter(char *hist, char *filter, unsigned int parens)
+{
+	int i;
+
+	if (!filter)
+		return hist;
+
+	hist = append_string(hist, NULL, " if ");
+	hist = append_string(hist, NULL, filter);
+	for (i = 0; i < parens; i++)
+		hist = append_string(hist, NULL, ")");
+	return hist;
+}
+
+static int test_state(int state)
+{
+	switch (state) {
+	case S_START:
+	case S_CLOSE_PAREN:
+	case S_COMPARE:
+		return 0;
+	}
+
+	errno = EBADE;
+	return -1;
+}
+
+static int verify_state(struct tracefs_synth *synth)
+{
+	if (test_state(synth->start_state) < 0 ||
+	    test_state(synth->end_state) < 0)
+		return -1;
+	return 0;
+}
+
 /**
  * tracefs_synth_create - creates the synthetic event on the system
  * @instance: The instance to modify the start and end events
@@ -1441,6 +1543,9 @@ int tracefs_synth_create(struct tracefs_instance *instance,
 		return -1;
 	}
 
+	if (verify_state(synth) < 0)
+		return -1;
+
 	synthetic_event = create_synthetic_event(synth);
 	if (!synthetic_event)
 		return -1;
@@ -1451,18 +1556,14 @@ int tracefs_synth_create(struct tracefs_instance *instance,
 		goto free_synthetic;
 
 	start_hist = create_hist(synth->start_keys, synth->start_vars);
-	if (synth->start_filter) {
-		start_hist = append_string(start_hist, NULL, " if ");
-		start_hist = append_string(start_hist, NULL, synth->start_filter);
-	}
+	start_hist = append_filter(start_hist, synth->start_filter,
+				   synth->start_parens);
 	if (!start_hist)
 		goto remove_synthetic;
 
 	end_hist = create_end_hist(synth);
-	if (synth->end_filter) {
-		end_hist = append_string(end_hist, NULL, " if ");
-		end_hist = append_string(end_hist, NULL, synth->end_filter);
-	}
+	end_hist = append_filter(end_hist, synth->end_filter,
+				   synth->end_parens);
 	if (!end_hist)
 		goto remove_synthetic;
 
@@ -1528,20 +1629,16 @@ int tracefs_synth_destroy(struct tracefs_instance *instance,
 	tracefs_event_disable(instance, "synthetic", synth->name);
 
 	hist = create_end_hist(synth);
-	if (synth->end_filter) {
-		hist = append_string(hist, NULL, " if ");
-		hist = append_string(hist, NULL, synth->end_filter);
-	}
+	hist = append_filter(hist, synth->end_filter,
+			     synth->end_parens);
 	if (!hist)
 		return -1;
 	ret = remove_hist(instance, synth->end_event, hist);
 	free(hist);
 
 	hist = create_hist(synth->start_keys, synth->start_vars);
-	if (synth->start_filter) {
-		hist = append_string(hist, NULL, " if ");
-		hist = append_string(hist, NULL, synth->start_filter);
-	}
+	hist = append_filter(hist, synth->start_filter,
+			     synth->start_parens);
 	if (!hist)
 		return -1;
 
@@ -1599,10 +1696,8 @@ int tracefs_synth_show(struct trace_seq *seq,
 	path = tracefs_instance_get_dir(instance);
 
 	hist = create_hist(synth->start_keys, synth->start_vars);
-	if (synth->start_filter) {
-		hist = append_string(hist, NULL, " if ");
-		hist = append_string(hist, NULL, synth->start_filter);
-	}
+	hist = append_filter(hist, synth->start_filter,
+			     synth->start_parens);
 	if (!hist)
 		goto out_free;
 
@@ -1611,11 +1706,8 @@ int tracefs_synth_show(struct trace_seq *seq,
 			 synth->start_event->name);
 	free(hist);
 	hist = create_end_hist(synth);
-
-	if (synth->end_filter) {
-		hist = append_string(hist, NULL, " if ");
-		hist = append_string(hist, NULL, synth->end_filter);
-	}
+	hist = append_filter(hist, synth->end_filter,
+			     synth->end_parens);
 	if (!hist)
 		goto out_free;
 

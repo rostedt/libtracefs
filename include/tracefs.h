@@ -324,6 +324,15 @@ enum tracefs_synth_compare {
 	TRACEFS_COMPARE_AND,
 };
 
+enum tracefs_filter {
+	TRACEFS_FILTER_COMPARE,
+	TRACEFS_FILTER_AND,
+	TRACEFS_FILTER_OR,
+	TRACEFS_FILTER_NOT,
+	TRACEFS_FILTER_OPEN_PAREN,
+	TRACEFS_FILTER_CLOSE_PAREN,
+};
+
 #define TRACEFS_TIMESTAMP "common_timestamp"
 #define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"
 
@@ -351,16 +360,16 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 				const char *end_field,
 				const char *name);
-int tracefs_synth_add_start_filter(struct tracefs_synth *synth,
-				   const char *field,
-				   enum tracefs_synth_compare compare,
-				   const char *val,
-				   bool neg, bool or);
-int tracefs_synth_add_end_filter(struct tracefs_synth *synth,
-				 const char *field,
-				 enum tracefs_synth_compare compare,
-				 const char *val,
-				 bool neg, bool or);
+int tracefs_synth_append_start_filter(struct tracefs_synth *synth,
+				      enum tracefs_filter type,
+				      const char *field,
+				      enum tracefs_synth_compare compare,
+				      const char *val);
+int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
+				    enum tracefs_filter type,
+				    const char *field,
+				    enum tracefs_synth_compare compare,
+				    const char *val);
 int tracefs_synth_create(struct tracefs_instance *instance,
 			 struct tracefs_synth *synth);
 int tracefs_synth_destroy(struct tracefs_instance *instance,

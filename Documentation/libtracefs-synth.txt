@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_synth_init, tracefs_synth_add_match_field, tracefs_synth_add_compare_field, tracefs_synth_add_start_field,
-tracefs_synth_add_end_field, tracefs_synth_add_start_filter, tracefs_synth_add_end_filter, tracefs_synth_create,
+tracefs_synth_add_end_field, tracefs_synth_append_start_filter, tracefs_synth_append_end_filter, tracefs_synth_create,
 tracefs_synth_destroy, tracefs_synth_free, tracefs_synth_show - Creation of synthetic events
 
 SYNOPSIS
@@ -37,16 +37,16 @@ int tracefs_synth_add_start_field(struct tracefs_synth pass:[*]synth,
 int tracefs_synth_add_end_field(struct tracefs_synth pass:[*]synth,
 				const char pass:[*]end_field,
 				const char pass:[*]name);
-int tracefs_synth_add_start_filter(struct tracefs_synth pass:[*]synth,
-				   const char pass:[*]field,
-				   enum tracefs_synth_compare compare,
-				   const char pass:[*]val,
-				   bool neg, bool or);
-int tracefs_synth_add_end_filter(struct tracefs_synth pass:[*]synth,
-				 const char pass:[*]field,
-				 enum tracefs_synth_compare compare,
-				 const char pass:[*]val,
-				 bool neg, bool or);
+int tracefs_synth_append_start_filter(struct tracefs_synth pass:[*]synth,
+				      struct tracefs_filter type,
+				      const char pass:[*]field,
+				      enum tracefs_synth_compare compare,
+				      const char pass:[*]val);
+int tracefs_synth_append_end_filter(struct tracefs_synth pass:[*]synth,
+				    struct tracefs_filter type,
+				    const char pass:[*]field,
+				    enum tracefs_synth_compare compare,
+				    const char pass:[*]val);
 int tracefs_synth_create(struct tracefs_instance pass:[*]instance,
 			 struct tracefs_synth pass:[*]synth);
 int tracefs_synth_destroy(struct tracefs_instance pass:[*]instance,
@@ -127,13 +127,21 @@ will be the same as _start_field_.
 event as _name_ in the synthetic event. If _name_ is NULL, then the name used
 will be the same as _end_field_.
 
-*tracefs_synth_add_start_filter*() adds a filter to the starting event
-comparing the content of the starting event's _field_ to _val_ based
-on _compare_. If _neg_ is set, then the compare is wrapped in parenthesis
-and negated. The _or_ field only is used if more than one call to
-*tracefs_synth_add_start_filter*() is done, and if _or_ is set, the
-next compare is "or'd" (||), otherwise it is "and'd" (&&). _compare_
-may be one of:
+*tracefs_synth_append_start_filter*() creates a filter or appends to it for the
+starting event. Depending on _type_, it will build a string of tokens for
+parenthesis or logic statemens, or it may add a comparison of _field_
+to _val_ based on _compare_.
+
+If _type_ is:
+*TRACEFS_FILTER_COMPARE*     -  See below
+*TRACEFS_FILTER_AND*         -  Append "&&" to the filter
+*TRACEFS_FILTER_OR*          -  Append "||" to the filter
+*TRACEFS_FILTER_NOT*         -  Append "!" to the filter
+*TRACEFS_FILTER_OPEN_PAREN*  -  Append "(" to the filter
+*TRACEFS_FILTER_CLOSE_PAREN* -  Append ")" to the filter
+
+_field_, _compare_, and _val_ are ignored unless _type_ is equal to
+*TRACEFS_FILTER_COMPARE*, then _compare will be used for the following:
 
 *TRACEFS_COMPARE_EQ* - _field_ == _val_
 
@@ -151,7 +159,7 @@ may be one of:
 
 *TRACEFS_COMPARE_AND* - _field_ & _val_ : where _field_ is a flags field.
 
-*tracefs_synth_add_end_filter*() is the same as *tracefs_synth_add_start_filter* but
+*tracefs_synth_append_end_filter*() is the same as *tracefs_synth_append_start_filter* but
 filters on the ending event.
 
 *tracefs_synth_create*() creates the synthetic event in the system in the system
@@ -249,20 +257,28 @@ static void make_event(void)
 					TRACEFS_SYNTH_DELTA_END, "delta");
 
 	/* Only record if start event "prio" is less than 100 */
-	tracefs_synth_add_start_filter(synth, "prio",
-				       TRACEFS_COMPARE_LT, "100",
-				       false, false);
+	tracefs_synth_append_start_filter(synth, TRACEFS_FILTER_COMPARE,
+					  "prio", TRACEFS_COMPARE_LT, "100");
 
 	/*
 	 * Only record if end event "next_prio" is less than 50
-	 * or the previous task's prio was less than 100.
+	 * or the previous task's prio was not greater than or equal to 100.
+	 *   next_prio < 50 || !(prev_prio >= 100)
 	 */
-	tracefs_synth_add_end_filter(synth, "next_prio",
-				       TRACEFS_COMPARE_LT, "50",
-				       false, false);
-	tracefs_synth_add_end_filter(synth, "prev_prio",
-				       TRACEFS_COMPARE_LT, "100",
-				       false, true);
+	tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_COMPARE,
+					"next_prio", TRACEFS_COMPARE_LT, "50");
+	tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_OR, NULL, 0, NULL);
+	tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_NOT, NULL, 0, NULL);
+	tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_OPEN_PAREN, NULL, 0, NULL);
+	tracefs_synth_append_end_filter(synth, TRACEFS_FILTER_COMPARE,
+					"prev_prio", TRACEFS_COMPARE_GE, "100");
+	/*
+	 * Note, the above only added: "next_prio < 50 || !(prev_prio >= 100"
+	 * That's because, when the synth is executed, the remaining close parenthesis
+	 * will be added. That is, the string will end up being:
+	 * "next_prio < 50 || !(prev_prio >= 100)" when one of tracefs_sync_create()
+	 * or tracefs_sync_show() is run.
+	 */
 }
 
 /* Display how to create the synthetic event */
