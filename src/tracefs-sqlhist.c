@@ -8,6 +8,7 @@
  */
 #include <trace-seq.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <errno.h>
 
 #include "tracefs.h"
@@ -152,6 +153,16 @@ __hidden void sql_parse_error(struct sqlhist_bison *sb, const char *text,
 
 	sb->parse_error_str = strdup(s.buffer);
 	trace_seq_destroy(&s);
+}
+
+static void parse_error(struct sqlhist_bison *sb, const char *text,
+			const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	sql_parse_error(sb, text, fmt, ap);
+	va_end(ap);
 }
 
 static inline unsigned int quick_hash(const char *str)
@@ -647,6 +658,34 @@ static int update_vars(struct tep_handle *tep,
 	return 0;
 }
 
+static int match_error(struct sqlhist_bison *sb, struct match *match,
+		       struct field *lmatch, struct field *rmatch)
+{
+	struct field *lval = &match->lval->field;
+	struct field *rval = &match->rval->field;
+	struct field *field;
+	struct expr *expr;
+
+	if (lval->system != lmatch->system ||
+	    lval->event != lmatch->event) {
+		expr = match->lval;
+		field = lval;
+	} else {
+		expr = match->rval;
+		field = rval;
+	}
+
+	sb->line_no = expr->line;
+	sb->line_idx = expr->idx;
+
+	parse_error(sb, field->raw,
+		    "'%s' and '%s' must be a field for each event: '%s' and '%s'\n",
+		    lval->raw, rval->raw, sb->table->to->field.raw,
+		    sb->table->from->field.raw);
+
+	return -1;
+}
+
 static int test_match(struct sql_table *table, struct match *match)
 {
 	struct field *lval, *rval;
@@ -678,13 +717,13 @@ static int test_match(struct sql_table *table, struct match *match)
 		    (rval->event != to->event) ||
 		    (lval->system != from->system) ||
 		    (lval->event != from->event))
-			return -1;
+			return match_error(table->sb, match, from, to);
 	} else {
 		if ((rval->system != from->system) ||
 		    (rval->event != from->event) ||
 		    (lval->system != to->system) ||
 		    (lval->event != to->event))
-			return -1;
+			return match_error(table->sb, match, to, from);
 	}
 	return 0;
 }
