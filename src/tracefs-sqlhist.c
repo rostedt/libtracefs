@@ -1086,7 +1086,7 @@ struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 		return NULL;
 	}
 
-	ret = yyparse(&sb);
+	ret = tracefs_parse(&sb);
 	yylex_destroy(sb.scanner);
 
 	if (ret)

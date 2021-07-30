@@ -30,6 +30,16 @@ extern void yyerror(struct sqlhist_bison *, char *fmt, ...);
 %}
 
 %define api.pure
+
+/* Change the globals to use tracefs_ prefix */
+%define api.prefix{tracefs_}
+%code provides
+{
+  #define YYSTYPE TRACEFS_STYPE
+  #define yylex tracefs_lex
+  #define yyerror tracefs_error
+}
+
 %lex-param {void *scanner}
 %parse-param {struct sqlhist_bison *sb}
 
