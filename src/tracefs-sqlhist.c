@@ -802,21 +802,36 @@ static int build_compare(struct tracefs_synth *synth,
 	return ret;
 }
 
-static int do_verify_filter(struct filter *filter,
+static int verify_filter_error(struct sqlhist_bison *sb, struct expr *expr,
+			       const char *event)
+{
+	struct field *field = &expr->field;
+
+	sb->line_no = expr->line;
+	sb->line_idx = expr->idx;
+
+	parse_error(sb, field->raw,
+		    "event '%s' can not be grouped or '||' together with '%s'\n"
+		    "All filters between '&&' must be for the same event\n",
+		    field->event, event);
+	return -1;
+}
+
+static int do_verify_filter(struct sqlhist_bison *sb, struct filter *filter,
 			    const char **system, const char **event)
 {
 	int ret;
 
 	if (filter->type == FILTER_OR ||
 	    filter->type == FILTER_AND) {
-		ret = do_verify_filter(&filter->lval->filter, system, event);
+		ret = do_verify_filter(sb, &filter->lval->filter, system, event);
 		if (ret)
 			return ret;
-		return do_verify_filter(&filter->rval->filter, system, event);
+		return do_verify_filter(sb, &filter->rval->filter, system, event);
 	}
 	if (filter->type == FILTER_GROUP ||
 	    filter->type == FILTER_NOT_GROUP) {
-		return do_verify_filter(&filter->lval->filter, system, event);
+		return do_verify_filter(sb, &filter->lval->filter, system, event);
 	}
 
 	/*
@@ -831,12 +846,12 @@ static int do_verify_filter(struct filter *filter,
 
 	if (filter->lval->field.system != *system ||
 	    filter->lval->field.event_name != *event)
-		return -1;
+		return verify_filter_error(sb, filter->lval, *event);
 
 	return 0;
 }
 
-static int verify_filter(struct filter *filter,
+static int verify_filter(struct sqlhist_bison *sb, struct filter *filter,
 			 const char **system, const char **event)
 {
 	int ret;
@@ -848,17 +863,17 @@ static int verify_filter(struct filter *filter,
 	case FILTER_NOT_GROUP:
 		break;
 	default:
-		return do_verify_filter(filter, system, event);
+		return do_verify_filter(sb, filter, system, event);
 	}
 
-	ret = do_verify_filter(&filter->lval->filter, system, event);
+	ret = do_verify_filter(sb, &filter->lval->filter, system, event);
 	if (ret)
 		return ret;
 
 	switch (filter->type) {
 	case FILTER_OR:
 	case FILTER_AND:
-		return do_verify_filter(&filter->rval->filter, system, event);
+		return do_verify_filter(sb, &filter->rval->filter, system, event);
 	default:
 		return 0;
 	}
@@ -1165,7 +1180,7 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 		bool *started;
 		bool start;
 
-		ret = verify_filter(&expr->filter, &filter_system,
+		ret = verify_filter(table->sb, &expr->filter, &filter_system,
 				    &filter_event);
 		if (ret < 0)
 			goto free;
