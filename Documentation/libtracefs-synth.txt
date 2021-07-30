@@ -137,9 +137,9 @@ may be one of:
 
 *TRACEFS_COMPARE_EQ* - _field_ == _val_
 
-*TRACEFS_COMPARE_NQ* - _field_ != _val_
+*TRACEFS_COMPARE_NE* - _field_ != _val_
 
-*TRACEFS_COMPARE_GR* - _field_ > _val_
+*TRACEFS_COMPARE_GT* - _field_ > _val_
 
 *TRACEFS_COMPARE_GE* - _field_ >= _val_
 

@@ -1178,11 +1178,11 @@ static int add_synth_filter(char **filter, const char *field,
 		op = "==";
 		break;
 
-	case TRACEFS_COMPARE_NQ:
+	case TRACEFS_COMPARE_NE:
 		op = "!=";
 		break;
 
-	case TRACEFS_COMPARE_GR:
+	case TRACEFS_COMPARE_GT:
 		op = ">";
 		if (is_string)
 			goto inval;
