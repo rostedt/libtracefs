@@ -57,12 +57,18 @@ int table_start(struct sqlhist_bison *sb);
 
 void *add_field(struct sqlhist_bison *sb, const char *field, const char *label);
 
+void *add_filter(struct sqlhist_bison *sb, void *A, void *B, enum filter_type op);
+
 int add_match(struct sqlhist_bison *sb, void *A, void *B);
 void *add_compare(struct sqlhist_bison *sb, void *A, void *B, enum compare_type type);
+int add_where(struct sqlhist_bison *sb, void *expr);
 
 int add_selection(struct sqlhist_bison *sb, void *item, const char *label);
 int add_from(struct sqlhist_bison *sb, void *item);
 int add_to(struct sqlhist_bison *sb, void *item);
+
+void *add_string(struct sqlhist_bison *sb, const char *str);
+void *add_number(struct sqlhist_bison *sb, long val);
 
 extern void sql_parse_error(struct sqlhist_bison *sb, const char *text,
 			    const char *fmt, va_list ap);

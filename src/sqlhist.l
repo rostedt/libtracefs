@@ -32,6 +32,7 @@ as { HANDLE_COLUMN; return AS; }
 from { HANDLE_COLUMN; return FROM; }
 join { HANDLE_COLUMN; return JOIN; }
 on { HANDLE_COLUMN; return ON; }
+where { HANDLE_COLUMN; return WHERE; }
 
 {qstring} {
 	HANDLE_COLUMN;
