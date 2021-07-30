@@ -10,6 +10,7 @@ struct str_hash;
 struct sql_table;
 
 struct sqlhist_bison {
+	void			*scanner;
 	const char		*buffer;
 	size_t			buffer_size;
 	size_t			buffer_idx;
@@ -19,8 +20,6 @@ struct sqlhist_bison {
 	char			*parse_error_str;
 	struct str_hash         *str_hash[1 << HASH_BITS];
 };
-
-extern struct sqlhist_bison *sb;
 
 #include "sqlhist.tab.h"
 

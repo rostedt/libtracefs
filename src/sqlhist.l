@@ -4,21 +4,26 @@
 #include <stdarg.h>
 #include "sqlhist-parse.h"
 
-extern int my_yyinput(char *buf, int max);
+extern int my_yyinput(void *extra, char *buf, int max);
 
 #undef YY_INPUT
-#define YY_INPUT(b, r, m) ({r = my_yyinput(b, m);})
+#define YY_INPUT(b, r, m) ({r = my_yyinput(yyextra, b, m);})
 
 #define YY_NO_INPUT
 #define YY_NO_UNPUT
 
 #define YY_EXTRA_TYPE struct sqlhist_bison *
 
-#define HANDLE_COLUMN do { sb->line_idx += strlen(yytext); } while (0)
+#define yytext yyg->yytext_r
+
+#define TRACE_SB	((struct sqlhist_bison *)yyextra)
+#define HANDLE_COLUMN do { TRACE_SB->line_idx += strlen(yytext); } while (0)
 
 %}
 
 %option caseless
+%option reentrant
+%option bison-bridge
 
 field		[a-z_][a-z0-9_\.]*
 qstring		\"[^\"]*\"
@@ -36,25 +41,25 @@ where { HANDLE_COLUMN; return WHERE; }
 
 {qstring} {
 	HANDLE_COLUMN;
-	yylval.string = store_str(sb, yytext);
+	yylval->string = store_str(TRACE_SB, yyg->yytext_r);
 	return STRING;
 }
 
 {field} {
 	HANDLE_COLUMN;
-	yylval.string = store_str(sb, yytext);
+	yylval->string = store_str(TRACE_SB, yyg->yytext_r);
 	return FIELD;
 }
 
 {hexnum} {
 	HANDLE_COLUMN;
-	yylval.number = strtol(yytext, NULL, 0);
+	yylval->number = strtol(yyg->yytext_r, NULL, 0);
 	return NUMBER;
 }
 
 {number} {
 	HANDLE_COLUMN;
-	yylval.number = strtol(yytext, NULL, 0);
+	yylval->number = strtol(yyg->yytext_r, NULL, 0);
 	return NUMBER;
 }
 
@@ -69,18 +74,19 @@ where { HANDLE_COLUMN; return WHERE; }
 [\!()\-\+\*/,=] { HANDLE_COLUMN; return yytext[0]; }
 
 [ \t] { HANDLE_COLUMN; }
-\n { sb->line_idx = 0; sb->line_no++; }
+\n { TRACE_SB->line_idx = 0; TRACE_SB->line_no++; }
 
 . { HANDLE_COLUMN; return PARSE_ERROR; }
 %%
 
-int yywrap(void)
+int yywrap(void *data)
 {
 	return 1;
 }
 
-void yyerror(const char *fmt, ...)
+void yyerror(struct sqlhist_bison *sb, char *fmt, ...)
 {
+	struct yyguts_t * yyg = (struct yyguts_t*)sb->scanner;
 	va_list ap;
 
 	va_start(ap, fmt);

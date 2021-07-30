@@ -14,8 +14,6 @@
 #include "tracefs-local.h"
 #include "sqlhist-parse.h"
 
-struct sqlhist_bison *sb;
-
 extern int yylex_init(void* ptr_yy_globals);
 extern int yylex_init_extra(struct sqlhist_bison *sb, void* ptr_yy_globals);
 extern int yylex_destroy (void * yyscanner );
@@ -99,8 +97,10 @@ struct sql_table {
 	struct expr		**next_selection;
 };
 
-__hidden int my_yyinput(char *buf, int max)
+__hidden int my_yyinput(void *extra, char *buf, int max)
 {
+	struct sqlhist_bison *sb = extra;
+
 	if (!sb || !sb->buffer)
 		return -1;
 
@@ -285,7 +285,8 @@ static struct expr *find_field(struct sqlhist_bison *sb,
 	return NULL;
 }
 
-static void *create_expr(enum expr_type type, struct expr **expr_p)
+static void *create_expr(struct sqlhist_bison *sb,
+			 enum expr_type type, struct expr **expr_p)
 {
 	struct expr *expr;
 
@@ -314,7 +315,7 @@ static void *create_expr(enum expr_type type, struct expr **expr_p)
 
 #define __create_expr(var, type, ENUM, expr)			\
 	do {							\
-		var = (type *)create_expr(EXPR_##ENUM, expr);	\
+		var = (type *)create_expr(sb, EXPR_##ENUM, expr);	\
 	} while(0)
 
 #define create_field(var, expr)				\
@@ -1064,8 +1065,8 @@ static void free_sb(struct sqlhist_bison *sb)
 struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 				  const char *sql_buffer, char **err)
 {
-	struct sqlhist_bison local_sb;
 	struct tracefs_synth *synth = NULL;
+	struct sqlhist_bison sb;
 	int ret;
 
 	if (!tep || !sql_buffer) {
@@ -1073,27 +1074,33 @@ struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 		return NULL;
 	}
 
-	memset(&local_sb, 0, sizeof(local_sb));
+	memset(&sb, 0, sizeof(sb));
 
-	local_sb.buffer = sql_buffer;
-	local_sb.buffer_size = strlen(sql_buffer);
-	local_sb.buffer_idx = 0;
+	sb.buffer = sql_buffer;
+	sb.buffer_size = strlen(sql_buffer);
+	sb.buffer_idx = 0;
 
-	sb = &local_sb;
-	ret = yyparse();
+	ret = yylex_init_extra(&sb, &sb.scanner);
+	if (ret < 0) {
+		yylex_destroy(sb.scanner);
+		return NULL;
+	}
+
+	ret = yyparse(&sb);
+	yylex_destroy(sb.scanner);
 
 	if (ret)
 		goto free;
 
-	synth = build_synth(tep, name, sb->table);
+	synth = build_synth(tep, name, sb.table);
 
  free:
 	if (!synth) {
-		if (sb->parse_error_str && err) {
-			*err = sb->parse_error_str;
-			sb->parse_error_str = NULL;
+		if (sb.parse_error_str && err) {
+			*err = sb.parse_error_str;
+			sb.parse_error_str = NULL;
 		}
 	}
-	free_sb(sb);
+	free_sb(&sb);
 	return synth;
 }
