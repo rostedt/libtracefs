@@ -12,6 +12,11 @@ OBJS += tracefs-kprobes.o
 OBJS += tracefs-hist.o
 OBJS += tracefs-filter.o
 
+# Order matters for the the three below
+OBJS += sqlhist-lex.o
+OBJS += sqlhist.tab.o
+OBJS += tracefs-sqlhist.o
+
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
 
@@ -31,6 +36,14 @@ $(LIBTRACEFS_SHARED_SO): $(LIBTRACEFS_SHARED_VERSION)
 	@ln -sf $(<F) $@
 
 libtracefs.so: $(LIBTRACEFS_SHARED_SO)
+
+# bison will create both sqlhist.tab.c and sqlhist.tab.h
+sqlhist.tab.h:
+sqlhist.tab.c: sqlhist.y sqlhist.tab.h
+	bison --debug -v --report-file=bison.report -d -o $@ $<
+
+sqlhist-lex.c: sqlhist.l sqlhist.tab.c
+	flex -o $@ $<
 
 $(bdir)/%.o: %.c
 	$(Q)$(call do_fpic_compile)
