@@ -43,10 +43,23 @@ struct field {
 	const char		*field;
 };
 
+struct filter {
+	enum filter_type	type;
+	struct expr		*lval;
+	struct expr		*rval;
+};
+
 struct match {
 	struct match		*next;
 	struct expr		*lval;
 	struct expr		*rval;
+};
+
+struct compare {
+	enum compare_type	type;
+	struct expr		*lval;
+	struct expr		*rval;
+	const char		*name;
 };
 
 enum expr_type
@@ -54,6 +67,8 @@ enum expr_type
 	EXPR_NUMBER,
 	EXPR_STRING,
 	EXPR_FIELD,
+	EXPR_FILTER,
+	EXPR_COMPARE,
 };
 
 struct expr {
@@ -62,6 +77,8 @@ struct expr {
 	enum expr_type		type;
 	union {
 		struct field	field;
+		struct filter	filter;
+		struct compare	compare;
 		const char	*string;
 		long		number;
 	};
@@ -210,8 +227,14 @@ __hidden int add_selection(struct sqlhist_bison *sb, void *select,
 	switch (expr->type) {
 	case EXPR_FIELD:
 		break;
+	case EXPR_COMPARE:
+		if (!name)
+			return -1;
+		expr->compare.name = name;
+		break;
 	case EXPR_NUMBER:
 	case EXPR_STRING:
+	case EXPR_FILTER:
 	default:
 		return -1;
 	}
@@ -278,8 +301,10 @@ static void *create_expr(enum expr_type type, struct expr **expr_p)
 
 	switch (type) {
 	case EXPR_FIELD:	return &expr->field;
+	case EXPR_COMPARE:	return &expr->compare;
 	case EXPR_NUMBER:	return &expr->number;
 	case EXPR_STRING:	return &expr->string;
+	case EXPR_FILTER:	return &expr->filter;
 	}
 
 	return NULL;
@@ -292,6 +317,9 @@ static void *create_expr(enum expr_type type, struct expr **expr_p)
 
 #define create_field(var, expr)				\
 	__create_expr(var, struct field, FIELD, expr)
+
+#define create_compare(var, expr)				\
+	__create_expr(var, struct compare, COMPARE, expr)
 
 __hidden void *add_field(struct sqlhist_bison *sb,
 			 const char *field_name, const char *label)
@@ -331,6 +359,21 @@ __hidden int add_match(struct sqlhist_bison *sb, void *A, void *B)
 	table->next_match = &match->next;
 
 	return 0;
+}
+__hidden void *add_compare(struct sqlhist_bison *sb,
+			   void *A, void *B, enum compare_type type)
+{
+	struct compare *compare;
+	struct expr *expr;
+
+	create_compare(compare, &expr);
+
+	compare = &expr->compare;
+	compare->lval = A;
+	compare->rval = B;
+	compare->type = type;
+
+	return expr;
 }
 
 __hidden int add_from(struct sqlhist_bison *sb, void *item)
@@ -587,6 +630,39 @@ static void assign_match(const char *system, const char *event,
 	}
 }
 
+static int build_compare(struct tracefs_synth *synth,
+			 const char *system, const char *event,
+			 struct compare *compare)
+{
+	const char *start_field;
+	const char *end_field;
+	struct field *lval, *rval;
+	enum tracefs_synth_calc calc;
+	int ret;
+
+	lval = &compare->lval->field;
+	rval = &compare->rval->field;
+
+	if (lval->system == system &&
+	    lval->event_name == event) {
+		start_field = lval->field;
+		end_field = rval->field;
+		calc = TRACEFS_SYNTH_DELTA_START;
+	} else {
+		start_field = rval->field;
+		end_field = lval->field;
+		calc = TRACEFS_SYNTH_DELTA_END;
+	}
+
+	if (compare->type == COMPARE_ADD)
+		calc = TRACEFS_SYNTH_ADD;
+
+	ret = tracefs_synth_add_compare_field(synth, start_field,
+					      end_field, calc,
+					      compare->name);
+	return ret;
+}
+
 static struct tracefs_synth *build_synth(struct tep_handle *tep,
 					 const char *name,
 					 struct sql_table *table)
@@ -667,7 +743,14 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 				goto free;
 			continue;
 		}
-		goto free;
+
+		if (expr->type != EXPR_COMPARE)
+			goto free;
+
+		ret = build_compare(synth, start_system, end_system,
+				    &expr->compare);
+		if (ret < 0)
+			goto free;
 	}
 
 	return synth;
