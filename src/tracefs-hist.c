@@ -50,6 +50,79 @@ static void add_list(struct trace_seq *seq, const char *start,
 	}
 }
 
+static void add_hist_commands(struct trace_seq *seq, struct tracefs_hist *hist,
+			     enum tracefs_hist_command command)
+{
+	if (command == TRACEFS_HIST_CMD_DESTROY)
+		trace_seq_putc(seq, '!');
+
+	add_list(seq, "hist:keys=", hist->keys);
+
+	if (hist->values)
+		add_list(seq, ":vals=", hist->values);
+
+	if (hist->sort)
+		add_list(seq, ":sort=", hist->sort);
+
+	if (hist->size)
+		trace_seq_printf(seq, ":size=%d", hist->size);
+
+	switch(command) {
+	case TRACEFS_HIST_CMD_START: break;
+	case TRACEFS_HIST_CMD_PAUSE: trace_seq_puts(seq, ":pause"); break;
+	case TRACEFS_HIST_CMD_CONT: trace_seq_puts(seq, ":cont"); break;
+	case TRACEFS_HIST_CMD_CLEAR: trace_seq_puts(seq, ":clear"); break;
+	default: break;
+	}
+
+	if (hist->name)
+		trace_seq_printf(seq, ":name=%s", hist->name);
+
+	if (hist->filter)
+		trace_seq_printf(seq, " if %s", hist->filter);
+
+}
+
+/*
+ * trace_hist_show - show how to start the histogram
+ * @seq: A trace_seq to store the commands to create
+ * @hist: The histogram to write into the trigger file
+ * @command: If not zero, can pause, continue or clear the histogram
+ *
+ * This shows the commands to create the histogram for an event
+ * with the given fields.
+ *
+ * Returns 0 on succes -1 on error.
+ */
+int
+tracefs_hist_show(struct trace_seq *seq, struct tracefs_instance *instance,
+		  struct tracefs_hist *hist,
+		  enum tracefs_hist_command command)
+{
+	const char *system = hist->system;
+	const char *event = hist->event_name;
+	char *path;
+
+	if (!hist->keys) {
+		errno = -EINVAL;
+		return -1;
+	}
+
+	path = tracefs_event_get_file(instance, system, event, "trigger");
+	if (!path)
+		return -1;
+
+	trace_seq_puts(seq, "echo '");
+
+	add_hist_commands(seq, hist, command);
+
+	trace_seq_printf(seq, "' > %s\n", path);
+
+	tracefs_put_tracing_file(path);
+
+	return 0;
+}
+
 /*
  * tracefs_hist_command - Create, start, pause, destroy a histogram for an event
  * @instance: The instance the histogram will be in (NULL for toplevel)
@@ -78,34 +151,9 @@ int tracefs_hist_command(struct tracefs_instance *instance,
 
 	trace_seq_init(&seq);
 
-	if (command == TRACEFS_HIST_CMD_DESTROY)
-		trace_seq_putc(&seq, '!');
+	add_hist_commands(&seq, hist, command);
 
-	add_list(&seq, "hist:keys=", hist->keys);
-
-	if (hist->values)
-		add_list(&seq, ":vals=", hist->values);
-
-	if (hist->sort)
-		add_list(&seq, ":sort=", hist->sort);
-
-	if (hist->size)
-		trace_seq_printf(&seq, ":size=%d", hist->size);
-
-	switch(command) {
-	case TRACEFS_HIST_CMD_START: break;
-	case TRACEFS_HIST_CMD_PAUSE: trace_seq_puts(&seq, ":pause"); break;
-	case TRACEFS_HIST_CMD_CONT: trace_seq_puts(&seq, ":cont"); break;
-	case TRACEFS_HIST_CMD_CLEAR: trace_seq_puts(&seq, ":clear"); break;
-	default: break;
-	}
-
-	if (hist->name)
-		trace_seq_printf(&seq, ":name=%s", hist->name);
-
-	if (hist->filter)
-		trace_seq_printf(&seq, " if %s\n", hist->filter);
-
+	trace_seq_putc(&seq, '\n');
 	trace_seq_terminate(&seq);
 
 	ret = -1;
