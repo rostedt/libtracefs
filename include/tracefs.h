@@ -279,6 +279,14 @@ enum tracefs_hist_sort_direction {
 
 struct tracefs_hist;
 
+enum tracefs_hist_command {
+	TRACEFS_HIST_CMD_START = 0,
+	TRACEFS_HIST_CMD_PAUSE,
+	TRACEFS_HIST_CMD_CONT,
+	TRACEFS_HIST_CMD_CLEAR,
+	TRACEFS_HIST_CMD_DESTROY,
+};
+
 void tracefs_hist_free
 (struct tracefs_hist *hist);
 struct tracefs_hist *
@@ -294,11 +302,86 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
 				    const char *sort_key,
 				    enum tracefs_hist_sort_direction dir);
 int tracefs_hist_add_name(struct tracefs_hist *hist, const char *name);
-int tracefs_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist);
-int tracefs_hist_pause(struct tracefs_instance *instance,struct tracefs_hist *hist);
-int tracefs_hist_continue(struct tracefs_instance *instance,struct tracefs_hist *hist);
-int tracefs_hist_reset(struct tracefs_instance *instance,struct tracefs_hist *hist);
-int tracefs_hist_destroy(struct tracefs_instance *instance,struct tracefs_hist *hist);
+int tracefs_hist_command(struct tracefs_instance *instance,
+			 struct tracefs_hist *hist, enum tracefs_hist_command cmd);
+
+/**
+ * tracefs_hist_start - enable a histogram
+ * @instance: The instance the histogram will be in (NULL for toplevel)
+ * @hist: The histogram to start
+ *
+ * Starts executing a histogram.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+static inline int tracefs_hist_start(struct tracefs_instance *instance,
+				     struct tracefs_hist *hist)
+{
+	return tracefs_hist_command(instance, hist, 0);
+}
+
+/**
+ * tracefs_hist_pause - pause a histogram
+ * @instance: The instance the histogram is in (NULL for toplevel)
+ * @hist: The histogram to pause
+ *
+ * Pause a histogram.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+static inline int tracefs_hist_pause(struct tracefs_instance *instance,
+				     struct tracefs_hist *hist)
+{
+	return tracefs_hist_command(instance, hist, TRACEFS_HIST_CMD_PAUSE);
+}
+
+/**
+ * tracefs_hist_continue - continue a paused histogram
+ * @instance: The instance the histogram is in (NULL for toplevel)
+ * @hist: The histogram to continue
+ *
+ * Continue a histogram.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+static inline int tracefs_hist_continue(struct tracefs_instance *instance,
+					struct tracefs_hist *hist)
+{
+	return tracefs_hist_command(instance, hist, TRACEFS_HIST_CMD_CONT);
+}
+
+/**
+ * tracefs_hist_reset - clear a histogram
+ * @instance: The instance the histogram is in (NULL for toplevel)
+ * @hist: The histogram to reset
+ *
+ * Resets a histogram.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+static inline int tracefs_hist_reset(struct tracefs_instance *instance,
+				     struct tracefs_hist *hist)
+{
+	return tracefs_hist_command(instance, hist, TRACEFS_HIST_CMD_CLEAR);
+}
+
+/**
+ * tracefs_hist_destroy - deletes a histogram (needs to be enabled again)
+ * @instance: The instance the histogram is in (NULL for toplevel)
+ * @hist: The histogram to delete
+ *
+ * Deletes (removes) a running histogram. This is different than
+ * clear, as clear only clears the data but the histogram still exists.
+ * This deletes the histogram and should be called before
+ * tracefs_hist_free() to clean up properly.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+static inline int tracefs_hist_destroy(struct tracefs_instance *instance,
+				       struct tracefs_hist *hist)
+{
+	return tracefs_hist_command(instance, hist, TRACEFS_HIST_CMD_DESTROY);
+}
 
 struct tracefs_synth;
 

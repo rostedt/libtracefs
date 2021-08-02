@@ -35,14 +35,6 @@ struct tracefs_hist {
 	int			size;
 };
 
-enum tracefs_hist_command {
-	HIST_CMD_NONE = 0,
-	HIST_CMD_PAUSE,
-	HIST_CMD_CONT,
-	HIST_CMD_CLEAR,
-	HIST_CMD_DESTROY,
-};
-
 static void add_list(struct trace_seq *seq, const char *start,
 		     char **list)
 {
@@ -57,17 +49,18 @@ static void add_list(struct trace_seq *seq, const char *start,
 }
 
 /*
- * trace_hist_start - Create and start a histogram for an event
+ * tracefs_hist_command - Create, start, pause, destroy a histogram for an event
+ * @instance: The instance the histogram will be in (NULL for toplevel)
  * @hist: The histogram to write into the trigger file
- * @command: If not zero, can pause, continue or clear the histogram
+ * @command: Command to perform on a histogram.
  *
- * This creates a histogram for an event with the given fields.
+ * Creates, pause, continue, clears, or destroys a histogram.
  *
  * Returns 0 on succes -1 on error.
  */
-static int
-trace_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist,
-		 enum tracefs_hist_command command)
+int tracefs_hist_command(struct tracefs_instance *instance,
+			 struct tracefs_hist *hist,
+			 enum tracefs_hist_command command)
 {
 	const char *system = hist->system;
 	const char *event = hist->event_name;
@@ -83,7 +76,7 @@ trace_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist,
 
 	trace_seq_init(&seq);
 
-	if (command == HIST_CMD_DESTROY)
+	if (command == TRACEFS_HIST_CMD_DESTROY)
 		trace_seq_putc(&seq, '!');
 
 	add_list(&seq, "hist:keys=", hist->keys);
@@ -98,10 +91,10 @@ trace_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist,
 		trace_seq_printf(&seq, ":size=%d", hist->size);
 
 	switch(command) {
-	case HIST_CMD_NONE: break;
-	case HIST_CMD_PAUSE: trace_seq_puts(&seq, ":pause"); break;
-	case HIST_CMD_CONT: trace_seq_puts(&seq, ":cont"); break;
-	case HIST_CMD_CLEAR: trace_seq_puts(&seq, ":clear"); break;
+	case TRACEFS_HIST_CMD_START: break;
+	case TRACEFS_HIST_CMD_PAUSE: trace_seq_puts(&seq, ":pause"); break;
+	case TRACEFS_HIST_CMD_CONT: trace_seq_puts(&seq, ":cont"); break;
+	case TRACEFS_HIST_CMD_CLEAR: trace_seq_puts(&seq, ":clear"); break;
 	default: break;
 	}
 
@@ -299,79 +292,6 @@ int tracefs_hist_add_name(struct tracefs_hist *hist, const char *name)
 	hist->name = strdup(name);
 
 	return hist->name ? 0 : -1;
-}
-
-/**
- * tracefs_hist_start - enable a histogram
- * @instance: The instance the histogram will be in (NULL for toplevel)
- * @hist: The histogram to start
- *
- * Starts executing a histogram.
- *
- * Returns 0 on success, -1 on error.
- */
-int tracefs_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist)
-{
-	return trace_hist_start(instance, hist, 0);
-}
-
-/**
- * tracefs_hist_pause - pause a histogram
- * @instance: The instance the histogram is in (NULL for toplevel)
- * @hist: The histogram to pause
- *
- * Pause a histogram.
- *
- * Returns 0 on success, -1 on error.
- */
-int tracefs_hist_pause(struct tracefs_instance *instance, struct tracefs_hist *hist)
-{
-	return trace_hist_start(instance, hist, HIST_CMD_PAUSE);
-}
-
-/**
- * tracefs_hist_continue - continue a paused histogram
- * @instance: The instance the histogram is in (NULL for toplevel)
- * @hist: The histogram to continue
- *
- * Continue a histogram.
- *
- * Returns 0 on success, -1 on error.
- */
-int tracefs_hist_continue(struct tracefs_instance *instance, struct tracefs_hist *hist)
-{
-	return trace_hist_start(instance, hist, HIST_CMD_CONT);
-}
-
-/**
- * tracefs_hist_reset - clear a histogram
- * @instance: The instance the histogram is in (NULL for toplevel)
- * @hist: The histogram to reset
- *
- * Resets a histogram.
- *
- * Returns 0 on success, -1 on error.
- */
-int tracefs_hist_reset(struct tracefs_instance *instance, struct tracefs_hist *hist)
-{
-	return trace_hist_start(instance, hist, HIST_CMD_CLEAR);
-}
-
-/**
- * tracefs_hist_destroy - deletes a histogram (needs to be enabled again)
- * @instance: The instance the histogram is in (NULL for toplevel)
- * @hist: The histogram to delete
- *
- * Deletes (removes) a running histogram. This is different than
- * clear, as clear only clears the data but the histogram still exists.
- * This deletes the histogram and should be called before
- * tracefs_hist_free() to clean up properly.
- *
- * Returns 0 on success, -1 on error.
- */
-int tracefs_hist_destroy(struct tracefs_instance *instance, struct tracefs_hist *hist)
-{
-	return trace_hist_start(instance, hist, HIST_CMD_DESTROY);
 }
 
 static char **

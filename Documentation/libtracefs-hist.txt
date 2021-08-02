@@ -25,6 +25,9 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
 				    const char pass:[*]sort_key,
 				    enum tracefs_hist_sort_direction dir);
 int tracefs_hist_add_name(struct tracefs_hist pass:[*]hist, const char pass:[*]name);
+int tracefs_hist_command(struct tracefs_instance pass:[*]instance,
+			 struct tracefs_hist pass:[*]hist,
+			 enum tracefs_hist_command command);
 int tracefs_hist_start(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
 int tracefs_hist_destory(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
 --
@@ -80,6 +83,23 @@ named and if the name matches between more than one event, and they have
 compatible keys, the multiple histograms with the same name will be merged
 into a single histogram (shown by either event's hist file). The _hist_
 is the histogram to name, and the _name_ is the name to give it.
+
+*tracefs_hist_command*() is called to process a command on the histogram
+_hist_ for its event in the given _instance_, or NULL for the top level.
+The _cmd_ can be one of:
+
+*TRACEFS_HIST_CMD_START* or zero to start execution of the histogram.
+
+*TRACEFS_HIST_CMD_PAUSE* to pause the given histogram.
+
+*TRACEFS_HIST_CMD_CONT* to continue a paused histogram.
+
+*TRACEFS_HIST_CMD_CLEAR* to reset the values of a histogram.
+
+*TRACEFS_HIST_CMD_DESTROY* to destroy the histogram (undo a START).
+
+The below functions are wrappers to tracefs_hist_command() to make the
+calling conventions a bit easier to understand what is happening.
 
 *tracefs_hist_start* is called to actually start the histogram _hist_.
 The _instance_ is the instance to start the histogram in, NULL if it
