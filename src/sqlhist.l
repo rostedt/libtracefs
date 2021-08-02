@@ -25,7 +25,7 @@ extern int my_yyinput(void *extra, char *buf, int max);
 %option reentrant
 %option bison-bridge
 
-field		[a-z_][a-z0-9_\.]*
+field		\\?[a-z_][a-z0-9_\.]*
 qstring		\"[^\"]*\"
 hexnum		0x[0-9a-f]+
 number		[0-9a-f]+
@@ -46,8 +46,10 @@ where { HANDLE_COLUMN; return WHERE; }
 }
 
 {field} {
+	const char *str = yyg->yytext_r;
 	HANDLE_COLUMN;
-	yylval->string = store_str(TRACE_SB, yyg->yytext_r);
+	if (str[0] == '\\') { str++; };
+	yylval->string = store_str(TRACE_SB, str);
 	return FIELD;
 }
 
