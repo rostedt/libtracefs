@@ -1355,6 +1355,19 @@ static int verify_state(struct tracefs_synth *synth)
 }
 
 /**
+ * tracefs_synth_complete - tell if the tracefs_synth is complete or not
+ * @synth: The synthetic event to get the start hist from.
+ *
+ * Retruns true if the synthetic event @synth has both a start and
+ * end event (ie. a synthetic event, or just a histogram), and
+ * false otherwise.
+ */
+bool tracefs_synth_complete(struct tracefs_synth *synth)
+{
+	return synth && synth->start_event && synth->end_event;
+}
+
+/**
  * tracefs_synth_get_start_hist - Return the histogram of the start event
  * @synth: The synthetic event to get the start hist from.
  *
