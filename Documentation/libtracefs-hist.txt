@@ -25,6 +25,11 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
 				    const char pass:[*]sort_key,
 				    enum tracefs_hist_sort_direction dir);
 int tracefs_hist_add_name(struct tracefs_hist pass:[*]hist, const char pass:[*]name);
+int tracefs_hist_append_filter(struct tracefs_hist pass:[*]hist,
+			       enum tracefs_filter type,
+			       const char pass:[*]field,
+			       enum tracefs_compare compare,
+			       const char pass:[*]val);
 int tracefs_hist_command(struct tracefs_instance pass:[*]instance,
 			 struct tracefs_hist pass:[*]hist,
 			 enum tracefs_hist_command command);
@@ -83,6 +88,38 @@ named and if the name matches between more than one event, and they have
 compatible keys, the multiple histograms with the same name will be merged
 into a single histogram (shown by either event's hist file). The _hist_
 is the histogram to name, and the _name_ is the name to give it.
+
+*tracefs_hist_append_filter*() creates a filter or appends to it for the
+histogram  event. Depending on _type_, it will build a string of tokens for
+parenthesis or logic statemens, or it may add a comparison of _field_
+to _val_ based on _compare_.
+
+If _type_ is:
+*TRACEFS_FILTER_COMPARE*     -  See below
+*TRACEFS_FILTER_AND*         -  Append "&&" to the filter
+*TRACEFS_FILTER_OR*          -  Append "||" to the filter
+*TRACEFS_FILTER_NOT*         -  Append "!" to the filter
+*TRACEFS_FILTER_OPEN_PAREN*  -  Append "(" to the filter
+*TRACEFS_FILTER_CLOSE_PAREN* -  Append ")" to the filter
+
+_field_, _compare_, and _val_ are ignored unless _type_ is equal to
+*TRACEFS_FILTER_COMPARE*, then _compare will be used for the following:
+
+*TRACEFS_COMPARE_EQ* - _field_ == _val_
+
+*TRACEFS_COMPARE_NE* - _field_ != _val_
+
+*TRACEFS_COMPARE_GT* - _field_ > _val_
+
+*TRACEFS_COMPARE_GE* - _field_ >= _val_
+
+*TRACEFS_COMPARE_LT* - _field_ < _val_
+
+*TRACEFS_COMPARE_LE* - _field_ <pass:[=] _val_
+
+*TRACEFS_COMPARE_RE* - _field_ ~ "_val_" : where _field_ is a string.
+
+*TRACEFS_COMPARE_AND* - _field_ & _val_ : where _field_ is a flags field.
 
 *tracefs_hist_command*() is called to process a command on the histogram
 _hist_ for its event in the given _instance_, or NULL for the top level.
