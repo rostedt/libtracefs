@@ -23,9 +23,10 @@
 #define DESCENDING ".descending"
 
 struct tracefs_hist {
-	struct tracefs_instance *instance;
+	struct tep_handle	*tep;
+	struct tep_event	*event;
 	char			*system;
-	char			*event;
+	char			*event_name;
 	char			*name;
 	char			**keys;
 	char			**values;
@@ -65,14 +66,16 @@ static void add_list(struct trace_seq *seq, const char *start,
  * Returns 0 on succes -1 on error.
  */
 static int
-trace_hist_start(struct tracefs_hist *hist,
+trace_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist,
 		 enum tracefs_hist_command command)
 {
-	struct tracefs_instance *instance = hist->instance;
 	const char *system = hist->system;
-	const char *event = hist->event;
+	const char *event = hist->event_name;
 	struct trace_seq seq;
 	int ret;
+
+	if (!tracefs_event_file_exists(instance, system, event, HIST_FILE))
+		return -1;
 
 	errno = -EINVAL;
 	if (!hist->keys)
@@ -129,9 +132,9 @@ void tracefs_hist_free(struct tracefs_hist *hist)
 	if (!hist)
 		return;
 
-	trace_put_instance(hist->instance);
+	tep_unref(hist->tep);
 	free(hist->system);
-	free(hist->event);
+	free(hist->event_name);
 	free(hist->name);
 	free(hist->filter);
 	tracefs_list_free(hist->keys);
@@ -142,9 +145,9 @@ void tracefs_hist_free(struct tracefs_hist *hist)
 
 /**
  * tracefs_hist_alloc - Initialize a histogram
- * @instance: The instance the histogram will be in (NULL for toplevel)
+ * @tep: The tep handle that has the @system and @event.
  * @system: The system the histogram event is in.
- * @event: The event that the histogram will be attached to.
+ * @event_name: The name of the event that the histogram will be attached to.
  * @key: The primary key the histogram will use
  * @type: The format type of the key.
  *
@@ -157,33 +160,31 @@ void tracefs_hist_free(struct tracefs_hist *hist)
  * NULL on failure.
  */
 struct tracefs_hist *
-tracefs_hist_alloc(struct tracefs_instance * instance,
-			const char *system, const char *event,
+tracefs_hist_alloc(struct tep_handle *tep,
+			const char *system, const char *event_name,
 			const char *key, enum tracefs_hist_key_type type)
 {
+	struct tep_event *event;
 	struct tracefs_hist *hist;
 	int ret;
 
-	if (!system || !event || !key)
+	if (!system || !event_name || !key)
 		return NULL;
 
-	if (!tracefs_event_file_exists(instance, system, event, HIST_FILE))
+	event = tep_find_event_by_name(tep, system, event_name);
+	if (!event)
 		return NULL;
 
 	hist = calloc(1, sizeof(*hist));
 	if (!hist)
 		return NULL;
 
-	ret = trace_get_instance(instance);
-	if (ret < 0) {
-		free(hist);
-		return NULL;
-	}
+	tep_ref(tep);
+	hist->tep = tep;
 
-	hist->instance = instance;
-
+	hist->event = event;
 	hist->system = strdup(system);
-	hist->event = strdup(event);
+	hist->event_name = strdup(event_name);
 
 	ret = tracefs_hist_add_key(hist, key, type);
 
@@ -302,58 +303,63 @@ int tracefs_hist_add_name(struct tracefs_hist *hist, const char *name)
 
 /**
  * tracefs_hist_start - enable a histogram
+ * @instance: The instance the histogram will be in (NULL for toplevel)
  * @hist: The histogram to start
  *
  * Starts executing a histogram.
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_start(struct tracefs_hist *hist)
+int tracefs_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist)
 {
-	return trace_hist_start(hist, 0);
+	return trace_hist_start(instance, hist, 0);
 }
 
 /**
  * tracefs_hist_pause - pause a histogram
+ * @instance: The instance the histogram is in (NULL for toplevel)
  * @hist: The histogram to pause
  *
  * Pause a histogram.
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_pause(struct tracefs_hist *hist)
+int tracefs_hist_pause(struct tracefs_instance *instance, struct tracefs_hist *hist)
 {
-	return trace_hist_start(hist, HIST_CMD_PAUSE);
+	return trace_hist_start(instance, hist, HIST_CMD_PAUSE);
 }
 
 /**
  * tracefs_hist_continue - continue a paused histogram
+ * @instance: The instance the histogram is in (NULL for toplevel)
  * @hist: The histogram to continue
  *
  * Continue a histogram.
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_continue(struct tracefs_hist *hist)
+int tracefs_hist_continue(struct tracefs_instance *instance, struct tracefs_hist *hist)
 {
-	return trace_hist_start(hist, HIST_CMD_CONT);
+	return trace_hist_start(instance, hist, HIST_CMD_CONT);
 }
 
 /**
  * tracefs_hist_reset - clear a histogram
+ * @instance: The instance the histogram is in (NULL for toplevel)
  * @hist: The histogram to reset
  *
  * Resets a histogram.
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_reset(struct tracefs_hist *hist)
+int tracefs_hist_reset(struct tracefs_instance *instance, struct tracefs_hist *hist)
 {
-	return trace_hist_start(hist, HIST_CMD_CLEAR);
+	return trace_hist_start(instance, hist, HIST_CMD_CLEAR);
 }
 
 /**
  * tracefs_hist_destroy - deletes a histogram (needs to be enabled again)
+ * @instance: The instance the histogram is in (NULL for toplevel)
  * @hist: The histogram to delete
  *
  * Deletes (removes) a running histogram. This is different than
@@ -363,9 +369,9 @@ int tracefs_hist_reset(struct tracefs_hist *hist)
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_destroy(struct tracefs_hist *hist)
+int tracefs_hist_destroy(struct tracefs_instance *instance, struct tracefs_hist *hist)
 {
-	return trace_hist_start(hist, HIST_CMD_DESTROY);
+	return trace_hist_start(instance, hist, HIST_CMD_DESTROY);
 }
 
 static char **

@@ -12,7 +12,7 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_instance pass:[*] instance,
+struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_tep pass:[*] tep,
 			const char pass:[*]system, const char pass:[*]event,
 			const char pass:[*]key, enum tracefs_hist_key_type type);
 void tracefs_hist_free(struct tracefs_hist pass:[*]hist);
@@ -25,8 +25,8 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
 				    const char pass:[*]sort_key,
 				    enum tracefs_hist_sort_direction dir);
 int tracefs_hist_add_name(struct tracefs_hist pass:[*]hist, const char pass:[*]name);
-int tracefs_hist_start(struct tracefs_hist pass:[*]hist);
-int tracefs_hist_destory(struct tracefs_hist pass:[*]hist);
+int tracefs_hist_start(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+int tracefs_hist_destory(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
 --
 
 DESCRIPTION
@@ -38,10 +38,11 @@ See https://www.kernel.org/doc/html/latest/trace/histogram.html for more informa
 
 *tracefs_hist_alloc*() allocates a "struct tracefs_hist" descriptor and returns
 the address of it. This descriptor must be freed by *tracefs_hist_free*().
-The _instance_ is the instance that contains the event that the histogram will be
-attached to. The _system_ is the system or group of the event. The _event_ is the event
-to attach the histogram to. The _key_ is a field of the event that will be used as
-the key of the histogram. The _type_ is the type of the _key_. See KEY TYPES below.
+The _tep_ is a trace event handle (see *tracefs_local_events*(3)), that holds the
+_system_ and _event_ that the histogram will be attached to. The _system_ is the
+system or group of the event. The _event_ is the event to attach the histogram to.
+The _key_ is a field of the event that will be used as the key of the histogram.
+The _type_ is the type of the _key_. See KEY TYPES below.
 
 *tracefs_hist_free*() frees the _tracefs_hist_ descriptor. Note, it does not stop
 or disable the running histogram if it was started. *tracefs_hist_destroy*() needs
@@ -81,15 +82,24 @@ into a single histogram (shown by either event's hist file). The _hist_
 is the histogram to name, and the _name_ is the name to give it.
 
 *tracefs_hist_start* is called to actually start the histogram _hist_.
+The _instance_ is the instance to start the histogram in, NULL if it
+should start at the top level.
 
 *tracefs_hist_pause* is called to pause the histogram _hist_.
+The _instance_ is the instance to pause the histogram in, NULL if it
+is in the top level.
 
 *tracefs_hist_continue* is called to continue a paused histogram _hist_.
+The _instance_ is the instance to continue the histogram, NULL if it
+is in the top level.
 
 *tracefs_hist_reset* is called to clear / reset the histogram _hist_.
+The _instance_ is the instance to clear the histogram, NULL if it
+is in the top level.
 
 *tracefs_hist_destory* is called to delete the histogram where it will no longer
-exist.
+exist.  The _instance_ is the instance to delete the histogram from, NULL if it
+is in the top level.
 
 
 KEY TYPES
@@ -152,6 +162,7 @@ int main (int argc, char **argv, char **env)
 {
 	struct tracefs_instance *instance;
 	struct tracefs_hist *hist;
+	struct tep_handle *tep;
 	enum commands cmd;
 	char *cmd_str;
 	int ret;
@@ -186,7 +197,8 @@ int main (int argc, char **argv, char **env)
 		exit(-1);
 	}
 
-	hist = tracefs_hist_alloc(instance, "kmem", "kmalloc",
+	tep = tracefs_local_events(NULL);
+	hist = tracefs_hist_alloc(tep, "kmem", "kmalloc",
 				  "call_site", TRACEFS_HIST_KEY_SYM);
 	if (!hist) {
 		fprintf(stderr, "Failed hist create\n");
@@ -208,7 +220,7 @@ int main (int argc, char **argv, char **env)
 
 	switch (cmd) {
 	case START:
-		ret = tracefs_hist_start(hist);
+		ret = tracefs_hist_start(instance, hist);
 		if (ret) {
 			char *err = tracefs_error_last(instance);
 			if (err)
@@ -216,16 +228,16 @@ int main (int argc, char **argv, char **env)
 		}
 		break;
 	case PAUSE:
-		ret = tracefs_hist_pause(hist);
+		ret = tracefs_hist_pause(instance, hist);
 		break;
 	case CONT:
-		ret = tracefs_hist_continue(hist);
+		ret = tracefs_hist_continue(instance, hist);
 		break;
 	case RESET:
-		ret = tracefs_hist_reset(hist);
+		ret = tracefs_hist_reset(instance, hist);
 		break;
 	case DELETE:
-		ret = tracefs_hist_destroy(hist);
+		ret = tracefs_hist_destroy(instance, hist);
 		break;
 	case SHOW: {
 		char *content;
