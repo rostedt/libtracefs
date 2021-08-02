@@ -543,6 +543,7 @@ struct tracefs_synth {
 	char			*name;
 	char			**synthetic_fields;
 	char			**synthetic_args;
+	char			**start_selection;
 	char			**start_keys;
 	char			**end_keys;
 	char			**start_vars;
@@ -1061,6 +1062,7 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 {
 	const struct tep_format_field *field;
 	char *start_arg;
+	char **tmp;
 	int ret;
 
 	if (!synth || !start_field) {
@@ -1087,7 +1089,14 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 		goto out_free;
 
 	ret = add_synth_fields(synth, field, name);
+	if (ret)
+		goto out_free;
 
+	tmp = tracefs_list_add(synth->start_selection, start_field);
+	if (tmp)
+		synth->start_selection = tmp;
+	else
+		ret = -1;
  out_free:
 	free(start_arg);
 	return ret;
@@ -1343,6 +1352,70 @@ static int verify_state(struct tracefs_synth *synth)
 	    trace_test_state(synth->end_state) < 0)
 		return -1;
 	return 0;
+}
+
+/**
+ * tracefs_synth_get_start_hist - Return the histogram of the start event
+ * @synth: The synthetic event to get the start hist from.
+ *
+ * On success, returns a tracefs_hist descriptor that holds the
+ * histogram information of the start_event of the synthetic event
+ * structure. Returns NULL on failure.
+ */
+struct tracefs_hist *
+tracefs_synth_get_start_hist(struct tracefs_synth *synth)
+{
+	struct tracefs_hist *hist = NULL;
+	struct tep_handle *tep;
+	const char *system;
+	const char *event;
+	const char *key;
+	char **keys;
+	int ret;
+	int i;
+
+	if (!synth) {
+		errno = EINVAL;
+		return NULL;
+	}
+
+	system = synth->start_event->system;
+	event = synth->start_event->name;
+	keys = synth->start_keys;
+	tep = synth->tep;
+
+	if (!keys)
+		keys = synth->start_selection;
+
+	if (!keys)
+		return NULL;
+
+	for (i = 0; keys[i]; i++) {
+		key = keys[i];
+
+		if (i) {
+			ret = tracefs_hist_add_key(hist, key, 0);
+			if (ret < 0) {
+				tracefs_hist_free(hist);
+				return NULL;
+			}
+		} else {
+			hist = tracefs_hist_alloc(tep, system, event,
+						  key, 0);
+			if (!hist)
+				return NULL;
+		}
+	}
+
+	if (synth->start_filter) {
+		hist->filter = strdup(synth->start_filter);
+		if (!hist->filter) {
+			tracefs_hist_free(hist);
+			return NULL;
+		}
+	}
+
+	return hist;
 }
 
 /**
