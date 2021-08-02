@@ -63,7 +63,7 @@ extern void yyerror(struct sqlhist_bison *, char *fmt, ...);
 
 %type <string> name label
 
-%type <expr>  selection_expr field item named_field join_clause
+%type <expr>  selection_expr field item named_field
 %type <expr>  selection_addition
 %type <expr>  compare compare_list compare_cmds compare_items
 %type <expr>  compare_and_or
@@ -202,8 +202,13 @@ opt_where_clause :
  | where_clause
 ;
 
+opt_join_clause :
+  /* empty set */
+  | join_clause
+ ;
+
 table_exp :
-   from_clause join_clause opt_where_clause
+   from_clause opt_join_clause opt_where_clause
  ;
 
 from_clause :
@@ -222,7 +227,7 @@ from_clause :
  ;
 
 join_clause :
-  JOIN item ON match_clause	{ add_to(sb, $2); }
+ JOIN item ON match_clause	{ add_to(sb, $2); }
  ;
 
 match :

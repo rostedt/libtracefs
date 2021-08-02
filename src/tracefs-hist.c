@@ -724,6 +724,33 @@ static int add_var(char ***list, const char *name, const char *var, bool is_var)
 	return 0;
 }
 
+__hidden struct tracefs_synth *
+synth_init_from(struct tep_handle *tep, const char *start_system,
+		const char *start_event_name)
+{
+	struct tep_event *start_event;
+	struct tracefs_synth *synth;
+
+	start_event = tep_find_event_by_name(tep, start_system,
+					     start_event_name);
+	if (!start_event) {
+		errno = ENODEV;
+		return NULL;
+	}
+
+	synth = calloc(1, sizeof(*synth));
+	if (!synth)
+		return NULL;
+
+	synth->start_event = start_event;
+
+	/* Hold onto a reference to this handler */
+	tep_ref(tep);
+	synth->tep = tep;
+
+	return synth;
+}
+
 /**
  * tracefs_synth_init - create a new tracefs_synth instance
  * @tep: The tep handle that holds the events to work on
@@ -778,7 +805,6 @@ struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
 					 const char *end_match_field,
 					 const char *match_name)
 {
-	struct tep_event *start_event;
 	struct tep_event *end_event;
 	struct tracefs_synth *synth;
 	int ret = 0;
@@ -789,35 +815,24 @@ struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
 		return NULL;
 	}
 
-	start_event = tep_find_event_by_name(tep, start_system,
-					     start_event_name);
-	if (!start_event) {
-		errno = ENODEV;
+	synth = synth_init_from(tep, start_system, start_event_name);
+	if (!synth)
 		return NULL;
-	}
 
 	end_event = tep_find_event_by_name(tep, end_system,
 					   end_event_name);
 	if (!end_event) {
+		tep_unref(tep);
 		errno = ENODEV;
 		return NULL;
 	}
 
-	synth = calloc(1, sizeof(*synth));
-	if (!synth)
-		return NULL;
-
-	synth->start_event = start_event;
 	synth->end_event = end_event;
 
 	synth->name = strdup(name);
 
 	ret = tracefs_synth_add_match_field(synth, start_match_field,
 					    end_match_field, match_name);
-
-	/* Hold onto a reference to this handler */
-	tep_ref(tep);
-	synth->tep = tep;
 
 	if (!synth->name || !synth->start_keys || !synth->end_keys || ret) {
 		tracefs_synth_free(synth);
@@ -1458,6 +1473,11 @@ int tracefs_synth_create(struct tracefs_instance *instance,
 		return -1;
 	}
 
+	if (!synth->name || !synth->end_event) {
+		errno = EUNATCH;
+		return -1;
+	}
+
 	if (verify_state(synth) < 0)
 		return -1;
 
@@ -1540,6 +1560,11 @@ int tracefs_synth_destroy(struct tracefs_instance *instance,
 		return -1;
 	}
 
+	if (!synth->name || !synth->end_event) {
+		errno = EUNATCH;
+		return -1;
+	}
+
 	/* Try to disable the event if possible */
 	tracefs_event_disable(instance, "synthetic", synth->name);
 
@@ -1593,6 +1618,11 @@ int tracefs_synth_show(struct trace_seq *seq,
 
 	if (!synth) {
 		errno = EINVAL;
+		return -1;
+	}
+
+	if (!synth->name || !synth->end_event) {
+		errno = EUNATCH;
 		return -1;
 	}
 
