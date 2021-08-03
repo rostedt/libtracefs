@@ -34,7 +34,7 @@ extern void yyerror(char *fmt, ...);
 	void	*expr;
 }
 
-%token AS SELECT FROM JOIN ON PARSE_ERROR
+%token AS SELECT FROM JOIN ON WHERE PARSE_ERROR
 %token <number> NUMBER
 %token <string> STRING
 %token <string> FIELD
@@ -49,6 +49,9 @@ extern void yyerror(char *fmt, ...);
 
 %type <expr>  selection_expr field item named_field join_clause
 %type <expr>  selection_addition
+%type <expr>  compare compare_list compare_cmds compare_items
+%type <expr>  compare_and_or
+%type <expr>  str_val val
 
 %%
 
@@ -120,8 +123,71 @@ name :
    FIELD
  ;
 
+str_val :
+   STRING	{ $$ = add_string(sb, $1); CHECK_RETURN_PTR($$); }
+ ;
+
+val :
+   str_val
+ | NUMBER	{ $$ = add_number(sb, $1); CHECK_RETURN_PTR($$); }
+ ;
+
+
+compare :
+   field '<' val	{ $$ = add_filter(sb, $1, $3, FILTER_LT); CHECK_RETURN_PTR($$); }
+ | field '>' val	{ $$ = add_filter(sb, $1, $3, FILTER_GT); CHECK_RETURN_PTR($$); }
+ | field LE val	{ $$ = add_filter(sb, $1, $3, FILTER_LE); CHECK_RETURN_PTR($$); }
+ | field GE val	{ $$ = add_filter(sb, $1, $3, FILTER_GE); CHECK_RETURN_PTR($$); }
+ | field '=' val	{ $$ = add_filter(sb, $1, $3, FILTER_EQ); CHECK_RETURN_PTR($$); }
+ | field EQ val	{ $$ = add_filter(sb, $1, $3, FILTER_EQ); CHECK_RETURN_PTR($$); }
+ | field NEQ val	{ $$ = add_filter(sb, $1, $3, FILTER_NE); CHECK_RETURN_PTR($$); }
+ | field "!=" val	{ $$ = add_filter(sb, $1, $3, FILTER_NE); CHECK_RETURN_PTR($$); }
+ | field '&' val	{ $$ = add_filter(sb, $1, $3, FILTER_BIN_AND); CHECK_RETURN_PTR($$); }
+ | field '~' str_val	{ $$ = add_filter(sb, $1, $3, FILTER_STR_CMP); CHECK_RETURN_PTR($$); }
+;
+
+compare_and_or :
+   compare_and_or OR compare_and_or	{ $$ = add_filter(sb, $1, $3, FILTER_OR); CHECK_RETURN_PTR($$); }
+ | compare_and_or AND compare_and_or	{ $$ = add_filter(sb, $1, $3, FILTER_AND); CHECK_RETURN_PTR($$); }
+ | '!' '(' compare_and_or ')'		{ $$ = add_filter(sb, $3, NULL, FILTER_NOT_GROUP); CHECK_RETURN_PTR($$); }
+ | '!' compare				{ $$ = add_filter(sb, $2, NULL, FILTER_NOT_GROUP); CHECK_RETURN_PTR($$); }
+ | compare
+ ;
+
+compare_items :
+   compare_items OR compare_items	{ $$ = add_filter(sb, $1, $3, FILTER_OR); CHECK_RETURN_PTR($$); }
+ | '(' compare_and_or ')'		{ $$ = add_filter(sb, $2, NULL, FILTER_GROUP); CHECK_RETURN_PTR($$); }
+ | '!' '(' compare_and_or ')'		{ $$ = add_filter(sb, $3, NULL, FILTER_NOT_GROUP); CHECK_RETURN_PTR($$); }
+ | '!' compare				{ $$ = add_filter(sb, $2, NULL, FILTER_NOT_GROUP); CHECK_RETURN_PTR($$); }
+ | compare
+ ;
+
+compare_cmds :
+   compare_items		{ CHECK_RETURN_VAL(add_where(sb, $1)); }
+ ;
+
+/*
+ * Top level AND is equal to ',' but the compare_cmds in them must
+ * all be of for the same event (start or end exclusive).
+ * That is, OR is not to be used between start and end events.
+ */
+compare_list :
+   compare_cmds
+ | compare_cmds ',' compare_list
+ | compare_cmds AND compare_list
+ ;
+
+where_clause :
+   WHERE compare_list
+ ;
+
+opt_where_clause :
+   /* empty */
+ | where_clause
+;
+
 table_exp :
-   from_clause join_clause
+   from_clause join_clause opt_where_clause
  ;
 
 from_clause :

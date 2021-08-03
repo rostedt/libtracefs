@@ -91,6 +91,8 @@ struct sql_table {
 	struct expr		*fields;
 	struct expr		*from;
 	struct expr		*to;
+	struct expr		*where;
+	struct expr		**next_where;
 	struct match		*matches;
 	struct match		**next_match;
 	struct expr		*selections;
@@ -318,8 +320,17 @@ static void *create_expr(enum expr_type type, struct expr **expr_p)
 #define create_field(var, expr)				\
 	__create_expr(var, struct field, FIELD, expr)
 
+#define create_filter(var, expr)			\
+	__create_expr(var, struct filter, FILTER, expr)
+
 #define create_compare(var, expr)				\
 	__create_expr(var, struct compare, COMPARE, expr)
+
+#define create_string(var, expr)			\
+	__create_expr(var, const char *, STRING, expr)
+
+#define create_number(var, expr)			\
+	__create_expr(var, long, NUMBER, expr)
 
 __hidden void *add_field(struct sqlhist_bison *sb,
 			 const char *field_name, const char *label)
@@ -339,6 +350,22 @@ __hidden void *add_field(struct sqlhist_bison *sb,
 
 	field->raw = field_name;
 	field->label = label;
+
+	return expr;
+}
+
+__hidden void *add_filter(struct sqlhist_bison *sb,
+			  void *A, void *B, enum filter_type op)
+{
+	struct filter *filter;
+	struct expr *expr;
+
+	create_filter(filter, &expr);
+
+	filter->lval = A;
+	filter->rval = B;
+
+	filter->type = op;
 
 	return expr;
 }
@@ -376,6 +403,23 @@ __hidden void *add_compare(struct sqlhist_bison *sb,
 	return expr;
 }
 
+__hidden int add_where(struct sqlhist_bison *sb, void *item)
+{
+	struct expr *expr = item;
+	struct sql_table *table = sb->table;
+
+	if (expr->type != EXPR_FILTER)
+		return -1;
+
+	*table->next_where = expr;
+	table->next_where = &expr->next;
+
+	if (expr->next)
+		return -1;
+
+	return 0;
+}
+
 __hidden int add_from(struct sqlhist_bison *sb, void *item)
 {
 	struct expr *expr = item;
@@ -400,6 +444,34 @@ __hidden int add_to(struct sqlhist_bison *sb, void *item)
 	return 0;
 }
 
+__hidden void *add_string(struct sqlhist_bison *sb, const char *str)
+{
+	struct expr *expr;
+	const char **str_p;
+
+	create_string(str_p, &expr);
+	*str_p = str;
+	return expr;
+}
+
+__hidden void *add_number(struct sqlhist_bison *sb, long val)
+{
+	struct expr *expr;
+	long *num;
+
+	create_number(num, &expr);
+	*num = val;
+	return expr;
+
+	expr = calloc(1, sizeof(expr));
+	if (!expr)
+		return NULL;
+
+	expr->type = EXPR_NUMBER;
+	expr->number = val;
+	return expr;
+}
+
 __hidden int table_start(struct sqlhist_bison *sb)
 {
 	struct sql_table *table;
@@ -411,6 +483,7 @@ __hidden int table_start(struct sqlhist_bison *sb)
 	table->sb = sb;
 	sb->table = table;
 
+	table->next_where = &table->where;
 	table->next_match = &table->matches;
 	table->next_selection = &table->selections;
 
@@ -663,6 +736,167 @@ static int build_compare(struct tracefs_synth *synth,
 	return ret;
 }
 
+static int do_verify_filter(struct filter *filter,
+			    const char **system, const char **event)
+{
+	int ret;
+
+	if (filter->type == FILTER_OR ||
+	    filter->type == FILTER_AND) {
+		ret = do_verify_filter(&filter->lval->filter, system, event);
+		if (ret)
+			return ret;
+		return do_verify_filter(&filter->rval->filter, system, event);
+	}
+	if (filter->type == FILTER_GROUP ||
+	    filter->type == FILTER_NOT_GROUP) {
+		return do_verify_filter(&filter->lval->filter, system, event);
+	}
+
+	/*
+	 * system and event will be NULL until we find the left most
+	 * node. Then assign it, and compare on the way back up.
+	 */
+	if (!*system && !*event) {
+		*system = filter->lval->field.system;
+		*event = filter->lval->field.event_name;
+		return 0;
+	}
+
+	if (filter->lval->field.system != *system ||
+	    filter->lval->field.event_name != *event)
+		return -1;
+
+	return 0;
+}
+
+static int verify_filter(struct filter *filter,
+			 const char **system, const char **event)
+{
+	int ret;
+
+	switch (filter->type) {
+	case FILTER_OR:
+	case FILTER_AND:
+	case FILTER_GROUP:
+	case FILTER_NOT_GROUP:
+		break;
+	default:
+		return do_verify_filter(filter, system, event);
+	}
+
+	ret = do_verify_filter(&filter->lval->filter, system, event);
+	if (ret)
+		return ret;
+
+	switch (filter->type) {
+	case FILTER_OR:
+	case FILTER_AND:
+		return do_verify_filter(&filter->rval->filter, system, event);
+	default:
+		return 0;
+	}
+}
+
+static int build_filter(struct tracefs_synth *synth,
+			bool start, struct filter *filter, bool *started)
+{
+	int (*append_filter)(struct tracefs_synth *synth,
+			     enum tracefs_filter type,
+			     const char *field,
+			     enum tracefs_compare compare,
+			     const char *val);
+	enum tracefs_compare cmp;
+	const char *val;
+	int and_or = TRACEFS_FILTER_AND;
+	char num[64];
+	int ret;
+
+	if (start)
+		append_filter = tracefs_synth_append_start_filter;
+	else
+		append_filter = tracefs_synth_append_end_filter;
+
+	if (started && *started) {
+		ret = append_filter(synth, and_or, NULL, 0, NULL);
+		ret = append_filter(synth, TRACEFS_FILTER_OPEN_PAREN,
+				    NULL, 0, NULL);
+	}
+
+	switch (filter->type) {
+	case FILTER_NOT_GROUP:
+		ret = append_filter(synth, TRACEFS_FILTER_NOT,
+				    NULL, 0, NULL);
+		if (ret < 0)
+			goto out;
+		/* Fall through */
+	case FILTER_GROUP:
+		ret = append_filter(synth, TRACEFS_FILTER_OPEN_PAREN,
+				    NULL, 0, NULL);
+		if (ret < 0)
+			goto out;
+		ret = build_filter(synth, start, &filter->lval->filter, NULL);
+		if (ret < 0)
+			goto out;
+		ret = append_filter(synth, TRACEFS_FILTER_CLOSE_PAREN,
+				    NULL, 0, NULL);
+		goto out;
+
+	case FILTER_OR:
+		and_or = TRACEFS_FILTER_OR;
+		/* Fall through */
+	case FILTER_AND:
+		ret = build_filter(synth, start, &filter->lval->filter, NULL);
+		if (ret < 0)
+			goto out;
+		ret = append_filter(synth, and_or, NULL, 0, NULL);
+
+		if (ret)
+			goto out;
+		ret = build_filter(synth, start, &filter->rval->filter, NULL);
+		goto out;
+	default:
+		break;
+	}
+
+	switch (filter->rval->type) {
+	case EXPR_NUMBER:
+		sprintf(num, "%ld", filter->rval->number);
+		val = num;
+		break;
+	case EXPR_STRING:
+		val = filter->rval->string;
+		break;
+	default:
+		break;
+	}
+
+	switch (filter->type) {
+	case FILTER_EQ:		cmp = TRACEFS_COMPARE_EQ; break;
+	case FILTER_NE:		cmp = TRACEFS_COMPARE_NE; break;
+	case FILTER_LE:		cmp = TRACEFS_COMPARE_LE; break;
+	case FILTER_LT:		cmp = TRACEFS_COMPARE_LT; break;
+	case FILTER_GE:		cmp = TRACEFS_COMPARE_GE; break;
+	case FILTER_GT:		cmp = TRACEFS_COMPARE_GT; break;
+	case FILTER_BIN_AND:	cmp = TRACEFS_COMPARE_AND; break;
+	case FILTER_STR_CMP:	cmp = TRACEFS_COMPARE_RE; break;
+	default:
+		break;
+	}
+
+	ret = append_filter(synth, TRACEFS_FILTER_COMPARE,
+			    filter->lval->field.field, cmp, val);
+
+ out:
+	if (!ret && started) {
+		if (*started)
+			ret = append_filter(synth, TRACEFS_FILTER_CLOSE_PAREN,
+					    NULL, 0, NULL);
+		*started = true;
+	}
+	return ret;
+}
+
 static struct tracefs_synth *build_synth(struct tep_handle *tep,
 					 const char *name,
 					 struct sql_table *table)
@@ -677,6 +911,8 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 	const char *end_event;
 	const char *start_match;
 	const char *end_match;
+	bool started_start = false;
+	bool started_end = false;
 	int ret;
 
 	if (!table->to || !table->from)
@@ -749,6 +985,30 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 
 		ret = build_compare(synth, start_system, end_system,
 				    &expr->compare);
+		if (ret < 0)
+			goto free;
+	}
+
+	for (expr = table->where; expr; expr = expr->next) {
+		const char *filter_system = NULL;
+		const char *filter_event = NULL;
+		bool *started;
+		bool start;
+
+		ret = verify_filter(&expr->filter, &filter_system,
+				    &filter_event);
+		if (ret < 0)
+			goto free;
+
+		start = filter_system == start_system &&
+			filter_event == start_event;
+
+		if (start)
+			started = &started_start;
+		else
+			started = &started_end;
+
+		ret = build_filter(synth, start, &expr->filter, started);
 		if (ret < 0)
 			goto free;
 	}
