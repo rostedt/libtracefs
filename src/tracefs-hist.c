@@ -256,7 +256,7 @@ int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 	bool use_key = false;
 	char *key_type = NULL;
 	char **new_list;
-	int ret;
+	int ret = -1;
 
 	switch (type) {
 	case TRACEFS_HIST_KEY_NORMAL:
@@ -283,6 +283,9 @@ int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 		break;
 	case TRACEFS_HIST_KEY_USECS:
 		ret = asprintf(&key_type, "%s.usecs", key);
+		break;
+	case TRACEFS_HIST_KEY_MAX:
+		/* error */
 		break;
 	}
 
@@ -1450,6 +1453,9 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 	for (i = 0; keys[i]; i++) {
 		int type = types ? types[i] : 0;
 
+		if (type == HIST_COUNTER_TYPE)
+			continue;
+
 		key = keys[i];
 
 		if (i) {
@@ -1466,7 +1472,25 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 		}
 	}
 
-	if (hist && synth->start_filter) {
+	if (!hist)
+		return NULL;
+
+	for (i = 0; keys[i]; i++) {
+		int type = types ? types[i] : 0;
+
+		if (type != HIST_COUNTER_TYPE)
+			continue;
+
+		key = keys[i];
+
+		ret = tracefs_hist_add_value(hist, key);
+		if (ret < 0) {
+			tracefs_hist_free(hist);
+			return NULL;
+		}
+	}
+
+	if (synth->start_filter) {
 		hist->filter = strdup(synth->start_filter);
 		if (!hist->filter) {
 			tracefs_hist_free(hist);

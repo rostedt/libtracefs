@@ -238,6 +238,30 @@ name of the process.
 
 *LOG* or *LOG2* - bucket the key values in a log 2 values (1, 2, 3-4, 5-8, 9-16, 17-32, ...)
 
+The above fields are not case sensitive, and "LOG2" works as good as "log".
+
+A special CAST to _COUNTER_ or __COUNTER__ will make the field a value and not
+a key. For example:
+
+[source,c]
+--
+  SELECT common_pid, CAST(bytes_req AS _COUNTER_) FROM kmalloc
+--
+
+Which will create
+
+[source,c]
+--
+  echo 'hist:keys=common_pid:vals=bytes_req' > events/kmem/kmalloc/trigger
+
+  cat events/kmem/kmalloc/hist
+
+{ common_pid:       1812 } hitcount:          1  bytes_req:         32
+{ common_pid:       9111 } hitcount:          2  bytes_req:        272
+{ common_pid:       1768 } hitcount:          3  bytes_req:       1112
+{ common_pid:          0 } hitcount:          4  bytes_req:        512
+{ common_pid:      18297 } hitcount:         11  bytes_req:       2004
+--
 
 RETURN VALUE
 ------------

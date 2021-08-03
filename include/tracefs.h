@@ -263,6 +263,7 @@ enum tracefs_hist_key_type {
 	TRACEFS_HIST_KEY_EXECNAME,
 	TRACEFS_HIST_KEY_LOG,
 	TRACEFS_HIST_KEY_USECS,
+	TRACEFS_HIST_KEY_MAX
 };
 
 enum tracefs_hist_sort_direction {
@@ -273,6 +274,8 @@ enum tracefs_hist_sort_direction {
 #define TRACEFS_HIST_TIMESTAMP		"common_timestamp"
 #define TRACEFS_HIST_TIMESTAMP_USECS	"common_timestamp.usecs"
 #define TRACEFS_HIST_CPU		"cpu"
+
+#define TRACEFS_HIST_COUNTER		"__COUNTER__"
 
 #define TRACEFS_HIST_HITCOUNT		"hitcount"
 
