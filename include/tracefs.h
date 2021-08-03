@@ -476,4 +476,7 @@ void tracefs_synth_free(struct tracefs_synth *synth);
 int tracefs_synth_show(struct trace_seq *seq, struct tracefs_instance *instance,
 		       struct tracefs_synth *synth);
 
+struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
+				  const char *sql_buffer, char **err);
+
 #endif /* _TRACE_FS_H */
