@@ -282,9 +282,9 @@ struct tracefs_hist;
 void tracefs_hist_free
 (struct tracefs_hist *hist);
 struct tracefs_hist *
-tracefs_hist_alloc(struct tracefs_instance * instance,
-		       const char *system, const char *event,
-		       const char *key, enum tracefs_hist_key_type type);
+tracefs_hist_alloc(struct tep_handle *tep,
+		   const char *system, const char *event,
+		   const char *key, enum tracefs_hist_key_type type);
 int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 			 enum tracefs_hist_key_type type);
 int tracefs_hist_add_value(struct tracefs_hist *hist, const char *value);
@@ -294,11 +294,11 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
 				    const char *sort_key,
 				    enum tracefs_hist_sort_direction dir);
 int tracefs_hist_add_name(struct tracefs_hist *hist, const char *name);
-int tracefs_hist_start(struct tracefs_hist *hist);
-int tracefs_hist_pause(struct tracefs_hist *hist);
-int tracefs_hist_continue(struct tracefs_hist *hist);
-int tracefs_hist_reset(struct tracefs_hist *hist);
-int tracefs_hist_destroy(struct tracefs_hist *hist);
+int tracefs_hist_start(struct tracefs_instance *instance, struct tracefs_hist *hist);
+int tracefs_hist_pause(struct tracefs_instance *instance,struct tracefs_hist *hist);
+int tracefs_hist_continue(struct tracefs_instance *instance,struct tracefs_hist *hist);
+int tracefs_hist_reset(struct tracefs_instance *instance,struct tracefs_hist *hist);
+int tracefs_hist_destroy(struct tracefs_instance *instance,struct tracefs_hist *hist);
 
 struct tracefs_synth;
 
