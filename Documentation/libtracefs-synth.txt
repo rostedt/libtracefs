@@ -4,8 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_synth_init, tracefs_synth_add_match_field, tracefs_synth_add_compare_field, tracefs_synth_add_start_field,
-tracefs_synth_add_end_field, tracefs_synth_append_start_filter, tracefs_synth_append_end_filter, tracefs_synth_create,
-tracefs_synth_destroy, tracefs_synth_free, tracefs_synth_show - Creation of synthetic events
+tracefs_synth_add_end_field, tracefs_synth_append_start_filter, tracefs_synth_append_end_filter, tracefs_synth_free,
+- Creation of a synthetic event descriptor
 
 SYNOPSIS
 --------
@@ -47,14 +47,7 @@ int tracefs_synth_append_end_filter(struct tracefs_synth pass:[*]synth,
 				    const char pass:[*]field,
 				    enum tracefs_synth_compare compare,
 				    const char pass:[*]val);
-int tracefs_synth_create(struct tracefs_instance pass:[*]instance,
-			 struct tracefs_synth pass:[*]synth);
-int tracefs_synth_destroy(struct tracefs_instance pass:[*]instance,
-			  struct tracefs_synth pass:[*]synth);
-void tracefs_synth_free(struct tracefs_synth pass:[*]synth);
-int tracefs_synth_show(struct trace_seq pass:[*]seq, struct tracefs_instance pass:[*]instance,
-		       struct tracefs_synth pass:[*]synth);
-
+-void tracefs_synth_free(struct tracefs_synth pass:[*]synth);
 --
 
 DESCRIPTION
@@ -78,7 +71,7 @@ delta in microseconds. This is used as the example below.
 
 *tracefs_synth_init*() allocates and initializes a synthetic event.
 It does not create the synthetic event, but supplies the minimal information
-to do so. See *tracefs_synth_create*() below for how to create the synthetic
+to do so. See *tracefs_synth_create*(3) for how to create the synthetic
 event in the system. It requires a _tep_ handler that can be created by
 *tracefs_local_events*(3) for more information. The _name_ holds the name
 of the synthetic event that will be created. The _start_system is the name
@@ -162,21 +155,8 @@ _field_, _compare_, and _val_ are ignored unless _type_ is equal to
 *tracefs_synth_append_end_filter*() is the same as *tracefs_synth_append_start_filter* but
 filters on the ending event.
 
-*tracefs_synth_create*() creates the synthetic event in the system in the system
-in the _instance_ provided. Note, synthetic events apply across all instances,
-but some creation requires histograms to be established, which are local to
-instances.
-
-*tracefs_synth_destroy*() destroys the synthetic event. It will attempt to stop
-the running of it in the given _instance_, but if its running in another instance
-this may fail as busy.
-
 *tracefs_synth_free*() frees the allocated descriptor returned by
 *tracefs_synth_init*().
-
-*tracefs_synth_show*() acts like *tracefs_synth_create*(), but instead of creating
-the synthetic event in the given _instance_, it will write the echo commands to
-manually create it in the _seq_ given.
 
 RETURN VALUE
 ------------
@@ -330,6 +310,9 @@ FILES
 
 SEE ALSO
 --------
+_tracefs_synth_create_(3),
+_tracefs_synth_destroy_(3),
+_tracfes_synth_show_(3),
 _libtracefs(3)_,
 _libtraceevent(3)_,
 _trace-cmd(1)_,
