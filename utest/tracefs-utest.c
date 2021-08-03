@@ -53,6 +53,13 @@
 #define SQL_3_EVENT	"wakeup_lat"
 #define SQL_3_SQL	"select sched_switch.next_prio as prio, end.prev_prio as pprio, (sched.sched_waking.common_timestamp.usecs - end.TIMESTAMP_USECS) as lat from sched_waking as start join sched_switch as end on start.pid = end.next_pid"
 
+#define SQL_4_EVENT	"wakeup_lat_2"
+#define SQL_4_SQL	"select start.pid, end.next_prio as prio, (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS) as lat from sched_waking as start join sched_switch as end on start.pid = end.next_pid where (start.prio >= 1 && start.prio < 100) || !(start.pid >= 0 && start.pid <= 1) && end.prev_pid != 0"
+
+#define SQL_5_EVENT	"irq_lat"
+#define SQL_5_SQL	"select end.common_pid as pid, (end.common_timestamp.usecs - start.common_timestamp.usecs) as irq_lat from irq_disable as start join irq_enable as end on start.common_pid = end.common_pid, start.parent_offs == end.parent_offs where start.common_pid != 0"
+#define SQL_5_START	"irq_disable"
+
 static struct tracefs_instance *test_instance;
 static struct tep_handle *test_tep;
 struct test_sample {
@@ -336,6 +343,7 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 	struct tracefs_synth *synth;
 	struct trace_seq seq;
 	struct tep_handle *tep;
+	struct tep_event *event;
 	int ret;
 
 	tep = tracefs_local_events(NULL);
@@ -363,6 +371,23 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 	CU_TEST(ret == 0);
 	tracefs_synth_free(synth);
 	trace_seq_reset(&seq);
+
+	synth = tracefs_sql(tep, SQL_4_EVENT, SQL_4_SQL, NULL);
+	CU_TEST(synth != NULL);
+	ret = tracefs_synth_show(&seq, instance, synth);
+	CU_TEST(ret == 0);
+	tracefs_synth_free(synth);
+	trace_seq_reset(&seq);
+
+	event = tep_find_event_by_name(tep, NULL, SQL_5_START);
+	if (event) {
+		synth = tracefs_sql(tep, SQL_5_EVENT, SQL_5_SQL, NULL);
+		CU_TEST(synth != NULL);
+		ret = tracefs_synth_show(&seq, instance, synth);
+		CU_TEST(ret == 0);
+		tracefs_synth_free(synth);
+		trace_seq_reset(&seq);
+	}
 
 	tep_free(tep);
 	trace_seq_destroy(&seq);
