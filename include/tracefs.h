@@ -467,6 +467,7 @@ int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				    const char *field,
 				    enum tracefs_compare compare,
 				    const char *val);
+struct tracefs_hist *tracefs_synth_get_start_hist(struct tracefs_synth *synth);
 int tracefs_synth_create(struct tracefs_instance *instance,
 			 struct tracefs_synth *synth);
 int tracefs_synth_destroy(struct tracefs_instance *instance,
