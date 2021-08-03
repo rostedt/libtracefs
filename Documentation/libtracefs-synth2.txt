@@ -17,6 +17,7 @@ int tracefs_synth_destroy(struct tracefs_instance pass:[*]instance,
 			  struct tracefs_synth pass:[*]synth);
 int tracefs_synth_show(struct trace_seq pass:[*]seq, struct tracefs_instance pass:[*]instance,
 		       struct tracefs_synth pass:[*]synth);
+bool tracefs_synth_complete(struct tracefs_synth pass:[*]synth);
 struct tracefs_hist pass:[*]tracefs_synth_get_start_hist(struct tracefs_synth pass:[*]synth);
 
 --
@@ -52,6 +53,9 @@ this may fail as busy.
 *tracefs_synth_show*() acts like *tracefs_synth_create*(), but instead of creating
 the synthetic event in the given _instance_, it will write the echo commands to
 manually create it in the _seq_ given.
+
+*tracefs_synth_complete*() returns true if the synthetic event _synth_ has both
+a starting and ending event.
 
 *tracefs_synth_get_start_hist*() returns a struct tracefs_hist descriptor describing
 the histogram used to create the synthetic event.
