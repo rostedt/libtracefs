@@ -9,6 +9,7 @@
 #include <trace-seq.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <ctype.h>
 #include <errno.h>
 
 #include "tracefs.h"
@@ -40,6 +41,7 @@ struct field {
 	const char		*raw;
 	const char		*label;
 	const char		*field;
+	const char		*type;
 };
 
 struct filter {
@@ -231,6 +233,16 @@ __hidden char *store_str(struct sqlhist_bison *sb, const char *str)
 		*pstr = strdup(str);
 
 	return *pstr;
+}
+
+__hidden void *add_cast(struct sqlhist_bison *sb,
+			void *data, const char *type)
+{
+	struct expr *expr = data;
+	struct field *field = &expr->field;
+
+	field->type = type;
+	return expr;
 }
 
 __hidden int add_selection(struct sqlhist_bison *sb, void *select,
@@ -1253,6 +1265,93 @@ static void where_no_to_error(struct sqlhist_bison *sb, struct expr *expr,
 		    event, from_event);
 }
 
+static int verify_field_type(struct tep_handle *tep,
+			     struct sqlhist_bison *sb,
+			     struct expr *expr)
+{
+	struct field *field = &expr->field;
+	struct tep_event *event;
+	struct tep_format_field *tfield;
+	char *type;
+	int ret;
+	int i;
+
+	if (!field->type)
+		return 0;
+
+	sb->line_no = expr->line;
+	sb->line_idx = expr->idx;
+
+	event = tep_find_event_by_name(tep, field->system, field->event_name);
+	if (!event) {
+		parse_error(sb, field->raw,
+			    "Event '%s' not found\n",
+			    field->event_name ? : "(null)");
+		return -1;
+	}
+
+	tfield = tep_find_any_field(event, field->field);
+	if (!tfield) {
+		parse_error(sb, field->raw,
+			    "Field '%s' not part of event '%s'\n",
+			    field->field ? : "(null)", field->event);
+		return -1;
+	}
+
+	type = strdup(field->type);
+	if (!type)
+		return -1;
+
+	for (i = 0; type[i]; i++)
+		type[i] = tolower(type[i]);
+
+	if (!strcmp(type, "hex")) {
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_HEX;
+	} else if (!strcmp(type, "sym")) {
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_SYM;
+	} else if (!strcmp(type, "sym-offset")) {
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_SYM_OFFSET;
+	} else if (!strcmp(type, "syscall")) {
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_SYSCALL;
+	} else if (!strcmp(type, "execname") ||
+		   !strcmp(type, "comm")) {
+		ret = TRACEFS_HIST_KEY_EXECNAME;
+		if (strcmp(field->field, "common_pid")) {
+			parse_error(sb, field->raw,
+				    "'%s' is only allowed for common_pid\n",
+				    type);
+			ret = -1;
+		}
+	} else if (!strcmp(type, "log") ||
+		   !strcmp(type, "log2")) {
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_LOG;
+	} else {
+		parse_error(sb, field->raw,
+			    "Cast of '%s' to unknown type '%s'\n",
+			    field->raw, type);
+		ret = -1;
+	}
+	free(type);
+	return ret;
+ fail_type:
+	parse_error(sb, field->raw,
+		    "Field '%s' cast to '%s' but is of type %s\n",
+		    field->field, type, tfield->flags & TEP_FIELD_IS_STRING ?
+		    "string" : "array");
+	free(type);
+	return -1;
+}
+
 static struct tracefs_synth *build_synth(struct tep_handle *tep,
 					 const char *name,
 					 struct sql_table *table)
@@ -1346,8 +1445,13 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 			field = &expr->field;
 			if (field->system == start_system &&
 			    field->event_name == start_event) {
-				ret = tracefs_synth_add_start_field(synth,
-						field->field, field->label);
+				int type;
+				type = verify_field_type(tep, table->sb, expr);
+				if (type < 0)
+					goto free;
+				ret = synth_add_start_field(synth,
+						field->field, field->label,
+						type);
 			} else if (table->to) {
 				ret = tracefs_synth_add_end_field(synth,
 						field->field, field->label);
