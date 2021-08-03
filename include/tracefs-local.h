@@ -85,4 +85,7 @@ int trace_append_filter(char **filter, unsigned int *state,
 			enum tracefs_compare compare,
 			 const char *val);
 
+struct tracefs_synth *synth_init_from(struct tep_handle *tep,
+				      const char *start_system,
+				      const char *start_event);
 #endif /* _TRACE_FS_LOCAL_H */

@@ -32,6 +32,8 @@ to attach two events together and form another event (table). Utilizing the
 SQL *SELECT* *FROM* *JOIN* *ON* [ *WHERE* ] syntax, a synthetic event can easily
 be created from two different events.
 
+For simple SQL queries to make a histogram instead of a synthetic event, see
+HISTOGRAMS below.
 
 *tracefs_sql*() takes in a *tep* handler (See _tep_local_events_(3)) that is used to
 verify the events within the _sql_buffer_ expression. The _name_ is the name of the
@@ -160,6 +162,12 @@ select start.pid, (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS) as lat from sche
    WHERE start.prio < 100 || end.prev_prio < 100
 --
 
+HISTOGRAMS
+----------
+
+Simple SQL statements without the *JOIN* *ON* may also be used, which will create a histogram
+instead. When doing this, the struct tracefs_hist descriptor can be retrieved from the
+returned synthetic event descriptor via the *tracefs_synth_get_start_hist*(3).
 
 RETURN VALUE
 ------------
@@ -243,9 +251,22 @@ static int do_sql(const char *buffer, const char *name,
 		exit(-1);
 	}
 
-	tracefs_synth_show(&seq, NULL, synth);
-	if (execute)
-		tracefs_synth_create(NULL, synth);
+	if (tracefs_synth_complete(synth)) {
+		tracefs_synth_show(&seq, NULL, synth);
+		if (execute)
+			tracefs_synth_create(NULL, synth);
+	} else {
+		struct tracefs_hist *hist;
+		hist = tracefs_synth_get_start_hist(synth);
+		if (!hist) {
+			perror("get_start_hist");
+			exit(-1);
+		}
+		tracefs_hist_show(&seq, NULL, hist, 0);
+		if (execute)
+			tracefs_hist_start(NULL, hist);
+	}
+
 	tracefs_synth_free(synth);
 
 	trace_seq_do_printf(&seq);

@@ -678,6 +678,70 @@ static int update_vars(struct tep_handle *tep,
 	return 0;
 }
 
+/*
+ * Called when there's a FROM but no JOIN(to), which means that the
+ * selections can be fields and not mention the event itself.
+ */
+static int update_fields(struct tep_handle *tep,
+			 struct sql_table *table,
+			 struct expr *expr)
+{
+	struct field *event_field = &expr->field;
+	struct sqlhist_bison *sb = table->sb;
+	struct tep_format_field *tfield;
+	struct tep_event *event;
+	struct field *field;
+	const char *p;
+	int len;
+
+	/* First update fields with aliases an such and add event */
+	update_vars(tep, table, expr);
+
+	/*
+	 * If event is not found, the creation of the synth will
+	 * add a proper error, so return "success".
+	*/
+	if (!event_field->event)
+		return 0;
+
+	event = event_field->event;
+
+	for_each_field(expr, field, table) {
+		const char *field_name;
+
+		field = &expr->field;
+
+		if (field->event)
+			continue;
+
+		field_name = field->raw;
+
+		p = strchr(field_name, '.');
+		if (p) {
+			len = p - field_name;
+			p = strndup(field_name, len);
+			if (!p)
+				return -1;
+			field_name = store_str(sb, p);
+			if (!field_name)
+				return -1;
+			free((char *)p);
+		}
+
+		tfield = tep_find_any_field(event, field_name);
+		/* Let it error properly later */
+		if (!tfield)
+			continue;
+
+		field->system = event_field->system;
+		field->event_name = event_field->event_name;
+		field->event = event;
+		field->field = field_name;
+	}
+
+	return 0;
+}
+
 static int match_error(struct sqlhist_bison *sb, struct match *match,
 		       struct field *lmatch, struct field *rmatch)
 {
@@ -1153,6 +1217,42 @@ static void compare_error(struct tep_handle *tep,
 		    compare->lval->field.raw, compare->rval->field.raw);
 }
 
+static void compare_no_to_error(struct sqlhist_bison *sb, struct expr *expr)
+{
+	struct compare *compare = &expr->compare;
+
+	sb->line_no = compare->lval->line;
+	sb->line_idx = compare->lval->idx;
+
+	parse_error(sb, compare->lval->field.raw,
+		    "Simple SQL (without JOIN/ON) do not allow comparisons\n",
+		    compare->lval->field.raw, compare->rval->field.raw);
+}
+
+static void where_no_to_error(struct sqlhist_bison *sb, struct expr *expr,
+			      const char *from_event, const char *event)
+{
+	while (expr) {
+		switch (expr->filter.type) {
+		case FILTER_OR:
+		case FILTER_AND:
+		case FILTER_GROUP:
+		case FILTER_NOT_GROUP:
+			expr = expr->filter.lval;
+			continue;
+		default:
+			break;
+		}
+		break;
+	}
+	sb->line_no = expr->filter.lval->line;
+	sb->line_idx = expr->filter.lval->idx;
+
+	parse_error(sb, expr->filter.lval->field.raw,
+		    "Event '%s' does not match FROM event '%s'\n",
+		    event, from_event);
+}
+
 static struct tracefs_synth *build_synth(struct tep_handle *tep,
 					 const char *name,
 					 struct sql_table *table)
@@ -1171,16 +1271,34 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 	bool started_end = false;
 	int ret;
 
-	if (!table->to || !table->from)
+	if (!table->from)
+		return NULL;
+
+	/* This could be a simple SQL statement to only build a histogram */
+	if (!table->to) {
+		ret = update_fields(tep, table, table->from);
+		if (ret < 0)
+			return NULL;
+
+		start_system = table->from->field.system;
+		start_event = table->from->field.event_name;
+
+		synth = synth_init_from(tep, start_system, start_event);
+		if (!synth)
+			return synth_init_error(tep, table);
+		goto hist_only;
+	}
+
+	ret = update_vars(tep, table, table->from);
+	if (ret < 0)
 		return NULL;
 
 	ret = update_vars(tep, table, table->to);
 	if (ret < 0)
 		return NULL;
 
-	ret = update_vars(tep, table, table->from);
-	if (ret < 0)
-		return NULL;
+	start_system = table->from->field.system;
+	start_event = table->from->field.event_name;
 
 	match = table->matches;
 	if (!match)
@@ -1189,9 +1307,6 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 	ret = test_match(table, match);
 	if (ret < 0)
 		return NULL;
-
-	start_system = table->from->field.system;
-	start_event = table->from->field.event_name;
 
 	end_system = table->to->field.system;
 	end_event = table->to->field.event_name;
@@ -1222,14 +1337,18 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 		}
 	}
 
+ hist_only:
+	/* table->to may be NULL here */
+
 	for (expr = table->selections; expr; expr = expr->next) {
 		if (expr->type == EXPR_FIELD) {
+			ret = -1;
 			field = &expr->field;
 			if (field->system == start_system &&
 			    field->event_name == start_event) {
 				ret = tracefs_synth_add_start_field(synth,
 						field->field, field->label);
-			} else {
+			} else if (table->to) {
 				ret = tracefs_synth_add_end_field(synth,
 						field->field, field->label);
 			}
@@ -1238,6 +1357,11 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 				goto free;
 			}
 			continue;
+		}
+
+		if (!table->to) {
+			compare_no_to_error(table->sb, expr);
+			goto free;
 		}
 
 		if (expr->type != EXPR_COMPARE)
@@ -1267,7 +1391,11 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 
 		if (start)
 			started = &started_start;
-		else
+		else if (!table->to) {
+			where_no_to_error(table->sb, expr, start_event,
+					  filter_event);
+			goto free;
+		} else
 			started = &started_end;
 
 		ret = build_filter(tep, table->sb, synth, start, expr, started);
