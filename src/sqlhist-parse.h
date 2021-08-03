@@ -58,6 +58,7 @@ int table_start(struct sqlhist_bison *sb);
 void *add_field(struct sqlhist_bison *sb, const char *field, const char *label);
 
 int add_match(struct sqlhist_bison *sb, void *A, void *B);
+void *add_compare(struct sqlhist_bison *sb, void *A, void *B, enum compare_type type);
 
 int add_selection(struct sqlhist_bison *sb, void *item, const char *label);
 int add_from(struct sqlhist_bison *sb, void *item);

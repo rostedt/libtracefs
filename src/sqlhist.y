@@ -48,6 +48,7 @@ extern void yyerror(char *fmt, ...);
 %type <string> name label
 
 %type <expr>  selection_expr field item named_field join_clause
+%type <expr>  selection_addition
 
 %%
 
@@ -85,6 +86,21 @@ selection :
 selection_expr :
    field
  | '(' field ')'		{  $$ = $2; }
+ | selection_addition
+ | '(' selection_addition ')'	{  $$ = $2; }
+ ;
+
+selection_addition :
+   field '+' field
+				{
+					$$ = add_compare(sb, $1, $3, COMPARE_ADD);
+					CHECK_RETURN_PTR($$);
+				}
+ | field '-' field
+				{
+					$$ = add_compare(sb, $1, $3, COMPARE_SUB);
+					CHECK_RETURN_PTR($$);
+				}
  ;
 
 item :
