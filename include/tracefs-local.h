@@ -88,6 +88,8 @@ int trace_append_filter(char **filter, unsigned int *state,
 struct tracefs_synth *synth_init_from(struct tep_handle *tep,
 				      const char *start_system,
 				      const char *start_event);
+
+#define HIST_COUNTER_TYPE	(TRACEFS_HIST_KEY_MAX + 100)
 int synth_add_start_field(struct tracefs_synth *synth,
 			  const char *start_field,
 			  const char *name,

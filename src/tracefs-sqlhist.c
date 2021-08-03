@@ -1302,6 +1302,17 @@ static int verify_field_type(struct tep_handle *tep,
 	if (!type)
 		return -1;
 
+	if (!strcmp(type, TRACEFS_HIST_COUNTER) ||
+	    !strcmp(type, "_COUNTER_")) {
+		ret = HIST_COUNTER_TYPE;
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY)) {
+			parse_error(sb, field->raw,
+				    "'%s' is a string, and counters may only be used with numbers\n");
+			ret = -1;
+		}
+		goto out;
+	}
+
 	for (i = 0; type[i]; i++)
 		type[i] = tolower(type[i]);
 
@@ -1341,6 +1352,7 @@ static int verify_field_type(struct tep_handle *tep,
 			    field->raw, type);
 		ret = -1;
 	}
+ out:
 	free(type);
 	return ret;
  fail_type:
@@ -1368,6 +1380,7 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 	const char *end_match;
 	bool started_start = false;
 	bool started_end = false;
+	bool non_val = false;
 	int ret;
 
 	if (!table->from)
@@ -1449,6 +1462,8 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 				type = verify_field_type(tep, table->sb, expr);
 				if (type < 0)
 					goto free;
+				if (type != HIST_COUNTER_TYPE)
+					non_val = true;
 				ret = synth_add_start_field(synth,
 						field->field, field->label,
 						type);
@@ -1477,6 +1492,14 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 			compare_error(tep, table->sb, expr);
 			goto free;
 		}
+	}
+
+	if (!non_val && !table->to) {
+		table->sb->line_no = 0;
+		table->sb->line_idx = 10;
+		parse_error(table->sb, "CAST",
+			    "Not all SELECT items can be of type _COUNTER_\n");
+		goto free;
 	}
 
 	for (expr = table->where; expr; expr = expr->next) {
