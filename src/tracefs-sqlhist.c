@@ -879,14 +879,80 @@ static int verify_filter(struct sqlhist_bison *sb, struct filter *filter,
 	}
 }
 
-static int build_filter(struct tracefs_synth *synth,
-			bool start, struct filter *filter, bool *started)
+static int test_field_exists(struct tep_handle *tep, struct sqlhist_bison *sb,
+			     struct expr *expr);
+
+static void filter_compare_error(struct tep_handle *tep,
+				 struct sqlhist_bison *sb,
+				 struct expr *expr)
+{
+	struct field *field = &expr->field;
+
+	switch (errno) {
+	case ENODEV:
+	case EBADE:
+		break;
+	case EINVAL:
+		parse_error(sb, field->raw, "Invalid compare\n");
+		break;
+	default:
+		parse_error(sb, field->raw, "System error?\n");
+		return;
+	}
+
+	/* ENODEV means that an event or field does not exist */
+	if (errno == ENODEV) {
+		if (test_field_exists(tep, sb, expr))
+			return;
+		if (test_field_exists(tep, sb, expr))
+			return;
+		return;
+	}
+
+	/* fields exist, but values are not compatible */
+	sb->line_no = expr->line;
+	sb->line_idx = expr->idx;
+
+	parse_error(sb, field->raw,
+		    "Field '%s' is not compatible to be compared with the given value\n",
+		    field->field);
+}
+
+static void filter_error(struct tep_handle *tep,
+			 struct sqlhist_bison *sb, struct expr *expr)
+{
+	struct filter *filter = &expr->filter;
+
+	sb->line_no = expr->line;
+	sb->line_idx = expr->idx;
+
+	switch (filter->type) {
+	case FILTER_NOT_GROUP:
+	case FILTER_GROUP:
+	case FILTER_OR:
+	case FILTER_AND:
+		break;
+	default:
+		filter_compare_error(tep, sb, filter->lval);
+		return;
+	}
+
+	sb->line_no = expr->line;
+	sb->line_idx = expr->idx;
+
+	parse_error(sb, "", "Problem with filter entry?\n");
+}
+
+static int build_filter(struct tep_handle *tep, struct sqlhist_bison *sb,
+			struct tracefs_synth *synth,
+			bool start, struct expr *expr, bool *started)
 {
 	int (*append_filter)(struct tracefs_synth *synth,
 			     enum tracefs_filter type,
 			     const char *field,
 			     enum tracefs_compare compare,
 			     const char *val);
+	struct filter *filter = &expr->filter;
 	enum tracefs_compare cmp;
 	const char *val;
 	int and_or = TRACEFS_FILTER_AND;
@@ -916,7 +982,7 @@ static int build_filter(struct tracefs_synth *synth,
 				    NULL, 0, NULL);
 		if (ret < 0)
 			goto out;
-		ret = build_filter(synth, start, &filter->lval->filter, NULL);
+		ret = build_filter(tep, sb, synth, start, filter->lval, NULL);
 		if (ret < 0)
 			goto out;
 		ret = append_filter(synth, TRACEFS_FILTER_CLOSE_PAREN,
@@ -927,14 +993,14 @@ static int build_filter(struct tracefs_synth *synth,
 		and_or = TRACEFS_FILTER_OR;
 		/* Fall through */
 	case FILTER_AND:
-		ret = build_filter(synth, start, &filter->lval->filter, NULL);
+		ret = build_filter(tep, sb, synth, start, filter->lval, NULL);
 		if (ret < 0)
 			goto out;
 		ret = append_filter(synth, and_or, NULL, 0, NULL);
 
 		if (ret)
 			goto out;
-		ret = build_filter(synth, start, &filter->rval->filter, NULL);
+		ret = build_filter(tep, sb, synth, start, filter->rval, NULL);
 		goto out;
 	default:
 		break;
@@ -968,6 +1034,8 @@ static int build_filter(struct tracefs_synth *synth,
 	ret = append_filter(synth, TRACEFS_FILTER_COMPARE,
 			    filter->lval->field.field, cmp, val);
 
+	if (ret)
+		filter_error(tep, sb, expr);
  out:
 	if (!ret && started) {
 		if (*started)
@@ -1193,7 +1261,7 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 		else
 			started = &started_end;
 
-		ret = build_filter(synth, start, &expr->filter, started);
+		ret = build_filter(tep, table->sb, synth, start, expr, started);
 		if (ret < 0)
 			goto free;
 	}
