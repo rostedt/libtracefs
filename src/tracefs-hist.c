@@ -554,6 +554,7 @@ struct tracefs_synth {
 	unsigned int		start_state;
 	unsigned int		end_parens;
 	unsigned int		end_state;
+	int			*start_type;
 	int			arg_cnt;
 };
 
@@ -1056,28 +1057,16 @@ int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
 	return ret ? -1 : 0;
 }
 
-/**
- * tracefs_synth_add_start_field - add a start field to save
- * @synth: The tracefs_synth descriptor
- * @start_field: The field of the start event to save
- * @name: The name to show in the synthetic event (if NULL @start_field is used)
- *
- * This adds a field named by @start_field of the start event to
- * record in the synthetic event.
- *
- * Returns 0 on succes and -1 on error.
- * On error, errno is set to:
- * ENOMEM - memory allocation failure.
- * ENIVAL - a parameter is passed as NULL that should not be
- * ENODEV - could not find a field
- */
-int tracefs_synth_add_start_field(struct tracefs_synth *synth,
-				  const char *start_field,
-				  const char *name)
+__hidden int synth_add_start_field(struct tracefs_synth *synth,
+				   const char *start_field,
+				   const char *name,
+				   enum tracefs_hist_key_type type)
 {
 	const struct tep_format_field *field;
 	char *start_arg;
 	char **tmp;
+	int *types;
+	int len;
 	int ret;
 
 	if (!synth || !start_field) {
@@ -1108,13 +1097,51 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 		goto out_free;
 
 	tmp = tracefs_list_add(synth->start_selection, start_field);
-	if (tmp)
-		synth->start_selection = tmp;
-	else
+	if (!tmp) {
 		ret = -1;
+		goto out_free;
+	}
+	synth->start_selection = tmp;
+
+	len = tracefs_list_size(tmp);
+	if (len <= 0) { /* ?? */
+		ret = -1;
+		goto out_free;
+	}
+
+	types = realloc(synth->start_type, sizeof(*types) * len);
+	if (!types) {
+		ret = -1;
+		goto out_free;
+	}
+	synth->start_type = types;
+	synth->start_type[len - 1] = type;
+
  out_free:
 	free(start_arg);
 	return ret;
+}
+
+/**
+ * tracefs_synth_add_start_field - add a start field to save
+ * @synth: The tracefs_synth descriptor
+ * @start_field: The field of the start event to save
+ * @name: The name to show in the synthetic event (if NULL @start_field is used)
+ *
+ * This adds a field named by @start_field of the start event to
+ * record in the synthetic event.
+ *
+ * Returns 0 on succes and -1 on error.
+ * On error, errno is set to:
+ * ENOMEM - memory allocation failure.
+ * ENIVAL - a parameter is passed as NULL that should not be
+ * ENODEV - could not find a field
+ */
+int tracefs_synth_add_start_field(struct tracefs_synth *synth,
+				  const char *start_field,
+				  const char *name)
+{
+	return synth_add_start_field(synth, start_field, name, 0);
 }
 
 /**
@@ -1399,6 +1426,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 	const char *event;
 	const char *key;
 	char **keys;
+	int *types;
 	int ret;
 	int i;
 
@@ -1409,6 +1437,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 
 	system = synth->start_event->system;
 	event = synth->start_event->name;
+	types = synth->start_type;
 	keys = synth->start_keys;
 	tep = synth->tep;
 
@@ -1419,23 +1448,25 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 		return NULL;
 
 	for (i = 0; keys[i]; i++) {
+		int type = types ? types[i] : 0;
+
 		key = keys[i];
 
 		if (i) {
-			ret = tracefs_hist_add_key(hist, key, 0);
+			ret = tracefs_hist_add_key(hist, key, type);
 			if (ret < 0) {
 				tracefs_hist_free(hist);
 				return NULL;
 			}
 		} else {
 			hist = tracefs_hist_alloc(tep, system, event,
-						  key, 0);
+						  key, type);
 			if (!hist)
 				return NULL;
 		}
 	}
 
-	if (synth->start_filter) {
+	if (hist && synth->start_filter) {
 		hist->filter = strdup(synth->start_filter);
 		if (!hist->filter) {
 			tracefs_hist_free(hist);

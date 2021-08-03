@@ -189,6 +189,56 @@ Simple SQL statements without the *JOIN* *ON* may also be used, which will creat
 instead. When doing this, the struct tracefs_hist descriptor can be retrieved from the
 returned synthetic event descriptor via the *tracefs_synth_get_start_hist*(3).
 
+In order to utilize the histogram types (see xxx) the CAST command of SQL can be used.
+
+That is:
+
+[source,c]
+--
+  select CAST(common_pid AS comm, CAST(id AS syscall) FROM sys_enter
+--
+
+Which produces:
+
+[source,c]
+--
+ # echo 'hist:keys=common_pid.execname,id.syscall' > events/raw_syscalls/sys_enter/trigger
+
+ # cat events/raw_syscalls/sys_enter/hist
+
+{ common_pid: bash            [     18248], id: sys_setpgid                   [109] } hitcount:          1
+{ common_pid: sendmail        [      1812], id: sys_read                      [  0] } hitcount:          1
+{ common_pid: bash            [     18247], id: sys_getpid                    [ 39] } hitcount:          1
+{ common_pid: bash            [     18247], id: sys_dup2                      [ 33] } hitcount:          1
+{ common_pid: gmain           [     13684], id: sys_inotify_add_watch         [254] } hitcount:          1
+{ common_pid: cat             [     18247], id: sys_access                    [ 21] } hitcount:          1
+{ common_pid: bash            [     18248], id: sys_getpid                    [ 39] } hitcount:          1
+{ common_pid: cat             [     18247], id: sys_fadvise64                 [221] } hitcount:          1
+{ common_pid: sendmail        [      1812], id: sys_openat                    [257] } hitcount:          1
+{ common_pid: less            [     18248], id: sys_munmap                    [ 11] } hitcount:          1
+{ common_pid: sendmail        [      1812], id: sys_close                     [  3] } hitcount:          1
+{ common_pid: gmain           [      1534], id: sys_poll                      [  7] } hitcount:          1
+{ common_pid: bash            [     18247], id: sys_execve                    [ 59] } hitcount:          1
+--
+
+Note, string fields may not be cast.
+
+The possible types to cast to are:
+
+*HEX* - convert the value to use hex and not decimal
+
+*SYM* - convert a pointer to symbolic (kallsyms values)
+
+*SYM-OFFSET* - convert a pointer to symbolic and include the offset.
+
+*SYSCALL* - convert the number to the mapped system call name
+
+*EXECNAME* or *COMM* - can only be used with the common_pid field. Will show the task
+name of the process.
+
+*LOG* or *LOG2* - bucket the key values in a log 2 values (1, 2, 3-4, 5-8, 9-16, 17-32, ...)
+
+
 RETURN VALUE
 ------------
 Returns 0 on success and -1 on failure. On failure, if _err_ is defined, it will be

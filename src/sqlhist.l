@@ -27,9 +27,9 @@ extern int my_yyinput(void *extra, char *buf, int max);
 
 field		\\?[a-z_][a-z0-9_\.]*
 qstring		\"[^\"]*\"
+
 hexnum		0x[0-9a-f]+
 number		[0-9a-f]+
-
 %%
 
 select { HANDLE_COLUMN; return SELECT; }
@@ -38,6 +38,7 @@ from { HANDLE_COLUMN; return FROM; }
 join { HANDLE_COLUMN; return JOIN; }
 on { HANDLE_COLUMN; return ON; }
 where { HANDLE_COLUMN; return WHERE; }
+cast { HANDLE_COLUMN; return CAST; }
 
 {qstring} {
 	HANDLE_COLUMN;

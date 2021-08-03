@@ -65,6 +65,7 @@ int add_where(struct sqlhist_bison *sb, void *expr);
 int add_selection(struct sqlhist_bison *sb, void *item, const char *label);
 int add_from(struct sqlhist_bison *sb, void *item);
 int add_to(struct sqlhist_bison *sb, void *item);
+void *add_cast(struct sqlhist_bison *sb, void *field, const char *type);
 
 void *add_string(struct sqlhist_bison *sb, const char *str);
 void *add_number(struct sqlhist_bison *sb, long val);

@@ -50,8 +50,8 @@ extern void yyerror(struct sqlhist_bison *, char *fmt, ...);
 	void	*expr;
 }
 
-%token AS SELECT FROM JOIN ON WHERE PARSE_ERROR
-%token <number> NUMBER
+%token AS SELECT FROM JOIN ON WHERE PARSE_ERROR CAST
+%token <number> NUMBER field_type
 %token <string> STRING
 %token <string> FIELD
 %token <string> LE GE EQ NEQ AND OR
@@ -107,6 +107,10 @@ selection_expr :
  | '(' field ')'		{  $$ = $2; }
  | selection_addition
  | '(' selection_addition ')'	{  $$ = $2; }
+ | CAST '(' field AS FIELD ')'	{
+					 $$ = add_cast(sb, $3, $5);
+					 CHECK_RETURN_PTR($$);
+				}
  ;
 
 selection_addition :

@@ -88,4 +88,8 @@ int trace_append_filter(char **filter, unsigned int *state,
 struct tracefs_synth *synth_init_from(struct tep_handle *tep,
 				      const char *start_system,
 				      const char *start_event);
+int synth_add_start_field(struct tracefs_synth *synth,
+			  const char *start_field,
+			  const char *name,
+			  enum tracefs_hist_key_type type);
 #endif /* _TRACE_FS_LOCAL_H */
