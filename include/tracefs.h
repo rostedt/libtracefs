@@ -287,6 +287,26 @@ enum tracefs_hist_command {
 	TRACEFS_HIST_CMD_DESTROY,
 };
 
+enum tracefs_filter {
+	TRACEFS_FILTER_COMPARE,
+	TRACEFS_FILTER_AND,
+	TRACEFS_FILTER_OR,
+	TRACEFS_FILTER_NOT,
+	TRACEFS_FILTER_OPEN_PAREN,
+	TRACEFS_FILTER_CLOSE_PAREN,
+};
+
+enum tracefs_compare {
+	TRACEFS_COMPARE_EQ,
+	TRACEFS_COMPARE_NE,
+	TRACEFS_COMPARE_GT,
+	TRACEFS_COMPARE_GE,
+	TRACEFS_COMPARE_LT,
+	TRACEFS_COMPARE_LE,
+	TRACEFS_COMPARE_RE,
+	TRACEFS_COMPARE_AND,
+};
+
 void tracefs_hist_free
 (struct tracefs_hist *hist);
 struct tracefs_hist *
@@ -302,6 +322,11 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
 				    const char *sort_key,
 				    enum tracefs_hist_sort_direction dir);
 int tracefs_hist_add_name(struct tracefs_hist *hist, const char *name);
+int tracefs_hist_append_filter(struct tracefs_hist *hist,
+			       enum tracefs_filter type,
+			       const char *field,
+			       enum tracefs_compare compare,
+			       const char *val);
 int tracefs_hist_command(struct tracefs_instance *instance,
 			 struct tracefs_hist *hist, enum tracefs_hist_command cmd);
 
@@ -394,26 +419,6 @@ enum tracefs_synth_calc {
 	TRACEFS_SYNTH_DELTA_END,
 	TRACEFS_SYNTH_DELTA_START,
 	TRACEFS_SYNTH_ADD,
-};
-
-enum tracefs_compare {
-	TRACEFS_COMPARE_EQ,
-	TRACEFS_COMPARE_NE,
-	TRACEFS_COMPARE_GT,
-	TRACEFS_COMPARE_GE,
-	TRACEFS_COMPARE_LT,
-	TRACEFS_COMPARE_LE,
-	TRACEFS_COMPARE_RE,
-	TRACEFS_COMPARE_AND,
-};
-
-enum tracefs_filter {
-	TRACEFS_FILTER_COMPARE,
-	TRACEFS_FILTER_AND,
-	TRACEFS_FILTER_OR,
-	TRACEFS_FILTER_NOT,
-	TRACEFS_FILTER_OPEN_PAREN,
-	TRACEFS_FILTER_CLOSE_PAREN,
 };
 
 int tracefs_event_append_filter(struct tep_event *event, char **filter,

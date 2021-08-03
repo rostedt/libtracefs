@@ -33,6 +33,8 @@ struct tracefs_hist {
 	char			**sort;
 	char			*filter;
 	int			size;
+	unsigned int		filter_parens;
+	unsigned int		filter_state;
 };
 
 static void add_list(struct trace_seq *seq, const char *start,
@@ -452,6 +454,18 @@ int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
 	strcat(sort_key, direct);
 	sort[i] = sort_key;
 	return 0;
+}
+
+int tracefs_hist_append_filter(struct tracefs_hist *hist,
+			       enum tracefs_filter type,
+			       const char *field,
+			       enum tracefs_compare compare,
+			       const char *val)
+{
+	return trace_append_filter(&hist->filter, &hist->filter_state,
+				   &hist->filter_parens,
+				   hist->event,
+				   type, field, compare, val);
 }
 
 /*
