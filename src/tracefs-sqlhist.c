@@ -243,8 +243,6 @@ __hidden int add_selection(struct sqlhist_bison *sb, void *select,
 	case EXPR_FIELD:
 		break;
 	case EXPR_COMPARE:
-		if (!name)
-			return -1;
 		expr->compare.name = name;
 		break;
 	case EXPR_NUMBER:
@@ -779,6 +777,9 @@ static int build_compare(struct tracefs_synth *synth,
 	enum tracefs_synth_calc calc;
 	int ret;
 
+	if (!compare->name)
+		return -1;
+
 	lval = &compare->lval->field;
 	rval = &compare->rval->field;
 
@@ -1116,6 +1117,14 @@ static void compare_error(struct tep_handle *tep,
 			    struct sqlhist_bison *sb, struct expr *expr)
 {
 	struct compare *compare = &expr->compare;
+
+	if (!compare->name) {
+		sb->line_no = expr->line;
+		sb->line_idx = expr->idx + strlen("no name");
+
+		parse_error(sb, "no name",
+		    "Field calculations must be labeled 'AS name'\n");
+	}
 
 	switch (errno) {
 	case ENODEV:
