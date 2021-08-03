@@ -162,6 +162,26 @@ select start.pid, (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS) as lat from sche
    WHERE start.prio < 100 || end.prev_prio < 100
 --
 
+
+KEYWORDS AS EVENT FIELDS
+------------------------
+
+In some cases, an event may have a keyword. For example, regcache_drop_region has "from"
+as a field and the following will not work
+
+[source,c]
+--
+  select from from regcache_drop_region
+--
+
+In such cases, add a backslash to the conflicting field, and this will tell the parser
+that the "from" is a field and not a keyword:
+
+[source,c]
+--
+  select \from from regcache_drop_region
+--
+
 HISTOGRAMS
 ----------
 
