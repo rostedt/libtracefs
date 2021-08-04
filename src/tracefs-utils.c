@@ -470,7 +470,7 @@ int tracefs_list_pop(char **list)
 	size--;
 	*list = (char *)size;
 	list++;
-	list[size] = '\0';
+	list[size] = NULL;
 	return 0;
 }
 
