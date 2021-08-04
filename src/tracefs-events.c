@@ -855,7 +855,7 @@ static int event_enable_disable(struct tracefs_instance *instance,
 	regex_t system_re, event_re;
 	char **systems;
 	char **events = NULL;
-	int ret;
+	int ret = -1;
 	int s, e;
 
 	/* Handle all events first */
