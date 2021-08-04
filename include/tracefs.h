@@ -6,7 +6,6 @@
 #ifndef _TRACE_FS_H
 #define _TRACE_FS_H
 
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <sched.h>
 #include <event-parse.h>

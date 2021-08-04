@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <regex.h>
 #include <dirent.h>
 #include <limits.h>
