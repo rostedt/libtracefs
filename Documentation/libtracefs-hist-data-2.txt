@@ -1,0 +1,346 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_hist_data_key_names, tracefs_hist_data_key_values, tracefs_hist_data_keys, tracefs_hist_data_values,
+tracefs_hist_data_next_bucket, tracefs_hist_data_first_bucket - Read an allocated tracefs_hist_data descriptor
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+
+char pass:[**]tracefs_hist_data_key_names(struct tracefs_hist_data pass:[*]hdata);
+char pass:[**]tracefs_hist_data_value_names(struct tracefs_hist_data pass:[*]hdata);
+
+const struct tracefs_hist_bucket_key pass:[*]tracefs_hist_data_keys(struct tracefs_hist_data pass:[*]hdata);
+const struct tracefs_hist_bucket_val pass:[*]tracefs_hist_data_values(struct tracefs_hist_data pass:[*]hdata);
+
+int tracefs_hist_data_next_bucket(struct tracefs_hist_data pass:[*]hdata);
+int tracefs_hist_data_first_bucket(struct tracefs_hist_data pass:[*]hdata);
+--
+
+DESCRIPTION
+-----------
+The _hist_ trigger for trace events will create a histogram that can be read in
+the trace event's _hist_ file. The file is human readable ASCII format, but that
+makes it difficult to process in programs. The *tracefs_hist_data_*pass:[*]()
+functions convert the histogram ASCII format into structures that can be processed
+and converted into tables.
+
+*tracefs_hist_data_key_names*() Returns an allocated list of strings containing the
+names of the keys in the order that they are saved in the list returned by
+*tracefs_hist_data_keys*(3). The _hdata_ is a _tracefs_hist_data_ descriptor that
+was created by either *tracefs_hist_data_parse*(3) or tracefs_hist_data_read*(3).
+
+*tracefs_hist_data_value_names*() Returns an allocated list of strings containing the
+names of the values in the order that they are saved in the list returned by
+*tracefs_hist_data_values*(3). The _hdata_ is a _tracefs_hist_data_ descriptor that
+was created by either *tracefs_hist_data_parse*(3) or *tracefs_hist_data_read*(3).
+
+*tracefs_hist_data_keys*() returns a link list of _tracefs_hist_data_bucket_key_
+descriptors that contain the content of the keys of the current bucket. Each key
+has its own descriptor, and the _key_->next will link to the next descriptor. The
+returned link list is an actual internal construct of the _tracefs_hist_data_
+and must not be modified or freed.
+
+*tracefs_hist_data_values*() returns a link list of _tracefs_hist_data_bucket_val_
+descriptors that contain the content of the values of the current bucket. Each value
+has its own descriptor, and the _value_->next will link to the next descriptor. The
+returned link list is an actual internal construct of the _tracefs_hist_data_
+and must not be modified or freed.
+
+After the _tracefs_hist_data_ has been created, it will keep track of the internal
+bucket, and this is not reentrant, so care must be taken when using with threads.
+The *tracefs_hist_data_keys*() or *tracefs_hist_data_values*() will return the list
+of keys or values respectively for the current bucket.
+
+*tracefs_hist_data_next_bucket*() will move the internal cursor of the _tracefs_hist_data_
+to the next bucket, where following this call, *tracefs_hist_data_keys*() and
+*tracefs_hist_data_values*() will return the keys and values from the new bucket.
+
+*tracefs_hist_data_first_bucket*() will reset the index such that following calls
+to *tracefs_hist_data_keys*() or tracefs_hist_data_values*() will return the link
+list of keys or values for the first bucket, and the list can be traversed again
+with *tracefs_hist_data_next_bucket*().
+
+RETURN VALUE
+------------
+*tracefs_hist_data_key_names*() on success, returns an allocated list of the names of the
+keys in _hdata_ and must be freed with *tracefs_list_free*(3). Returns NULL
+on failure.
+
+*tracefs_hist_data_value_names*() on success, returns an allocated list of the names of the
+values in _hdata_ and must be freed with *tracefs_list_free*(3). Returns NULL
+on failure.
+
+*tracefs_hist_data_keys*() on success, returns a link list of _tracefs_hist_bucket_key_ descriptors.
+Returns NULL on error.
+
+struct tracefs_hist_bucket_key {
+	struct tracefs_hist_bucket_key	*next;
+	unsigned int			flags;
+	union {
+		struct tracefs_hist_bucket_key_single	single;
+		struct tracefs_hist_bucket_key_range	range;
+	};
+};
+
+To traverse to the next key in the list, use the _key_->next, where the last key will have
+its _next_ pointer be NULL.
+
+If the flag TRACEFS_BUCKET_KEY_FL_SINGLE is set, then the "single" union structure should
+be used, otherwise the TRACEFS_BUCKET_KEY_FL_RANGE bit should be set.
+
+The other lower bits map to the type of the key, defined by the _tracefs_hist_key_type_ enum.
+
+struct tracefs_hist_bucket_key_single {
+	long long		val;
+	char			*sym;
+};
+
+Depending on the flags set, _val_ may be the integer representation of the _sym_.
+See the EXAMPLE below.
+
+struct tracefs_hist_bucket_key_range {
+	long long		start;
+	long long		end;
+};
+
+If the key is a range, then the tracefs_hist_bucket_key_range should be used
+to get the _start_ and _end_ values of that range inclusive.
+
+*tracefs_hist_data_next_bucket*() Returns -1 on error, 0 on succes and the
+cursor is pointing to the next bucket to read from, or 1 on success but there
+are on more buckets to read.
+
+*tracefs_hist_data_first_bucket*() Returns -1 on error, 0 on succes and the
+cursor is pointing to the next bucket to read from, or 1 on success but there
+are on more buckets to read.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <unistd.h>
+#include <tracefs.h>
+
+int main (int argc, char **argv)
+{
+	struct tracefs_hist_data *hdata;
+	const struct tracefs_hist_bucket_key *key;
+	const struct tracefs_hist_bucket_val *val;
+	char buf[BUFSIZ];
+	const char *buffer;
+	char *content = NULL;
+	char *file;
+	char *err;
+	char **key_names;
+	char **value_names;
+	int key_idx;
+	int val_idx;
+	FILE *fp;
+	size_t r;
+	bool done = false;
+	int buffer_size = 0;
+	int c;
+	int i;
+
+	for (;;) {
+		c = getopt(argc, argv, "hf:");
+		if (c == -1)
+			break;
+
+		switch(c) {
+		case 'h':
+			fprintf(stderr, "usage: %s [-f file]\n", argv[0]);
+			exit(0);
+		case 'f':
+			file = optarg;
+			break;
+		}
+	}
+
+	if (file) {
+		if (!strcmp(file, "-"))
+			fp = stdin;
+		else
+			fp = fopen(file, "r");
+		if (!fp) {
+			perror(file);
+			exit(-1);
+		}
+		while ((r = fread(buf, 1, BUFSIZ, fp)) > 0) {
+			content = realloc(content, buffer_size + r + 1);
+			strncpy(content + buffer_size, buf, r);
+			buffer_size += r;
+		}
+		fclose(fp);
+		if (buffer_size)
+			content[buffer_size] = '\0';
+	} else if (argc == optind) {
+		fprintf(stderr, "usage: %s [-f file]\n", argv[0]);
+		exit(-1);
+	} else {
+		for (i = optind; i < argc; i++) {
+			r = strlen(argv[i]);
+			content = realloc(content, buffer_size + r + 2);
+			if (i != optind)
+				content[buffer_size++] = ' ';
+			strcpy(content + buffer_size, argv[i]);
+			buffer_size += r;
+		}
+	}
+
+	buffer = content;
+	hdata = tracefs_hist_data_parse(buffer, &buffer, &err);
+	printf("hdata = %p\n", hdata);
+	if (!hdata && err) {
+		printf("%s\n", err);
+		exit(-1);
+	}
+
+	key_names = tracefs_hist_data_key_names(hdata);
+	if (!key_names) {
+		perror("key_names");
+		exit(-1);
+	}
+
+	value_names = tracefs_hist_data_value_names(hdata);
+	if (!value_names) {
+		perror("value_names");
+		exit(-1);
+	}
+
+	do {
+		bool first = true;
+		key = tracefs_hist_data_keys(hdata);
+		val = tracefs_hist_data_values(hdata);
+		key_idx = 0;
+		val_idx = 0;
+
+		if (!key || !val) {
+			perror("keys or vals");
+			exit(-1);
+		}
+
+		while (key) {
+			if (!first)
+				printf(",");
+			first = false;
+			if (key_names[key_idx])
+				printf("%s:", key_names[key_idx++]);
+			else
+				printf("(\?\?):");
+			if (key->flags & TRACEFS_BUCKET_KEY_FL_UNDEF) {
+				fprintf(stderr, "bad key type?");
+				exit (-1);
+			} else if (key->flags & TRACEFS_BUCKET_KEY_FL_SINGLE) {
+
+				if (key->flags &
+				    ((1 << TRACEFS_HIST_KEY_SYM) |
+				     (1 << TRACEFS_HIST_KEY_SYM_OFFSET) |
+				     (1 << TRACEFS_HIST_KEY_SYSCALL) |
+				     (1 << TRACEFS_HIST_KEY_EXECNAME)))
+					printf("%s [ %lld ]",
+					       key->single.sym,
+					       key->single.val);
+				else
+					printf("%s", key->single.sym);
+
+			} else if  (key->flags & TRACEFS_BUCKET_KEY_FL_RANGE)
+				printf("%lld - %lld",
+				       key->range.start,
+				       key->range.end);
+			key = key->next;
+		}
+		printf(":");
+		first = true;
+		while (val) {
+			if (!first)
+				printf(",");
+			first = false;
+			if (value_names[val_idx])
+				printf("%s:", value_names[val_idx++]);
+			else
+				printf("(\?\?):");
+			printf("%lld", val->val);
+			val = val->next;
+		}
+		printf("\n");
+		if (tracefs_hist_data_next_bucket(hdata))
+			done = true;
+	} while (!done);
+
+	tracefs_list_free(key_names);
+	tracefs_list_free(value_names);
+	tracefs_hist_data_free(hdata);
+
+	return 0;
+}
+--
+
+BUGS
+----
+There are some known values that the histograms can produce that will break
+the parsing. Those are any string value that contains a comma (,) or a
+colon (:) may cause the parse to misinterpret the parsing and fail to parse.
+This may be fixed in the future.
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+_libtracefs(3)_,
+_libtraceevent(3)_,
+_trace-cmd(1)_,
+_tracefs_hist_data_parse(3)_
+_tracefs_hist_data_read(3)_
+_tracefs_hist_data_free(3)_
+_tracefs_hist_data_free_list(3)_
+_tracefs_hist_alloc(3)_,
+_tracefs_hist_free(3)_,
+_tracefs_hist_add_key(3)_,
+_tracefs_hist_add_value(3)_,
+_tracefs_hist_add_name(3)_,
+_tracefs_hist_start(3)_,
+_tracefs_hist_destory(3)_,
+_tracefs_hist_add_sort_key(3)_,
+_tracefs_hist_sort_key_direction(3)_
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+*sameeruddin shaik* <sameeruddin.shaik8@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).
