@@ -431,6 +431,42 @@ void tracefs_hist_data_free_list(struct tracefs_hist_data **hdata_list);
 char **tracefs_hist_data_key_names(struct tracefs_hist_data *hdata);
 char **tracefs_hist_data_value_names(struct tracefs_hist_data *hdata);
 
+enum tracefs_bucket_key_flags {
+	TRACEFS_BUCKET_KEY_FL_UNDEF	= (1 << 29),
+	TRACEFS_BUCKET_KEY_FL_SINGLE	= (1 << 30),
+	TRACEFS_BUCKET_KEY_FL_RANGE	= (1 << 31),
+};
+
+struct tracefs_hist_bucket_key_single {
+	long long		val;
+	char			*sym;
+};
+
+struct tracefs_hist_bucket_key_range {
+	long long		start;
+	long long		end;
+};
+
+struct tracefs_hist_bucket_key {
+	struct tracefs_hist_bucket_key	*next;
+	unsigned int			flags;
+	union {
+		struct tracefs_hist_bucket_key_single	single;
+		struct tracefs_hist_bucket_key_range	range;
+	};
+};
+
+struct tracefs_hist_bucket_val {
+	struct tracefs_hist_bucket_val		*next;
+	long long				val;
+};
+
+const struct tracefs_hist_bucket_key *tracefs_hist_data_keys(struct tracefs_hist_data *hdata);
+const struct tracefs_hist_bucket_val *tracefs_hist_data_values(struct tracefs_hist_data *hdata);
+
+int tracefs_hist_data_next_bucket(struct tracefs_hist_data *hdata);
+int tracefs_hist_data_first_bucket(struct tracefs_hist_data *hdata);
+
 struct tracefs_synth;
 
 /*

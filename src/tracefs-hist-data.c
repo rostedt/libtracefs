@@ -113,36 +113,6 @@ static char *name_token(enum yytokentype type)
 	return NULL;
 }
 
-enum tracefs_bucket_key_flags {
-	TRACEFS_BUCKET_KEY_FL_UNDEF	= (1 << 29),
-	TRACEFS_BUCKET_KEY_FL_SINGLE	= (1 << 30),
-	TRACEFS_BUCKET_KEY_FL_RANGE	= (1 << 31),
-};
-
-struct tracefs_hist_bucket_key_single {
-	long long		val;
-	char			*sym;
-};
-
-struct tracefs_hist_bucket_key_range {
-	long long		start;
-	long long		end;
-};
-
-struct tracefs_hist_bucket_key {
-	struct tracefs_hist_bucket_key	*next;
-	unsigned int			flags;
-	union {
-		struct tracefs_hist_bucket_key_single	single;
-		struct tracefs_hist_bucket_key_range	range;
-	};
-};
-
-struct tracefs_hist_bucket_val {
-	struct tracefs_hist_bucket_val		*next;
-	long long				val;
-};
-
 struct tracefs_hist_bucket {
 	struct tracefs_hist_bucket		*next;
 	struct tracefs_hist_bucket_key		*keys;
@@ -165,6 +135,7 @@ struct tracefs_hist_data {
 	struct key_types		*current_key_type;
 	struct tracefs_hist_bucket	*buckets;
 	struct tracefs_hist_bucket	**next_bucket;
+	struct tracefs_hist_bucket	*current_bucket;
 	unsigned long long		hits;
 	unsigned long long		entries;
 	unsigned long long		dropped;
@@ -1029,6 +1000,9 @@ tracefs_hist_data_parse(const char *buffer, const char **next_buffer, char **err
 	hist_lex_destroy(data.scanner);
 	free(data.text);
 
+	/* Set to read the first bucket after creation */
+	tracefs_hist_data_first_bucket(hdata);
+
 	return hdata;
  error:
 	print_error(&data, err, state, type);
@@ -1123,3 +1097,76 @@ char **tracefs_hist_data_value_names(struct tracefs_hist_data *hdata)
 	return tracefs_list_dup(hdata->value_names);
 }
 
+/**
+ * tracefs_hist_data_keys - Return the content of the keys
+ * @hdata: The hist data descriptor of the keys
+ *
+ * Returns the actual pointer to the key data list in the @hdata descriptor.
+ * It must not be modified or freed.
+ */
+const struct tracefs_hist_bucket_key *
+tracefs_hist_data_keys(struct tracefs_hist_data *hdata)
+{
+	if (!hdata || !hdata->current_bucket)
+		return NULL;
+
+	return hdata->current_bucket->keys;
+}
+
+/**
+ * tracefs_hist_data_values - Return the content of the values
+ * @hdata: The hist data descriptor of the values
+ *
+ * Returns the actual pointer to the value data list in the @hdata descriptor.
+ * It must not be modified or freed.
+ */
+const struct tracefs_hist_bucket_val *
+tracefs_hist_data_values(struct tracefs_hist_data *hdata)
+{
+	if (!hdata || !hdata->current_bucket)
+		return NULL;
+
+	return hdata->current_bucket->vals;
+}
+
+/**
+ * tracefs_hist_data_next_bucket - Move to the next bucket with content
+ * @hdata: The hist data desrciptor
+ *
+ * Move the "cursor" of the bucket that tracefs_hist_data_keys()
+ * and tracefs_hist_data_values() will return their data from.
+ *
+ * Returns -1 if @hdata is NULL or already hit the last bucket.
+ * Returns 0 if there's still data after going to the next bucket
+ * Returns 1 if there's no more data left.
+ */
+int tracefs_hist_data_next_bucket(struct tracefs_hist_data *hdata)
+{
+	if (!hdata || !hdata->current_bucket)
+		return -1;
+
+	hdata->current_bucket = hdata->current_bucket->next;
+
+	return !hdata->current_bucket;
+}
+
+/**
+ * tracefs_hist_data_first_bucket - Reset to the first bucket
+ * @hdata: The hist data desrciptor
+ *
+ * Move the "cursor" of the bucket that tracefs_hist_data_keys()
+ * and tracefs_hist_data_values() will return their data from
+ * to the first bucket in the @hlist.
+ *
+ * Returns -1 if @hdata is NULL or already hit the last bucket.
+ * Returns 0 if there's still data after going to the next bucket
+ * Returns 1 if there's no more data left.
+ */
+int tracefs_hist_data_first_bucket(struct tracefs_hist_data *hdata)
+{
+	if (!hdata || !hdata->buckets)
+		return -1;
+
+	hdata->current_bucket = hdata->buckets;
+	return !hdata->current_bucket;
+}
