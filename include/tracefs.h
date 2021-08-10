@@ -413,6 +413,13 @@ static inline int tracefs_hist_destroy(struct tracefs_instance *instance,
 	return tracefs_hist_command(instance, hist, TRACEFS_HIST_CMD_DESTROY);
 }
 
+struct tracefs_hist_data;
+
+struct tracefs_hist_data *tracefs_hist_data_parse(const char *buffer,
+						  const char **next_buffer,
+						  char **err);
+void tracefs_hist_data_free(struct tracefs_hist_data *hdata);
+
 struct tracefs_synth;
 
 /*

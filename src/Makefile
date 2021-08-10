@@ -17,6 +17,10 @@ OBJS += sqlhist-lex.o
 OBJS += sqlhist.tab.o
 OBJS += tracefs-sqlhist.o
 
+# Order matters for the the two below
+OBJS += hist-lex.o
+OBJS += tracefs-hist-data.o
+
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
 
@@ -44,6 +48,9 @@ sqlhist.tab.c: sqlhist.y sqlhist.tab.h
 
 sqlhist-lex.c: sqlhist.l sqlhist.tab.c
 	flex -o $@ $<
+
+hist-lex.c: hist.l
+	flex -P hist_ -o $@ $<
 
 $(bdir)/%.o: %.c
 	$(Q)$(call do_fpic_compile)
