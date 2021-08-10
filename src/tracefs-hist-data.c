@@ -399,6 +399,9 @@ static int __do_key_val(struct tracefs_hist_data *hdata,
 		break;
 	}
 
+	if (hdata->current_key_type->type < TRACEFS_HIST_KEY_MAX)
+		key->flags |= (1 << hdata->current_key_type->type);
+
 	return 0;
 }
 
