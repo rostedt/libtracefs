@@ -718,6 +718,24 @@ void tracefs_hist_data_free(struct tracefs_hist_data *hdata)
 	free(hdata);
 }
 
+/**
+ * tracefs_hist_data_free_list - frees a list of created hist data descriptors
+ * @hdata_list: The tracefs_hist_data descriptor list to free.
+ *
+ * Frees the data allocated by tracefs_hist_data_read().
+ */
+void tracefs_hist_data_free_list(struct tracefs_hist_data **hdata_list)
+{
+	int i;
+
+	if (!hdata_list)
+		return;
+
+	for (i = 0; hdata_list[i]; i++)
+		tracefs_hist_data_free(hdata_list[i]);
+	free(hdata_list);
+}
+
 /* Used for debugging in gdb */
 static void breakpoint(char *text)
 {
@@ -1019,3 +1037,59 @@ tracefs_hist_data_parse(const char *buffer, const char **next_buffer, char **err
 	tracefs_hist_data_free(hdata);
 	return NULL;
 }
+
+/**
+ * tracefs_hist_data_read - Reads and parses the trace event "hist" file
+ * @instance: The instance the trace event is in (NULL for top level)
+ * @system: The system of the @event (NULL to pick first event)
+ * @event: The trace event name to read the hist file from
+ * @err: On parsing errors, @err will be set to a message explaining what failed.
+ *
+ * Reads the content of a trace @event hist file and parses it.
+ *
+ * Returns an array of tracefs_hist_data descriptors, as a hist file
+ * may contain more than one histogram. Must be freed with
+ * tracefs_hist_data_free_list().
+ *
+ * Returns NULL on error, and if there was a parsing error, @err will contain
+ * a message explaining what failed.
+ */
+struct tracefs_hist_data **
+tracefs_hist_data_read(struct tracefs_instance *instance,
+		       const char *system, const char *event, char **err)
+{
+	struct tracefs_hist_data **tmp, **hdata_list = NULL;
+	const char *buffer;
+	char *content;
+	int cnt = 0;
+
+	if (err)
+		*err = NULL;
+
+	content = tracefs_event_file_read(instance, system, event, "hist", NULL);
+	if (!content)
+		return NULL;
+
+	buffer = content;
+	do {
+		tmp = realloc(hdata_list, sizeof(*tmp) * (cnt + 2));
+		if (!tmp)
+			goto error;
+		tmp[cnt + 1] = NULL;
+		tmp[cnt] = tracefs_hist_data_parse(buffer, &buffer, err);
+		if (!tmp[cnt])
+			goto error;
+		hdata_list = tmp;
+		if (buffer)
+			cnt++;
+	} while (buffer);
+
+	free(content);
+	return hdata_list;
+
+ error:
+	free(content);
+	tracefs_hist_data_free_list(hdata_list);
+	return NULL;
+}
+

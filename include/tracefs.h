@@ -418,7 +418,14 @@ struct tracefs_hist_data;
 struct tracefs_hist_data *tracefs_hist_data_parse(const char *buffer,
 						  const char **next_buffer,
 						  char **err);
+
+struct tracefs_hist_data **tracefs_hist_data_read(struct tracefs_instance *instance,
+						  const char *system,
+						  const char *event,
+						  char **err);
+
 void tracefs_hist_data_free(struct tracefs_hist_data *hdata);
+void tracefs_hist_data_free_list(struct tracefs_hist_data **hdata_list);
 
 struct tracefs_synth;
 
