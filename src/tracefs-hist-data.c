@@ -113,10 +113,10 @@ static char *name_token(enum yytokentype type)
 	return NULL;
 }
 
-enum tracefs_bucket_key_type {
-	TRACEFS_BUCKET_KEY_UNDEF,
-	TRACEFS_BUCKET_KEY_SINGLE,
-	TRACEFS_BUCKET_KEY_RANGE,
+enum tracefs_bucket_key_flags {
+	TRACEFS_BUCKET_KEY_FL_UNDEF	= (1 << 29),
+	TRACEFS_BUCKET_KEY_FL_SINGLE	= (1 << 30),
+	TRACEFS_BUCKET_KEY_FL_RANGE	= (1 << 31),
 };
 
 struct tracefs_hist_bucket_key_single {
@@ -131,7 +131,7 @@ struct tracefs_hist_bucket_key_range {
 
 struct tracefs_hist_bucket_key {
 	struct tracefs_hist_bucket_key	*next;
-	enum tracefs_bucket_key_type	type;
+	unsigned int			flags;
 	union {
 		struct tracefs_hist_bucket_key_single	single;
 		struct tracefs_hist_bucket_key_range	range;
@@ -210,6 +210,8 @@ static int start_new_row(struct tracefs_hist_data *hdata)
 		return -1;
 	}
 
+	key->flags = TRACEFS_BUCKET_KEY_FL_UNDEF;
+
 	bucket->keys = key;
 	bucket->next_key = &key->next;
 
@@ -232,6 +234,8 @@ static int start_new_key(struct tracefs_hist_data *hdata)
 		free(bucket);
 		return -1;
 	}
+
+	key->flags = TRACEFS_BUCKET_KEY_FL_UNDEF;
 
 	*bucket->next_key = key;
 	bucket->next_key = &key->next;
@@ -385,11 +389,12 @@ static int __do_key_val(struct tracefs_hist_data *hdata,
 	bucket = container_of(hdata->next_bucket, struct tracefs_hist_bucket, next);
 
 	key = container_of(bucket->next_key, struct tracefs_hist_bucket_key, next);
-	if (!key->type)
-		key->type = TRACEFS_BUCKET_KEY_SINGLE;
-
-	if (key->type != TRACEFS_BUCKET_KEY_SINGLE)
+	if (!(key->flags &
+	      (TRACEFS_BUCKET_KEY_FL_UNDEF | TRACEFS_BUCKET_KEY_FL_SINGLE)))
 		return -1;
+
+	key->flags &= ~TRACEFS_BUCKET_KEY_FL_UNDEF;
+	key->flags |= TRACEFS_BUCKET_KEY_FL_SINGLE;
 
 	k = &key->single;
 
@@ -455,7 +460,7 @@ static int do_key_raw(struct tracefs_hist_data *hdata, char *text)
 	bucket = container_of(hdata->next_bucket, struct tracefs_hist_bucket, next);
 
 	key = container_of(bucket->next_key, struct tracefs_hist_bucket_key, next);
-	if (key->type != TRACEFS_BUCKET_KEY_SINGLE)
+	if (!(key->flags & TRACEFS_BUCKET_KEY_FL_SINGLE))
 		return -1;
 
 	k = &key->single;
@@ -487,11 +492,12 @@ static int do_key_range(struct tracefs_hist_data *hdata, long long start,
 
 	key = container_of(bucket->next_key, struct tracefs_hist_bucket_key, next);
 
-	if (!key->type)
-		key->type = TRACEFS_BUCKET_KEY_RANGE;
-
-	if (key->type != TRACEFS_BUCKET_KEY_RANGE)
+	if (!(key->flags &
+	      (TRACEFS_BUCKET_KEY_FL_UNDEF | TRACEFS_BUCKET_KEY_FL_RANGE)))
 		return -1;
+
+	key->flags &= ~TRACEFS_BUCKET_KEY_FL_UNDEF;
+	key->flags |= TRACEFS_BUCKET_KEY_FL_RANGE;
 
 	k = &key->range;
 
@@ -698,13 +704,8 @@ void tracefs_hist_data_free(struct tracefs_hist_data *hdata)
 		hdata->buckets = bucket->next;
 		while ((key = bucket->keys)) {
 			bucket->keys = key->next;
-			switch (key->type) {
-			case TRACEFS_BUCKET_KEY_SINGLE:
+			if (key->flags & TRACEFS_BUCKET_KEY_FL_SINGLE)
 				free(key->single.sym);
-				break;
-			default:
-				break;
-			}
 			free(key);
 		}
 		while ((val = bucket->vals)) {
