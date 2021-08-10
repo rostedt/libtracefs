@@ -67,6 +67,7 @@ void tracefs_list_free(char **list);
 char **tracefs_list_add(char **list, const char *string);
 int tracefs_list_size(char **list);
 int tracefs_list_pop(char **list);
+char **tracefs_list_dup(char **list);
 
 /**
  * tracefs_trace_on_get_fd - Get a file descriptor of "tracing_on" in given instance

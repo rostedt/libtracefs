@@ -489,3 +489,29 @@ int tracefs_list_size(char **list)
 	list--;
 	return (int)*(unsigned long *)list;
 }
+
+/**
+ * tracefs_list_dup - create a duplicate list
+ * @list: The list to duplicate
+ *
+ * Allocates a new list that can be modified and freed separately.
+ *
+ * Returns a new allocated list that must be freed with
+ * tracefs_list_free(), or NULL on error.
+ */
+char **tracefs_list_dup(char **list)
+{
+	char **new = NULL;
+	char **tmp;
+	int i;
+
+	for (i = 0; list[i]; i++) {
+		tmp = tracefs_list_add(new, list[i]);
+		if (!tmp) {
+			free(new);
+			return NULL;
+		}
+		new = tmp;
+	}
+	return new;
+}
