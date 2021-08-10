@@ -1093,3 +1093,33 @@ tracefs_hist_data_read(struct tracefs_instance *instance,
 	return NULL;
 }
 
+/**
+ * tracefs_hist_data_key_names - return key names
+ * @hdata: The hist data descriptor to get the names from
+ *
+ * Returns a copy of the key names of the keys. The list of keys
+ * will be in the same order as the keys are listed.
+ * Returns NULL on error.
+ *
+ * Must be freed with tracefs_list_free();
+ */
+char **tracefs_hist_data_key_names(struct tracefs_hist_data *hdata)
+{
+	return tracefs_list_dup(hdata->key_names);
+}
+
+/**
+ * tracefs_hist_data_value_names - return value names
+ * @hdata: The hist data descriptor to get the names from
+ *
+ * Returns a copy of the value names of the keys. The list of keys
+ * will be in the same order as the values are listed.
+ * Returns NULL on error.
+ *
+ * Must be freed with tracefs_list_free();
+ */
+char **tracefs_hist_data_value_names(struct tracefs_hist_data *hdata)
+{
+	return tracefs_list_dup(hdata->value_names);
+}
+

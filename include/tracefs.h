@@ -428,6 +428,9 @@ struct tracefs_hist_data **tracefs_hist_data_read(struct tracefs_instance *insta
 void tracefs_hist_data_free(struct tracefs_hist_data *hdata);
 void tracefs_hist_data_free_list(struct tracefs_hist_data **hdata_list);
 
+char **tracefs_hist_data_key_names(struct tracefs_hist_data *hdata);
+char **tracefs_hist_data_value_names(struct tracefs_hist_data *hdata);
+
 struct tracefs_synth;
 
 /*
