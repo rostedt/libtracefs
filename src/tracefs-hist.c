@@ -1378,28 +1378,40 @@ static char *create_hist(char **keys, char **vars)
 	return hist;
 }
 
-static char *create_end_hist(struct tracefs_synth *synth)
+static char *create_onmatch(char *hist, struct tracefs_synth *synth)
 {
-	const char *name;
-	char *end_hist;
+	hist = append_string(hist, NULL, ":onmatch(");
+	hist = append_string(hist, NULL, synth->start_event->system);
+	hist = append_string(hist, NULL, ".");
+	hist = append_string(hist, NULL, synth->start_event->name);
+	return append_string(hist, NULL, ")");
+}
+
+static char *create_trace(char *hist, struct tracefs_synth *synth)
+{
+	char *name;
 	int i;
 
-	end_hist = create_hist(synth->end_keys, synth->end_vars);
-	end_hist = append_string(end_hist, NULL, ":onmatch(");
-	end_hist = append_string(end_hist, NULL, synth->start_event->system);
-	end_hist = append_string(end_hist, NULL, ".");
-	end_hist = append_string(end_hist, NULL, synth->start_event->name);
-	end_hist = append_string(end_hist, NULL, ").trace(");
-	end_hist = append_string(end_hist, NULL, synth->name);
+	hist = append_string(hist, NULL, ".trace(");
+	hist = append_string(hist, NULL, synth->name);
 
 	for (i = 0; synth->synthetic_args && synth->synthetic_args[i]; i++) {
 		name = synth->synthetic_args[i];
 
-		end_hist = append_string(end_hist, NULL, ",");
-		end_hist = append_string(end_hist, NULL, name);
+		hist = append_string(hist, NULL, ",");
+		hist = append_string(hist, NULL, name);
 	}
 
-	return append_string(end_hist, NULL, ")");
+	return append_string(hist, NULL, ")");
+}
+
+static char *create_end_hist(struct tracefs_synth *synth)
+{
+	char *end_hist;
+
+	end_hist = create_hist(synth->end_keys, synth->end_vars);
+	end_hist = create_onmatch(end_hist, synth);
+	return create_trace(end_hist, synth);
 }
 
 static char *append_filter(char *hist, char *filter, unsigned int parens)
