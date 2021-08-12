@@ -851,15 +851,18 @@ struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
 
 static int add_synth_fields(struct tracefs_synth *synth,
 			    const struct tep_format_field *field,
-			    const char *name)
+			    const char *name, const char *var)
 {
 	char **list;
 	char *str;
 	int ret;
 
-	str = add_synth_field(field, name);
+	str = add_synth_field(field, name ? : field->name);
 	if (!str)
 		return -1;
+
+	if (!name)
+		name = var;
 
 	list = tracefs_list_add(synth->synthetic_fields, str);
 	free(str);
@@ -942,7 +945,7 @@ int tracefs_synth_add_match_field(struct tracefs_synth *synth,
 	if (ret < 0)
 		goto pop_lists;
 
-	ret = add_synth_fields(synth, key_field, name);
+	ret = add_synth_fields(synth, key_field, name, NULL);
 	if (ret < 0)
 		goto pop_lists;
 
@@ -1071,7 +1074,7 @@ int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
 	if (ret < 0)
 		goto out_free;
 
-	ret = add_synth_fields(synth, start_field, name);
+	ret = add_synth_fields(synth, start_field, name, NULL);
 	if (ret < 0)
 		goto out_free;
 
@@ -1116,7 +1119,7 @@ __hidden int synth_add_start_field(struct tracefs_synth *synth,
 	if (ret)
 		goto out_free;
 
-	ret = add_synth_fields(synth, field, name);
+	ret = add_synth_fields(synth, field, name, NULL);
 	if (ret)
 		goto out_free;
 
@@ -1188,6 +1191,7 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 				const char *name)
 {
 	const struct tep_format_field *field;
+	char *tmp_var = NULL;
 	int ret;
 
 	if (!synth || !end_field) {
@@ -1196,17 +1200,17 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 	}
 
 	if (!name)
-		name = end_field;
+		tmp_var = new_arg(synth);
 
 	if (!trace_verify_event_field(synth->end_event, end_field, &field))
 		return -1;
 
-	ret = add_var(&synth->end_vars, name, end_field, false);
+	ret = add_var(&synth->end_vars, name ? : tmp_var, end_field, false);
 	if (ret)
 		goto out;
 
-	ret = add_synth_fields(synth, field, name);
-
+	ret = add_synth_fields(synth, field, name, tmp_var);
+	free(tmp_var);
  out:
 	return ret;
 }
