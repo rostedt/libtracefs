@@ -10,6 +10,9 @@ MAN3_TXT= \
 	$(wildcard libtracefs-*.txt) \
 	libtracefs.txt
 
+MAN1_TEXT= \
+	$(wildcard libtracefs-*.txt.1)
+
 MAN_TXT = $(MAN3_TXT)
 _MAN_XML=$(patsubst %.txt,%.xml,$(MAN_TXT))
 _MAN_HTML=$(patsubst %.txt,%.html,$(MAN_TXT))
@@ -18,6 +21,15 @@ _DOC_MAN3=$(patsubst %.txt,%.m,$(MAN3_TXT))
 MAN_XML=$(addprefix $(OUTPUT),$(_MAN_XML))
 MAN_HTML=$(addprefix $(OUTPUT),$(_MAN_HTML))
 DOC_MAN3=$(addprefix $(OUTPUT),$(_DOC_MAN3))
+
+_MAN1_XML=$(patsubst %.txt.1,%.xml,$(MAN1_TEXT))
+_MAN1_HTML=$(patsubst %.txt.1,%.html,$(MAN1_TEXT))
+_DOC_MAN1=$(patsubst %.txt.1,%.m,$(MAN1_TEXT))
+
+MAN1_XML=$(addprefix $(OUTPUT),$(_MAN1_XML))
+MAN1_HTML=$(addprefix $(OUTPUT),$(_MAN1_HTML))
+DOC_MAN1=$(addprefix $(OUTPUT),$(_DOC_MAN1))
+
 
 # Make the path relative to DESTDIR, not prefix
 ifndef DESTDIR
@@ -28,6 +40,7 @@ htmldir?=$(prefix)/share/doc/libtracefs-doc
 pdfdir?=$(prefix)/share/doc/libtracefs-doc
 mandir?=$(prefix)/share/man
 man3dir=$(mandir)/man3
+man1dir=$(mandir)/man1
 
 ASCIIDOC=asciidoc
 ASCIIDOC_EXTRA = --unsafe -f asciidoc.conf
@@ -131,12 +144,13 @@ endif
 
 all: check-man-tools html man
 
-man: man3
+man: man3 man1
 man3: $(DOC_MAN3)
+man1: $(DOC_MAN1)
 
-html: $(MAN_HTML)
+html: $(MAN_HTML) $(MAN1_HTML)
 
-$(MAN_HTML) $(DOC_MAN3): asciidoc.conf
+$(MAN_HTML) $(MAN1_HTML) $(DOC_MAN3) $(DOC_MAN1): asciidoc.conf
 
 install: check-man-tools install-man install-html
 
@@ -148,7 +162,10 @@ endif
 install-%.3: $(OUTPUT)%.3
 	$(Q)$(call do_install,$<,$(man3dir),644);
 
-do-install-man: man $(addprefix install-,$(wildcard $(OUTPUT)*.3))
+install-%.1: $(OUTPUT)%.1
+	$(Q)$(call do_install,$<,$(man1dir),644);
+
+do-install-man: man $(addprefix install-,$(wildcard $(OUTPUT)*.3)) $(addprefix install-,$(wildcard $(OUTPUT)*.1))
 
 install-man: man
 	$(Q)$(MAKE) -C . do-install-man
@@ -156,17 +173,20 @@ install-man: man
 install-%.txt: $(OUTPUT)%.html
 	$(Q)$(call do_install,$<,$(htmldir),644);
 
-do-install-html: html $(addprefix install-,$(wildcard *.txt))
+install-%.txt.1: $(OUTPUT)%.html
+	$(Q)$(call do_install,$<,$(htmldir),644);
+
+do-install-html: html $(addprefix install-,$(wildcard *.txt)) $(addprefix install-,$(wildcard *.txt.1))
 
 install-html: html do-install-html
 
 uninstall: uninstall-man uninstall-html
 
 uninstall-man:
-	$(Q)$(RM) $(addprefix $(DESTDIR)$(man3dir)/,$(DOC_MAN3))
+	$(Q)$(RM) $(addprefix $(DESTDIR)$(man3dir)/,$(DOC_MAN3)) $(addprefix $(DESTDIR)$(man1dir)/,$(DOC_MAN1))
 
 uninstall-html:
-	$(Q)$(RM) $(addprefix $(DESTDIR)$(htmldir)/,$(MAN_HTML))
+	$(Q)$(RM) $(addprefix $(DESTDIR)$(htmldir)/,$(MAN_HTML)) $(addprefix $(DESTDIR)$(htmldir)/,$(MAN1_HTML))
 
 ifdef missing_tools
   DO_INSTALL_MAN = $(warning Please install $(missing_tools) to have the man pages installed)
@@ -177,13 +197,18 @@ endif
 CLEAN_FILES =					\
 	$(MAN_XML) $(addsuffix +,$(MAN_XML))	\
 	$(MAN_HTML) $(addsuffix +,$(MAN_HTML))	\
-	$(DOC_MAN3) *.3 *.m
+	$(DOC_MAN3) *.3 *.1 *.m
 
 clean:
 	$(Q) $(RM) $(CLEAN_FILES)
 
 ifdef USE_ASCIIDOCTOR
 $(OUTPUT)%.3 : $(OUTPUT)%.txt
+	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
+	$(ASCIIDOC) -b manpage -d manpage \
+		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
+	mv $@+ $@
+$(OUTPUT)%.1 : $(OUTPUT)%.txt.1
 	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
 	$(ASCIIDOC) -b manpage -d manpage \
 		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
@@ -201,7 +226,19 @@ $(OUTPUT)%.xml : %.txt
 		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
 	mv $@+ $@
 
+$(OUTPUT)%.xml : %.txt.1
+	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
+	$(ASCIIDOC) -b docbook -d manpage \
+		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
+	mv $@+ $@
+
 $(MAN_HTML): $(OUTPUT)%.html : %.txt
+	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
+	$(ASCIIDOC) -b $(ASCIIDOC_HTML) -d manpage \
+		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
+	mv $@+ $@
+
+$(MAN1_HTML): $(OUTPUT)%.html : %.txt.1
 	$(QUIET_ASCIIDOC)$(RM) $@+ $@ && \
 	$(ASCIIDOC) -b $(ASCIIDOC_HTML) -d manpage \
 		$(ASCIIDOC_EXTRA) -alibtracefs_version=$(TRACEFS_VERSION) -o $@+ $< && \
