@@ -309,7 +309,6 @@ static void usage(char **argv)
 		"  -n name - name of synthetic event 'Anonymous' if left off\n"
 		"  -t dir - use dir instead of /sys/kernel/tracing\n"
 		"  -e - execute the commands to create the synthetic event\n"
-		"  -d - delete the synthetic event that would be created\n"
 		"  -f file - read sql lines from file otherwise from the command line\n"
 		"            if file is '-' then read from standard input.\n",
 		argv[0]);
@@ -383,7 +382,7 @@ int main (int argc, char **argv)
 	int i;
 
 	for (;;) {
-		c = getopt(argc, argv, "ht:f:edn:");
+		c = getopt(argc, argv, "ht:f:en:");
 		if (c == -1)
 			break;
 
