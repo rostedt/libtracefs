@@ -435,6 +435,13 @@ int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
 #define TRACEFS_TIMESTAMP "common_timestamp"
 #define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"
 
+enum tracefs_synth_handler {
+	TRACEFS_SYNTH_HANDLE_NONE	= 0,
+	TRACEFS_SYNTH_HANDLE_MATCH,
+	TRACEFS_SYNTH_HANDLE_MAX,
+	TRACEFS_SYNTH_HANDLE_CHANGE,
+};
+
 struct tracefs_synth *tracefs_synth_init(struct tep_handle *tep,
 					 const char *name,
 					 const char *start_system,
