@@ -3,7 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_show - Creation of synthetic events
+tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_show,tracefs_synth_complete,
+tracefs_synth_get_start_hist,tracefs_synth_trace - Creation of synthetic events
 
 SYNOPSIS
 --------
@@ -20,6 +21,8 @@ int tracefs_synth_show(struct trace_seq pass:[*]seq, struct tracefs_instance pas
 bool tracefs_synth_complete(struct tracefs_synth pass:[*]synth);
 struct tracefs_hist pass:[*]tracefs_synth_get_start_hist(struct tracefs_synth pass:[*]synth);
 
+int tracefs_synth_trace(struct tracefs_synth pass:[*]synth,
+			enum tracefs_synth_handler type, const char pass:[*]var);
 --
 
 DESCRIPTION
@@ -59,6 +62,18 @@ a starting and ending event.
 
 *tracefs_synth_get_start_hist*() returns a struct tracefs_hist descriptor describing
 the histogram used to create the synthetic event.
+
+enum tracefs_synth_handler {
+	TRACEFS_SYNTH_HANDLE_MATCH,
+	TRACEFS_SYNTH_HANDLE_MAX,
+	TRACEFS_SYNTH_HANDLE_CHANGE,
+};
+
+*tracefs_synth_trace*() Instead of doing just a trace on matching of the start and
+end events, do the _type_ handler where *TRACEFS_SYNTH_HANDLE_MAX* will do a trace
+when the given variable _var_ hits a new max for the matching keys. Or
+*TRACEFS_SYNTH_HANDLE_CHANGE* for when the _var_ changes. _var_ must be one of
+the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
 RETURN VALUE
 ------------
