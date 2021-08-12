@@ -13,6 +13,8 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
 #include "tracefs.h"
 #include "tracefs-local.h"
@@ -558,6 +560,7 @@ struct tracefs_synth {
 	unsigned int		end_parens;
 	unsigned int		end_state;
 	int			*start_type;
+	char			arg_name[16];
 	int			arg_cnt;
 };
 
@@ -951,13 +954,31 @@ int tracefs_synth_add_match_field(struct tracefs_synth *synth,
 	return -1;
 }
 
+static unsigned int make_rand(void)
+{
+	struct timeval tv;
+	unsigned long seed;
+
+	gettimeofday(&tv, NULL);
+	seed = (tv.tv_sec + tv.tv_usec) + gettid();
+
+	/* taken from the rand(3) man page */
+	seed = seed * 1103515245 + 12345;
+	return((unsigned)(seed/65536) % 32768);
+}
+
 static char *new_arg(struct tracefs_synth *synth)
 {
 	int cnt = synth->arg_cnt + 1;
 	char *arg;
 	int ret;
 
-	ret = asprintf(&arg, "__arg__%d", cnt);
+	/* Create a unique argument name */
+	if (!synth->arg_name[0]) {
+		/* make_rand() returns at most 32768 (total 13 bytes in use) */
+		sprintf(synth->arg_name, "__arg_%u_", make_rand());
+	}
+	ret = asprintf(&arg, "%s%d", synth->arg_name, cnt);
 	if (ret < 0)
 		return NULL;
 
