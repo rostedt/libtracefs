@@ -117,6 +117,8 @@ And more errors may have happened from the system calls to the system.
 
 EXAMPLE
 -------
+See *tracefs_sql*(3) for a more indepth use of some of this code.
+
 [source,c]
 --
 #include <stdlib.h>
