@@ -40,6 +40,12 @@ on { HANDLE_COLUMN; return ON; }
 where { HANDLE_COLUMN; return WHERE; }
 cast { HANDLE_COLUMN; return CAST; }
 
+sym-offset {
+	HANDLE_COLUMN;
+	yylval->string = store_str(TRACE_SB, yyg->yytext_r);
+	return FIELD;
+}
+
 {qstring} {
 	HANDLE_COLUMN;
 	yylval->string = store_str(TRACE_SB, yyg->yytext_r);
