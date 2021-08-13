@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_show,tracefs_synth_complete,
-tracefs_synth_get_start_hist,tracefs_synth_trace - Creation of synthetic events
+tracefs_synth_get_start_hist,tracefs_synth_trace,tracefs_synth_snapshot - Creation of synthetic events
 
 SYNOPSIS
 --------
@@ -23,6 +23,8 @@ struct tracefs_hist pass:[*]tracefs_synth_get_start_hist(struct tracefs_synth pa
 
 int tracefs_synth_trace(struct tracefs_synth pass:[*]synth,
 			enum tracefs_synth_handler type, const char pass:[*]var);
+int tracefs_synth_snapshot(struct tracefs_synth pass:[*]synth,
+			   enum tracefs_synth_handler type, const char pass:[*]var);
 --
 
 DESCRIPTION
@@ -73,6 +75,13 @@ enum tracefs_synth_handler {
 end events, do the _type_ handler where *TRACEFS_SYNTH_HANDLE_MAX* will do a trace
 when the given variable _var_ hits a new max for the matching keys. Or
 *TRACEFS_SYNTH_HANDLE_CHANGE* for when the _var_ changes. _var_ must be one of
+the _name_ elements used in *tracefs_synth_add_end_field*(3).
+
+*tracefs_synth_snapshot*() When the given variable _var_ is either a new max if
+_handler_ is TRACEFS_SYNTH_HANDLE_MAX_ or simpy changed if TRACEFS_SYNTH_HANDLE_CHANGE_
+then take a "snapshot" of the buffer. The snapshot moves the normal "trace" buffer
+into a "snapshot" buffer, that can be accessed via the "snapshot" file in the
+top level tracefs directory, or one of the instances.  _var_ changes. _var_ must be one of
 the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
 RETURN VALUE

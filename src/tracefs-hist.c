@@ -524,6 +524,7 @@ int tracefs_hist_append_filter(struct tracefs_hist *hist,
 enum action_type {
 	ACTION_NONE,
 	ACTION_TRACE,
+	ACTION_SNAPSHOT,
 };
 
 struct action {
@@ -1414,6 +1415,36 @@ int tracefs_synth_trace(struct tracefs_synth *synth,
 	return 0;
 }
 
+/**
+ * tracefs_synth_snapshot - create a snapshot command to the histogram
+ * @synth: The tracefs_synth descriptor
+ * @type: The type of handler to attach the snapshot action with
+ * @field: The field for handlers onmax and onchange
+ *
+ * Add the action to do a snapshot for handlers onmax and onchange.
+ *
+ * Returns 0 on succes, -1 on error.
+ */
+int tracefs_synth_snapshot(struct tracefs_synth *synth,
+			   enum tracefs_synth_handler type, const char *field)
+{
+	struct action *action;
+
+	if (!synth || !field || (type == TRACEFS_SYNTH_HANDLE_MATCH)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	action = create_action(type, synth, field);
+	if (!action)
+		return -1;
+
+	action->type = ACTION_SNAPSHOT;
+	action->handler = type;
+	add_action(synth, action);
+	return 0;
+}
+
 static char *create_synthetic_event(struct tracefs_synth *synth)
 {
 	char *synthetic_event;
@@ -1561,6 +1592,9 @@ static char *create_actions(char *hist, struct tracefs_synth *synth)
 		switch (action->type) {
 		case ACTION_TRACE:
 			hist = create_trace(hist, synth);
+			break;
+		case ACTION_SNAPSHOT:
+			hist = append_string(hist, NULL, ".snapshot()");
 			break;
 		default:
 			continue;

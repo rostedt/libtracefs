@@ -478,6 +478,8 @@ int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				    const char *val);
 int tracefs_synth_trace(struct tracefs_synth *synth,
 			enum tracefs_synth_handler type, const char *field);
+int tracefs_synth_snapshot(struct tracefs_synth *synth,
+			   enum tracefs_synth_handler type, const char *field);
 bool tracefs_synth_complete(struct tracefs_synth *synth);
 struct tracefs_hist *tracefs_synth_get_start_hist(struct tracefs_synth *synth);
 int tracefs_synth_create(struct tracefs_instance *instance,
