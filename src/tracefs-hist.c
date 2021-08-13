@@ -521,12 +521,25 @@ int tracefs_hist_append_filter(struct tracefs_hist *hist,
 				   type, field, compare, val);
 }
 
+enum action_type {
+	ACTION_NONE,
+	ACTION_TRACE,
+};
+
+struct action {
+	struct action			*next;
+	enum action_type		type;
+	enum tracefs_synth_handler	handler;
+	char				*handle_field;
+};
+
 /*
  * @name: name of the synthetic event
  * @start_system: system of the starting event
  * @start_event: the starting event
  * @end_system: system of the ending event
  * @end_event: the ending event
+ * @actions: List of actions to take
  * @match_names: If a match set is to be a synthetic field, it has a name
  * @start_match: list of keys in the start event that matches end event
  * @end_match: list of keys in the end event that matches the start event
@@ -545,6 +558,8 @@ struct tracefs_synth {
 	struct tep_handle	*tep;
 	struct tep_event	*start_event;
 	struct tep_event	*end_event;
+	struct action		*actions;
+	struct action		**next_action;
 	char			*name;
 	char			**synthetic_fields;
 	char			**synthetic_args;
@@ -575,6 +590,8 @@ struct tracefs_synth {
  */
 void tracefs_synth_free(struct tracefs_synth *synth)
 {
+	struct action *action;
+
 	if (!synth)
 		return;
 
@@ -589,6 +606,12 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 	free(synth->end_filter);
 
 	tep_unref(synth->tep);
+
+	while ((action = synth->actions)) {
+		synth->actions = action->next;
+		free(action->handle_field);
+		free(action);
+	}
 
 	free(synth);
 }
@@ -750,6 +773,7 @@ synth_init_from(struct tep_handle *tep, const char *start_system,
 		return NULL;
 
 	synth->start_event = start_event;
+	synth->next_action = &synth->actions;
 
 	/* Hold onto a reference to this handler */
 	tep_ref(tep);
@@ -1405,13 +1429,61 @@ static char *create_trace(char *hist, struct tracefs_synth *synth)
 	return append_string(hist, NULL, ")");
 }
 
+static char *create_max(char *hist, struct tracefs_synth *synth, char *field)
+{
+	hist = append_string(hist, NULL, ":onmax(");
+	hist = append_string(hist, NULL, field);
+	return append_string(hist, NULL, ")");
+}
+
+static char *create_change(char *hist, struct tracefs_synth *synth, char *field)
+{
+	hist = append_string(hist, NULL, ":onchange(");
+	hist = append_string(hist, NULL, field);
+	return append_string(hist, NULL, ")");
+}
+
+static char *create_actions(char *hist, struct tracefs_synth *synth)
+{
+	struct action *action;
+
+	if (!synth->actions) {
+		/* Default is "onmatch" and "trace" */
+		hist = create_onmatch(hist, synth);
+		return create_trace(hist, synth);
+	}
+
+	for (action = synth->actions; action; action = action->next) {
+		switch (action->handler) {
+		case TRACEFS_SYNTH_HANDLE_MATCH:
+			hist = create_onmatch(hist, synth);
+			break;
+		case TRACEFS_SYNTH_HANDLE_MAX:
+			hist = create_max(hist, synth, action->handle_field);
+			break;
+		case TRACEFS_SYNTH_HANDLE_CHANGE:
+			hist = create_change(hist, synth, action->handle_field);
+			break;
+		default:
+			continue;
+		}
+		switch (action->type) {
+		case ACTION_TRACE:
+			hist = create_trace(hist, synth);
+			break;
+		default:
+			continue;
+		}
+	}
+	return hist;
+}
+
 static char *create_end_hist(struct tracefs_synth *synth)
 {
 	char *end_hist;
 
 	end_hist = create_hist(synth->end_keys, synth->end_vars);
-	end_hist = create_onmatch(end_hist, synth);
-	return create_trace(end_hist, synth);
+	return create_actions(end_hist, synth);
 }
 
 static char *append_filter(char *hist, char *filter, unsigned int parens)
