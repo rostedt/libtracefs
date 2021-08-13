@@ -1323,6 +1323,97 @@ int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				   type, field, compare, val);
 }
 
+static int test_max_var(struct tracefs_synth *synth, const char *var)
+{
+	char **vars = synth->end_vars;
+	char *p;
+	int len;
+	int i;
+
+	len = strlen(var);
+
+	/* Make sure the var is defined for the end event */
+	for (i = 0; vars[i]; i++) {
+		p = strchr(vars[i], '=');
+		if (!p)
+			continue;
+		if (p - vars[i] != len)
+			continue;
+		if (!strncmp(var, vars[i], len))
+			return 0;
+	}
+	errno = ENODEV;
+	return -1;
+}
+
+static struct action *create_action(enum tracefs_synth_handler type,
+				    struct tracefs_synth *synth,
+				    const char *var)
+{
+	struct action *action;
+	int ret;
+
+	switch (type) {
+	case TRACEFS_SYNTH_HANDLE_MAX:
+	case TRACEFS_SYNTH_HANDLE_CHANGE:
+		ret = test_max_var(synth, var);
+		if (ret < 0)
+			return NULL;
+		break;
+	default:
+		break;
+	}
+
+	action = calloc(1, sizeof(*action));
+	if (!action)
+		return NULL;
+
+	if (var) {
+		ret = asprintf(&action->handle_field, "$%s", var);
+		if (!action->handle_field) {
+			free(action);
+			return NULL;
+		}
+	}
+	return action;
+}
+
+static void add_action(struct tracefs_synth *synth, struct action *action)
+{
+	*synth->next_action = action;
+	synth->next_action = &action->next;
+}
+
+/**
+ * tracefs_synth_trace - Execute the trace option
+ * @synth: The tracefs_synth descriptor
+ * @type: The type of handler to attach the trace action with
+ * @field: The field for handlers onmax and onchange (ignored otherwise)
+ *
+ * Add the action 'trace' for handlers onmatch, onmax and onchange.
+ *
+ * Returns 0 on succes, -1 on error.
+ */
+int tracefs_synth_trace(struct tracefs_synth *synth,
+			enum tracefs_synth_handler type, const char *field)
+{
+	struct action *action;
+
+	if (!synth || (!field && (type != TRACEFS_SYNTH_HANDLE_MATCH))) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	action = create_action(type, synth, field);
+	if (!action)
+		return -1;
+
+	action->type = ACTION_TRACE;
+	action->handler = type;
+	add_action(synth, action);
+	return 0;
+}
+
 static char *create_synthetic_event(struct tracefs_synth *synth)
 {
 	char *synthetic_event;
