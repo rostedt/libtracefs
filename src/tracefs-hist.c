@@ -525,6 +525,7 @@ enum action_type {
 	ACTION_NONE,
 	ACTION_TRACE,
 	ACTION_SNAPSHOT,
+	ACTION_SAVE,
 };
 
 struct action {
@@ -532,6 +533,7 @@ struct action {
 	enum action_type		type;
 	enum tracefs_synth_handler	handler;
 	char				*handle_field;
+	char				*save;
 };
 
 /*
@@ -580,6 +582,13 @@ struct tracefs_synth {
 	int			arg_cnt;
 };
 
+static void action_free(struct action *action)
+{
+	free(action->handle_field);
+	free(action->save);
+	free(action);
+}
+
 /**
  * tracefs_synth_free - free the resources alloced to a synth
  * @synth: The tracefs_synth descriptor
@@ -610,8 +619,7 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 
 	while ((action = synth->actions)) {
 		synth->actions = action->next;
-		free(action->handle_field);
-		free(action);
+		action_free(action);
 	}
 
 	free(synth);
@@ -1445,6 +1453,64 @@ int tracefs_synth_snapshot(struct tracefs_synth *synth,
 	return 0;
 }
 
+/**
+ * tracefs_synth_save - create a save command to the histogram
+ * @synth: The tracefs_synth descriptor
+ * @type: The type of handler to attach the save action
+ * @max_field: The field for handlers onmax and onchange
+ * @fields: The fields to save for the end variable
+ *
+ * Add the action to save fields for handlers onmax and onchange.
+ *
+ * Returns 0 on succes, -1 on error.
+ */
+int tracefs_synth_save(struct tracefs_synth *synth,
+		       enum tracefs_synth_handler type, const char *max_field,
+		       char **fields)
+{
+	struct action *action;
+	char *save;
+	int i;
+
+	if (!synth || !max_field || (type == TRACEFS_SYNTH_HANDLE_MATCH)) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	action = create_action(type, synth, max_field);
+	if (!action)
+		return -1;
+
+	action->type = ACTION_SAVE;
+	action->handler = type;
+	*synth->next_action = action;
+	synth->next_action = &action->next;
+
+	save = strdup(".save(");
+	if (!save)
+		goto error;
+
+	for (i = 0; fields[i]; i++) {
+		char *delim = i ? "," : NULL;
+
+		if (!trace_verify_event_field(synth->end_event, fields[i], NULL))
+			goto error;
+		save = append_string(save, delim, fields[i]);
+	}
+	save = append_string(save, NULL, ")");
+	if (!save)
+		goto error;
+
+	action->save = save;
+	add_action(synth, action);
+	return 0;
+ error:
+	action_free(action);
+	free(save);
+	return -1;
+	return 0;
+}
+
 static char *create_synthetic_event(struct tracefs_synth *synth)
 {
 	char *synthetic_event;
@@ -1595,6 +1661,9 @@ static char *create_actions(char *hist, struct tracefs_synth *synth)
 			break;
 		case ACTION_SNAPSHOT:
 			hist = append_string(hist, NULL, ".snapshot()");
+			break;
+		case ACTION_SAVE:
+			hist = append_string(hist, NULL, action->save);
 			break;
 		default:
 			continue;

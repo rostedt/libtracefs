@@ -25,6 +25,9 @@ int tracefs_synth_trace(struct tracefs_synth pass:[*]synth,
 			enum tracefs_synth_handler type, const char pass:[*]var);
 int tracefs_synth_snapshot(struct tracefs_synth pass:[*]synth,
 			   enum tracefs_synth_handler type, const char pass:[*]var);
+int tracefs_synth_save(struct tracefs_synth pass:[*]synth,
+		       enum tracefs_synth_handler type, const char pass:[*]var,
+		       char pass:[**]save_fields);
 --
 
 DESCRIPTION
@@ -83,6 +86,12 @@ then take a "snapshot" of the buffer. The snapshot moves the normal "trace" buff
 into a "snapshot" buffer, that can be accessed via the "snapshot" file in the
 top level tracefs directory, or one of the instances.  _var_ changes. _var_ must be one of
 the _name_ elements used in *tracefs_synth_add_end_field*(3).
+
+*tracefs_synth_save*() When the given variable _var_ is either a new max if
+_handler_ is TRACEFS_SYNTH_HANDLE_MAX_ or simpy changed if TRACEFS_SYNTH_HANDLE_CHANGE_
+then saven the given _save_fields_ list. The fields will be stored in the histogram
+"hist" file of the event that can be retrieved with *tracefs_event_file_read*(3).
+_var_ changes. _var_ must be one of the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
 RETURN VALUE
 ------------
