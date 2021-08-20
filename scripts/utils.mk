@@ -52,7 +52,7 @@ do_app_build =						\
 
 do_build_static_lib =				\
 	($(print_static_lib_build)		\
-	$(RM) $@;  $(AR) rcs $@ $^)
+	mv $@ $@.rm; $(RM) $@.rm;  $(AR) rcs $@ $^)
 
 do_compile_shared_library =			\
 	($(print_shared_lib_compile)		\
