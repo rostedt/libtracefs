@@ -66,3 +66,5 @@ dep_includes := $(wildcard $(DEPS))
 ifneq ($(dep_includes),)
   include $(dep_includes)
 endif
+
+$(bdir)/tracefs-sqlhist.o tracefs-sqlhist.o: sqlhist.tab.h
