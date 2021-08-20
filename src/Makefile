@@ -53,6 +53,8 @@ $(DEPS): $(bdir)/.%.d: %.c
 
 $(OBJS): $(bdir)/%.o : $(bdir)/.%.d
 
+tracefs-sqlhist.o: sqlhist.tab.h
+
 $(OBJS): | $(bdir)
 $(DEPS): | $(bdir)
 
