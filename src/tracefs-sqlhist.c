@@ -488,14 +488,6 @@ __hidden void *add_number(struct sqlhist_bison *sb, long val)
 	create_number(num, &expr);
 	*num = val;
 	return expr;
-
-	expr = calloc(1, sizeof(expr));
-	if (!expr)
-		return NULL;
-
-	expr->type = EXPR_NUMBER;
-	expr->number = val;
-	return expr;
 }
 
 __hidden int table_start(struct sqlhist_bison *sb)
