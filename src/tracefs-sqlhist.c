@@ -1097,7 +1097,8 @@ static int build_filter(struct tep_handle *tep, struct sqlhist_bison *sb,
 	case FILTER_BIN_AND:	cmp = TRACEFS_COMPARE_AND; break;
 	case FILTER_STR_CMP:	cmp = TRACEFS_COMPARE_RE; break;
 	default:
-		break;
+		fprintf(stderr, "Error invalid filter type '%d'", filter->type);
+		return ERANGE;
 	}
 
 	ret = append_filter(synth, TRACEFS_FILTER_COMPARE,
