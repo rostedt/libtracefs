@@ -364,7 +364,7 @@ add_sort_key(struct tracefs_hist *hist, const char *sort_key, char **list)
 			break;
 	}
 
-	if (!key_list[i]) {
+	if (!key_list[i] && val_list) {
 		for (i = 0; val_list[i]; i++) {
 			if (strcmp(val_list[i], sort_key) == 0)
 				break;
