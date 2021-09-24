@@ -39,6 +39,21 @@ struct tracefs_hist {
 	unsigned int		filter_state;
 };
 
+const char *tracefs_get_hist_name(struct tracefs_hist *hist)
+{
+	return hist ? hist->name : NULL;
+}
+
+const char *tracefs_get_hist_event(struct tracefs_hist *hist)
+{
+	return hist ? hist->event_name : NULL;
+}
+
+const char *tracefs_get_hist_system(struct tracefs_hist *hist)
+{
+	return hist ? hist->system : NULL;
+}
+
 static void add_list(struct trace_seq *seq, const char *start,
 		     char **list)
 {
