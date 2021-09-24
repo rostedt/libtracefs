@@ -11,18 +11,36 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_hist_pause(struct tracefs_hist pass:[*]hist);
-int tracefs_hist_continue(struct tracefs_hist pass:[*]hist);
-int tracefs_hist_reset(struct tracefs_hist pass:[*]hist);
+int tracefs_hist_start(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+int tracefs_hist_destory(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+int tracefs_hist_pause(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+int tracefs_hist_continue(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+int tracefs_hist_reset(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+
 --
 
 DESCRIPTION
 -----------
+
+*tracefs_hist_start* is called to actually start the histogram _hist_.
+The _instance_ is the instance to start the histogram in, NULL if it
+should start at the top level.
+
 *tracefs_hist_pause* is called to pause the histogram _hist_.
+The _instance_ is the instance to pause the histogram in, NULL if it
+is in the top level.
 
 *tracefs_hist_continue* is called to continue a paused histogram _hist_.
+The _instance_ is the instance to continue the histogram, NULL if it
+is in the top level.
 
 *tracefs_hist_reset* is called to clear / reset the histogram _hist_.
+The _instance_ is the instance to clear the histogram, NULL if it
+is in the top level.
+
+*tracefs_hist_destory* is called to delete the histogram where it will no longer
+exist.  The _instance_ is the instance to delete the histogram from, NULL if it
+is in the top level.
 
 RETURN VALUE
 ------------
@@ -83,14 +101,14 @@ int main (int argc, char **argv, char **env)
 	}
 
 	hist = tracefs_hist_alloc(instance, "kmem", "kmalloc",
-				  "call_site", TRACEFS_HIST_KEY_SYM);
+				  "call_site", TRACEFS_HIST_KEY_SYM,
+				  "bytes_req", 0);
 	if (!hist) {
 		fprintf(stderr, "Failed hist create\n");
 		exit(-1);
 	}
 
-	ret = tracefs_hist_add_key(hist, "bytes_req", 0);
-	ret |= tracefs_hist_add_value(hist, "bytes_alloc");
+	ret = tracefs_hist_add_value(hist, "bytes_alloc");
 	ret |= tracefs_hist_add_sort_key(hist, "bytes_req", "bytes_alloc", NULL);
 
 	ret |= tracefs_hist_sort_key_direction(hist, "bytes_alloc",
