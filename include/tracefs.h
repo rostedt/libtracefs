@@ -309,12 +309,26 @@ enum tracefs_compare {
 	TRACEFS_COMPARE_AND,
 };
 
-void tracefs_hist_free
-(struct tracefs_hist *hist);
+void tracefs_hist_free(struct tracefs_hist *hist);
+struct tracefs_hist *
+tracefs_hist1d_alloc(struct tep_handle *tep,
+		     const char *system, const char *event_name,
+		     const char *key, enum tracefs_hist_key_type type);
+struct tracefs_hist *
+tracefs_hist2d_alloc(struct tep_handle *tep,
+		     const char *system, const char *event_name,
+		     const char *key1, enum tracefs_hist_key_type type1,
+		     const char *key2, enum tracefs_hist_key_type type2);
+
+struct tracefs_hist_axis {
+	const char *key;
+	enum tracefs_hist_key_type type;
+};
+
 struct tracefs_hist *
 tracefs_hist_alloc(struct tep_handle *tep,
-		   const char *system, const char *event,
-		   const char *key, enum tracefs_hist_key_type type);
+		   const char *system, const char *event_name,
+		   struct tracefs_hist_axis *axes);
 int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 			 enum tracefs_hist_key_type type);
 int tracefs_hist_add_value(struct tracefs_hist *hist, const char *value);

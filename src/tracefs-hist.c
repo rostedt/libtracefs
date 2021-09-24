@@ -189,7 +189,7 @@ void tracefs_hist_free(struct tracefs_hist *hist)
 }
 
 /**
- * tracefs_hist_alloc - Initialize a histogram
+ * tracefs_hist1d_alloc - Initialize one-dimensional histogram
  * @tep: The tep handle that has the @system and @event.
  * @system: The system the histogram event is in.
  * @event_name: The name of the event that the histogram will be attached to.
@@ -205,15 +205,70 @@ void tracefs_hist_free(struct tracefs_hist *hist)
  * NULL on failure.
  */
 struct tracefs_hist *
+tracefs_hist1d_alloc(struct tep_handle *tep,
+		     const char *system, const char *event_name,
+		     const char *key, enum tracefs_hist_key_type type)
+{
+	struct tracefs_hist_axis axis[] = {{key, type}, {NULL, 0}};
+
+	return tracefs_hist_alloc(tep, system, event_name, axis);
+}
+
+/**
+ * tracefs_hist2d_alloc - Initialize two-dimensional histogram
+ * @tep: The tep handle that has the @system and @event.
+ * @system: The system the histogram event is in.
+ * @event: The event that the histogram will be attached to.
+ * @key1: The first primary key the histogram will use
+ * @type1: The format type of the first key.
+ * @key2: The second primary key the histogram will use
+ * @type2: The format type of the second key.
+ *
+ * Will initialize a histogram descriptor that will be attached to
+ * the @system/@event with the given @key1 and @key2 as the primaries.
+ * This only initializes the descriptor, it does not start the histogram
+ * in the kernel.
+ *
+ * Returns an initialized histogram on success.
+ * NULL on failure.
+ */
+struct tracefs_hist *
+tracefs_hist2d_alloc(struct tep_handle *tep,
+		     const char *system, const char *event_name,
+		     const char *key1, enum tracefs_hist_key_type type1,
+		     const char *key2, enum tracefs_hist_key_type type2)
+{
+	struct tracefs_hist_axis axis[] = {{key1, type1},
+					   {key2, type2},
+					   {NULL, 0}};
+
+	return tracefs_hist_alloc(tep, system, event_name, axis);
+}
+
+/**
+ * tracefs_hist_alloc - Initialize N-dimensional histogram
+ * @tep: The tep handle that has the @system and @event.
+ * @system: The system the histogram event is in
+ * @event: The event that the histogram will be attached to
+ * @axes: An array of histogram axes, terminated by a {NULL, 0} entry
+ *
+ * Will initialize a histogram descriptor that will be attached to
+ * the @system/@event. This only initializes the descriptor with the given
+ * @axes keys as primaries. This only initializes the descriptor, it does
+ * not start the histogram in the kernel.
+ *
+ * Returns an initialized histogram on success.
+ * NULL on failure.
+ */
+struct tracefs_hist *
 tracefs_hist_alloc(struct tep_handle *tep,
-			const char *system, const char *event_name,
-			const char *key, enum tracefs_hist_key_type type)
+		   const char *system, const char *event_name,
+		   struct tracefs_hist_axis *axes)
 {
 	struct tep_event *event;
 	struct tracefs_hist *hist;
-	int ret;
 
-	if (!system || !event_name || !key)
+	if (!system || !event_name)
 		return NULL;
 
 	event = tep_find_event_by_name(tep, system, event_name);
@@ -226,20 +281,21 @@ tracefs_hist_alloc(struct tep_handle *tep,
 
 	tep_ref(tep);
 	hist->tep = tep;
-
 	hist->event = event;
 	hist->system = strdup(system);
 	hist->event_name = strdup(event_name);
+	if (!hist->system || !hist->event_name)
+		goto fail;
 
-	ret = tracefs_hist_add_key(hist, key, type);
-
-	if (!hist->system || !hist->event || ret < 0) {
-		tracefs_hist_free(hist);
-		return NULL;
-	}
-
+	for (; axes && axes->key; axes++)
+		if (tracefs_hist_add_key(hist, axes->key, axes->type) < 0)
+			goto fail;
 
 	return hist;
+
+ fail:
+	tracefs_hist_free(hist);
+	return NULL;
 }
 
 /**
@@ -1768,8 +1824,8 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 				return NULL;
 			}
 		} else {
-			hist = tracefs_hist_alloc(tep, system, event,
-						  key, type);
+			hist = tracefs_hist1d_alloc(tep, system, event,
+						    key, type);
 			if (!hist)
 				return NULL;
 		}
