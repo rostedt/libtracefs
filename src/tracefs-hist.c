@@ -437,16 +437,43 @@ add_sort_key(struct tracefs_hist *hist, const char *sort_key, char **list)
 /**
  * tracefs_hist_add_sort_key - add a key for sorting the histogram
  * @hist: The histogram to add the sort key to
- * @sort_key: The key to sort (and the strings after it)
- *  Last one must be NULL.
+ * @sort_key: The key to sort
  *
- * Add a list of sort keys in the order of priority that the
- * keys would be sorted on output. Keys must be added first.
+ * Call the function to add to the list of sort keys of the histohram in
+ * the order of priority that the keys would be sorted on output.
  *
  * Returns 0 on success, -1 on error.
  */
 int tracefs_hist_add_sort_key(struct tracefs_hist *hist,
-			      const char *sort_key, ...)
+			      const char *sort_key)
+{
+	char **list = hist->sort;
+
+	if (!hist || !sort_key)
+		return -1;
+
+	list = add_sort_key(hist, sort_key, hist->sort);
+	if (!list)
+		return -1;
+
+	hist->sort = list;
+
+	return 0;
+}
+
+/**
+ * tracefs_hist_reset_sort_key - set a key for sorting the histogram
+ * @hist: The histogram to set the sort key to
+ * @sort_key: The key to sort (and the strings after it)
+ *  Last one must be NULL.
+ *
+ * Set a list of sort keys in the order of priority that the
+ * keys would be sorted on output. Keys must be added first.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int tracefs_hist_reset_sort_key(struct tracefs_hist *hist,
+				const char *sort_key, ...)
 {
 	char **list = NULL;
 	char **tmp;
