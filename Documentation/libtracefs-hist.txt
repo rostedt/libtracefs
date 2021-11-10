@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_hist_alloc, tracefs_hist_free, tracefs_hist_add_key, tracefs_hist_add_value, tracefs_hist_add_name, tracefs_hist_start,
-tracefs_hist_destory, tracefs_hist_add_sort_key, tracefs_hist_reset_sort_key,tracefs_hist_sort_key_direction - Create and update event histograms
+tracefs_hist_destory, tracefs_hist_add_sort_key, tracefs_hist_set_sort_key,tracefs_hist_sort_key_direction - Create and update event histograms
 
 SYNOPSIS
 --------
@@ -28,8 +28,8 @@ int tracefs_hist_add_key(struct tracefs_hist pass:[*]hist, const char pass:[*]ke
 int tracefs_hist_add_value(struct tracefs_hist pass:[*]hist, const char pass:[*]value);
 int tracefs_hist_add_sort_key(struct tracefs_hist pass:[*]hist,
 			      const char pass:[*]sort_key);
-int tracefs_hist_reset_sort_key(struct tracefs_hist pass:[*]hist,
-			        const char pass:[*]sort_key, ...);
+int tracefs_hist_set_sort_key(struct tracefs_hist pass:[*]hist,
+			      const char pass:[*]sort_key, ...);
 int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
 				    const char pass:[*]sort_key,
 				    enum tracefs_hist_sort_direction dir);
@@ -104,7 +104,7 @@ that must match either an already defined key of the histogram, or an already
 defined value. If _hist_  already has sorting keys (previously added) the new
 _sort_key_ will have lower priority(be secondary or so on) when sorting.
 
-*tracefs_hist_reset_sort_key*() will reset the list of key to sort on. The _hist_ is
+*tracefs_hist_set_sort_key*() will reset the list of key to sort on. The _hist_ is
 the histrogram descriptor to reset the sort key to. The _sort_key_ is a string
 that must match either an already defined key of the histogram, or an already
 defined value. Multiple sort keys may be added to denote a secondary, sort order

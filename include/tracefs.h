@@ -337,8 +337,8 @@ int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 int tracefs_hist_add_value(struct tracefs_hist *hist, const char *value);
 int tracefs_hist_add_sort_key(struct tracefs_hist *hist,
 			      const char *sort_key);
-int tracefs_hist_reset_sort_key(struct tracefs_hist *hist,
-				const char *sort_key, ...);
+int tracefs_hist_set_sort_key(struct tracefs_hist *hist,
+			      const char *sort_key, ...);
 int tracefs_hist_sort_key_direction(struct tracefs_hist *hist,
 				    const char *sort_key,
 				    enum tracefs_hist_sort_direction dir);

@@ -477,7 +477,7 @@ int tracefs_hist_add_sort_key(struct tracefs_hist *hist,
 }
 
 /**
- * tracefs_hist_reset_sort_key - set a key for sorting the histogram
+ * tracefs_hist_set_sort_key - set a key for sorting the histogram
  * @hist: The histogram to set the sort key to
  * @sort_key: The key to sort (and the strings after it)
  *  Last one must be NULL.
@@ -487,8 +487,8 @@ int tracefs_hist_add_sort_key(struct tracefs_hist *hist,
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_reset_sort_key(struct tracefs_hist *hist,
-				const char *sort_key, ...)
+int tracefs_hist_set_sort_key(struct tracefs_hist *hist,
+			      const char *sort_key, ...)
 {
 	char **list = NULL;
 	char **tmp;
