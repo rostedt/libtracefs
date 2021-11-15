@@ -262,6 +262,10 @@ tracefs_dynevent_info(struct tracefs_dynevent *dynevent, char **system,
 		      char **event, char **prefix, char **addr, char **format);
 
 struct tracefs_dynevent *
+tracefs_eprobe_alloc(const char *system, const char *event,
+		     const char *target_system, const char *target_event, const char *fetchargs);
+
+struct tracefs_dynevent *
 tracefs_kprobe_alloc(const char *system, const char *event, const char *addr, const char *format);
 struct tracefs_dynevent *
 tracefs_kretprobe_alloc(const char *system, const char *event,
