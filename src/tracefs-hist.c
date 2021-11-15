@@ -658,6 +658,7 @@ struct action {
  * @end_parens: Current parenthesis level for end event
  */
 struct tracefs_synth {
+	struct tracefs_instance *instance;
 	struct tep_handle	*tep;
 	struct tep_event	*start_event;
 	struct tep_event	*end_event;
@@ -1898,11 +1899,9 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 
 /**
  * tracefs_synth_create - creates the synthetic event on the system
- * @instance: The instance to modify the start and end events
  * @synth: The tracefs_synth descriptor
  *
- * This creates the synthetic events. The @instance is used for writing
- * the triggers into the start and end events.
+ * This creates the synthetic events.
  *
  * Returns 0 on succes and -1 on error.
  * On error, errno is set to:
@@ -1910,8 +1909,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
  * ENIVAL - a parameter is passed as NULL that should not be or a problem
  *   writing into the system.
  */
-int tracefs_synth_create(struct tracefs_instance *instance,
-			 struct tracefs_synth *synth)
+int tracefs_synth_create(struct tracefs_synth *synth)
 {
 	char *start_hist = NULL;
 	char *end_hist = NULL;
@@ -1947,13 +1945,13 @@ int tracefs_synth_create(struct tracefs_instance *instance,
 	if (!end_hist)
 		goto remove_synthetic;
 
-	ret = tracefs_event_file_append(instance, synth->start_event->system,
+	ret = tracefs_event_file_append(synth->instance, synth->start_event->system,
 					synth->start_event->name,
 					"trigger", start_hist);
 	if (ret < 0)
 		goto remove_synthetic;
 
-	ret = tracefs_event_file_append(instance, synth->end_event->system,
+	ret = tracefs_event_file_append(synth->instance, synth->end_event->system,
 					synth->end_event->name,
 					"trigger", end_hist);
 	if (ret < 0)
@@ -1965,7 +1963,7 @@ int tracefs_synth_create(struct tracefs_instance *instance,
 	return 0;
 
  remove_start_hist:
-	remove_hist(instance, synth->start_event, start_hist);
+	remove_hist(synth->instance, synth->start_event, start_hist);
  remove_synthetic:
 	free(end_hist);
 	free(start_hist);
@@ -1975,15 +1973,14 @@ int tracefs_synth_create(struct tracefs_instance *instance,
 
 /**
  * tracefs_synth_destroy - delete the synthetic event from the system
- * @instance: The instance to modify the start and end events
  * @synth: The tracefs_synth descriptor
  *
  * This will destroy a synthetic event created by tracefs_synth_create()
- * with the same @instance and @synth.
+ * with the same @synth.
  *
- * It will attempt to disable the synthetic event, but if other instances
- * have it active, it is likely to fail, which will likely fail on
- * all other parts of tearing down the synthetic event.
+ * It will attempt to disable the synthetic event in its instance (top by default),
+ * but if other instances have it active, it is likely to fail, which will likely
+ * fail on all other parts of tearing down the synthetic event.
  *
  * Returns 0 on succes and -1 on error.
  * On error, errno is set to:
@@ -1991,8 +1988,7 @@ int tracefs_synth_create(struct tracefs_instance *instance,
  * ENIVAL - a parameter is passed as NULL that should not be or a problem
  *   writing into the system.
  */
-int tracefs_synth_destroy(struct tracefs_instance *instance,
-			  struct tracefs_synth *synth)
+int tracefs_synth_destroy(struct tracefs_synth *synth)
 {
 	char *hist;
 	int ret;
@@ -2008,14 +2004,14 @@ int tracefs_synth_destroy(struct tracefs_instance *instance,
 	}
 
 	/* Try to disable the event if possible */
-	tracefs_event_disable(instance, "synthetic", synth->name);
+	tracefs_event_disable(synth->instance, "synthetic", synth->name);
 
 	hist = create_end_hist(synth);
 	hist = append_filter(hist, synth->end_filter,
 			     synth->end_parens);
 	if (!hist)
 		return -1;
-	ret = remove_hist(instance, synth->end_event, hist);
+	ret = remove_hist(synth->instance, synth->end_event, hist);
 	free(hist);
 
 	hist = create_hist(synth->start_keys, synth->start_vars);
@@ -2024,7 +2020,7 @@ int tracefs_synth_destroy(struct tracefs_instance *instance,
 	if (!hist)
 		return -1;
 
-	ret = remove_hist(instance, synth->start_event, hist);
+	ret = remove_hist(synth->instance, synth->start_event, hist);
 	free(hist);
 
 	ret = tracefs_dynevent_destroy(synth->dyn_event, true);
@@ -2035,7 +2031,6 @@ int tracefs_synth_destroy(struct tracefs_instance *instance,
 /**
  * tracefs_synth_show - show the command lines to create the synthetic event
  * @seq: The trace_seq to store the command lines in
- * @instance: The instance to modify the start and end events
  * @synth: The tracefs_synth descriptor
  *
  * This will list the "echo" commands that are equivalent to what would
@@ -2046,7 +2041,6 @@ int tracefs_synth_destroy(struct tracefs_instance *instance,
  * ENOMEM - memory allocation failure.
  */
 int tracefs_synth_show(struct trace_seq *seq,
-		       struct tracefs_instance *instance,
 		       struct tracefs_synth *synth)
 {
 	bool new_event = false;
@@ -2079,7 +2073,7 @@ int tracefs_synth_show(struct trace_seq *seq,
 			 synth->dyn_event->format, path, synth->dyn_event->trace_file);
 
 	tracefs_put_tracing_file(path);
-	path = tracefs_instance_get_dir(instance);
+	path = tracefs_instance_get_dir(synth->instance);
 
 	hist = create_hist(synth->start_keys, synth->start_vars);
 	hist = append_filter(hist, synth->start_filter,

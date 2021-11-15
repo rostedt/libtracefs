@@ -521,13 +521,10 @@ int tracefs_synth_save(struct tracefs_synth *synth,
 		       char **save_fields);
 bool tracefs_synth_complete(struct tracefs_synth *synth);
 struct tracefs_hist *tracefs_synth_get_start_hist(struct tracefs_synth *synth);
-int tracefs_synth_create(struct tracefs_instance *instance,
-			 struct tracefs_synth *synth);
-int tracefs_synth_destroy(struct tracefs_instance *instance,
-			  struct tracefs_synth *synth);
+int tracefs_synth_create(struct tracefs_synth *synth);
+int tracefs_synth_destroy(struct tracefs_synth *synth);
 void tracefs_synth_free(struct tracefs_synth *synth);
-int tracefs_synth_show(struct trace_seq *seq, struct tracefs_instance *instance,
-		       struct tracefs_synth *synth);
+int tracefs_synth_show(struct trace_seq *seq, struct tracefs_synth *synth);
 
 struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 				  const char *sql_buffer, char **err);

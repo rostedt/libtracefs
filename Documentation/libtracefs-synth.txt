@@ -268,7 +268,7 @@ static void show_event(void)
 
 	trace_seq_init(&s);
 
-	tracefs_synth_show(&s, NULL, synth);
+	tracefs_synth_show(&s, synth);
 	trace_seq_terminate(&s);
 	trace_seq_do_printf(&s);
 	trace_seq_destroy(&s);
@@ -281,10 +281,10 @@ int main (int argc, char **argv)
 	if (argc > 1) {
 		if (!strcmp(argv[1], "create")) {
 			/* Create the synthetic event */
-			tracefs_synth_create(NULL, synth);
+			tracefs_synth_create(synth);
 		} else if (!strcmp(argv[1], "delete")) {
 			/* Delete the synthetic event */
-			tracefs_synth_destroy(NULL, synth);
+			tracefs_synth_destroy(synth);
 		} else {
 			printf("usage: %s [create|delete]\n", argv[0]);
 			exit(-1);

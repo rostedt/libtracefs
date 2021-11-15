@@ -12,12 +12,9 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_synth_create(struct tracefs_instance pass:[*]instance,
-			 struct tracefs_synth pass:[*]synth);
-int tracefs_synth_destroy(struct tracefs_instance pass:[*]instance,
-			  struct tracefs_synth pass:[*]synth);
-int tracefs_synth_show(struct trace_seq pass:[*]seq, struct tracefs_instance pass:[*]instance,
-		       struct tracefs_synth pass:[*]synth);
+int tracefs_synth_create(struct tracefs_synth pass:[*]synth);
+int tracefs_synth_destroy(struct tracefs_synth pass:[*]synth);
+int tracefs_synth_show(struct trace_seq pass:[*]seq, struct tracefs_synth pass:[*]synth);
 bool tracefs_synth_complete(struct tracefs_synth pass:[*]synth);
 struct tracefs_hist pass:[*]tracefs_synth_get_start_hist(struct tracefs_synth pass:[*]synth);
 
@@ -49,18 +46,15 @@ as a field for both events to calculate the delta in nanoseconds, or use
 *TRACEFS_TIMESTAMP_USECS" as the compare fields for both events to calculate the
 delta in microseconds. This is used as the example below.
 
-*tracefs_synth_create*() creates the synthetic event in the system in the system
-in the _instance_ provided. Note, synthetic events apply across all instances,
-but some creation requires histograms to be established, which are local to
-instances.
+*tracefs_synth_create*() creates the synthetic event in the system. The synthetic events apply
+across all instances.
 
-*tracefs_synth_destroy*() destroys the synthetic event. It will attempt to stop
-the running of it in the given _instance_, but if its running in another instance
-this may fail as busy.
+*tracefs_synth_destroy*() destroys the synthetic event. It will attempt to stop the running of it in
+its instance (top by default), but if its running in another instance this may fail as busy.
 
 *tracefs_synth_show*() acts like *tracefs_synth_create*(), but instead of creating
-the synthetic event in the given _instance_, it will write the echo commands to
-manually create it in the _seq_ given.
+the synthetic event in the system, it will write the echo commands to manually create
+it in the _seq_ given.
 
 *tracefs_synth_complete*() returns true if the synthetic event _synth_ has both
 a starting and ending event.
@@ -201,7 +195,7 @@ static void show_event(void)
 
 	trace_seq_init(&s);
 
-	tracefs_synth_show(&s, NULL, synth);
+	tracefs_synth_show(&s, synth);
 	trace_seq_terminate(&s);
 	trace_seq_do_printf(&s);
 	trace_seq_destroy(&s);
@@ -214,10 +208,10 @@ int main (int argc, char **argv)
 	if (argc > 1) {
 		if (!strcmp(argv[1], "create")) {
 			/* Create the synthetic event */
-			tracefs_synth_create(NULL, synth);
+			tracefs_synth_create(synth);
 		} else if (!strcmp(argv[1], "delete")) {
 			/* Delete the synthetic event */
-			tracefs_synth_destroy(NULL, synth);
+			tracefs_synth_destroy(synth);
 		} else {
 			printf("usage: %s [create|delete]\n", argv[0]);
 			exit(-1);

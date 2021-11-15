@@ -405,9 +405,9 @@ static int do_sql(const char *buffer, const char *name, const char *var,
 				}
 			}
 		}
-		tracefs_synth_show(&seq, NULL, synth);
+		tracefs_synth_show(&seq, synth);
 		if (execute)
-			tracefs_synth_create(NULL, synth);
+			tracefs_synth_create(synth);
 	} else {
 		struct tracefs_hist *hist;
 		hist = tracefs_synth_get_start_hist(synth);
