@@ -238,6 +238,29 @@ ssize_t tracefs_trace_pipe_stream(int fd, struct tracefs_instance *instance, int
 ssize_t tracefs_trace_pipe_print(struct tracefs_instance *instance, int flags);
 void tracefs_trace_pipe_stop(struct tracefs_instance *instance);
 
+/* Dynamic events */
+struct tracefs_dynevent;
+enum tracefs_dynevent_type {
+	TRACEFS_DYNEVENT_UNKNOWN	= 0,
+	TRACEFS_DYNEVENT_KPROBE		= 1 << 0,
+	TRACEFS_DYNEVENT_KRETPROBE	= 1 << 1,
+	TRACEFS_DYNEVENT_UPROBE		= 1 << 2,
+	TRACEFS_DYNEVENT_URETPROBE	= 1 << 3,
+	TRACEFS_DYNEVENT_EPROBE		= 1 << 4,
+	TRACEFS_DYNEVENT_SYNTH		= 1 << 5,
+	TRACEFS_DYNEVENT_MAX		= 1 << 6,
+};
+int tracefs_dynevent_create(struct tracefs_dynevent *devent);
+int tracefs_dynevent_destroy(struct tracefs_dynevent *devent, bool force);
+int tracefs_dynevent_destroy_all(unsigned int types, bool force);
+void tracefs_dynevent_free(struct tracefs_dynevent *devent);
+void tracefs_dynevent_list_free(struct tracefs_dynevent **events);
+struct tracefs_dynevent **
+tracefs_dynevent_get_all(unsigned int types, const char *system);
+enum tracefs_dynevent_type
+tracefs_dynevent_info(struct tracefs_dynevent *dynevent, char **system,
+		      char **event, char **prefix, char **addr, char **format);
+
 enum tracefs_kprobe_type {
 	TRACEFS_ALL_KPROBES,
 	TRACEFS_KPROBE,

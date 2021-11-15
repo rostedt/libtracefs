@@ -94,4 +94,22 @@ int synth_add_start_field(struct tracefs_synth *synth,
 			  const char *start_field,
 			  const char *name,
 			  enum tracefs_hist_key_type type);
+
+/* Internal interface for ftrace dynamic events */
+
+struct tracefs_dynevent {
+	char *trace_file;
+	char *prefix;
+	char *system;
+	char *event;
+	char *address;
+	char *format;
+	enum tracefs_dynevent_type type;
+};
+
+struct tracefs_dynevent *
+dynevent_alloc(enum tracefs_dynevent_type type, const char *system,
+	       const char *event, const char *address, const char *format);
+int dynevent_get_count(unsigned int types, const char *system);
+
 #endif /* _TRACE_FS_LOCAL_H */
