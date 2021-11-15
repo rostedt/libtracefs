@@ -782,6 +782,73 @@ static void test_kprobes(void)
 	test_kprobes_instance(test_instance);
 }
 
+static void test_eprobes_instance(struct tracefs_instance *instance)
+{
+	struct probe_test etests[] = {
+		{ TRACEFS_DYNEVENT_EPROBE, "e", NULL, "sopen_in", "syscalls.sys_enter_openat",
+					   "file=+0($filename):ustring" },
+		{ TRACEFS_DYNEVENT_EPROBE, "e", "etest", "sopen_out", "syscalls.sys_exit_openat",
+					   "res=$ret:u64" },
+	};
+	int count = sizeof(etests) / sizeof((etests)[0]);
+	struct tracefs_dynevent **deprobes;
+	struct tracefs_dynevent **devents;
+	char *tsys, *tevent;
+	char *tmp, *sav;
+	int ret;
+	int i;
+
+	deprobes = calloc(count + 1, sizeof(*deprobes));
+
+	/* Invalid parameters */
+	CU_TEST(tracefs_eprobe_alloc("test", NULL, "test", "test", "test") == NULL);
+	CU_TEST(tracefs_eprobe_alloc("test", "test", NULL, "test", "test") == NULL);
+	CU_TEST(tracefs_eprobe_alloc("test", "test", "test", NULL, "test") == NULL);
+
+	ret = tracefs_dynevent_destroy_all(TRACEFS_DYNEVENT_EPROBE, true);
+	CU_TEST(ret == 0);
+	get_dynevents_check(TRACEFS_DYNEVENT_EPROBE, 0);
+
+	for (i = 0; i < count; i++) {
+		tmp = strdup(etests[i].address);
+		tsys = strtok_r(tmp, "./", &sav);
+		tevent = strtok_r(NULL, "", &sav);
+		deprobes[i] = tracefs_eprobe_alloc(etests[i].system, etests[i].event,
+						   tsys, tevent, etests[i].format);
+		free(tmp);
+		CU_TEST(deprobes[i] != NULL);
+	}
+	deprobes[i] = NULL;
+
+	get_dynevents_check(TRACEFS_DYNEVENT_EPROBE, 0);
+	CU_TEST(check_probes(etests, count, deprobes, false, instance));
+
+	for (i = 0; i < count; i++) {
+		CU_TEST(tracefs_dynevent_create(deprobes[i]) == 0);
+	}
+
+	devents = get_dynevents_check(TRACEFS_DYNEVENT_EPROBE, count);
+	CU_TEST(check_probes(etests, count, devents, true, instance));
+	tracefs_dynevent_list_free(devents);
+	devents = NULL;
+
+	for (i = 0; i < count; i++) {
+		CU_TEST(tracefs_dynevent_destroy(deprobes[i], false) == 0);
+	}
+	get_dynevents_check(TRACEFS_DYNEVENT_EPROBE, 0);
+	CU_TEST(check_probes(etests, count, deprobes, false, instance));
+
+	for (i = 0; i < count; i++)
+		tracefs_dynevent_free(deprobes[i]);
+
+	free(deprobes);
+}
+
+static void test_eprobes(void)
+{
+	test_eprobes_instance(test_instance);
+}
+
 static void test_instance_file(void)
 {
 	struct tracefs_instance *instance = NULL;
@@ -1616,4 +1683,5 @@ void test_tracefs_lib(void)
 		    test_ftrace_marker);
 	CU_add_test(suite, "kprobes", test_kprobes);
 	CU_add_test(suite, "syntetic events", test_synthetic);
+	CU_add_test(suite, "eprobes", test_eprobes);
 }
