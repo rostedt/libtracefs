@@ -197,7 +197,8 @@ endif
 CLEAN_FILES =					\
 	$(MAN_XML) $(addsuffix +,$(MAN_XML))	\
 	$(MAN_HTML) $(addsuffix +,$(MAN_HTML))	\
-	$(DOC_MAN3) *.3 *.1 *.m
+	$(filter-out $(MAN1_TEXT),$(wildcard *.1)) \
+	$(DOC_MAN3) *.3 *.m
 
 clean:
 	$(Q) $(RM) $(CLEAN_FILES)
