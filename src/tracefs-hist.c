@@ -996,7 +996,7 @@ static unsigned int make_rand(void)
 	unsigned long seed;
 
 	gettimeofday(&tv, NULL);
-	seed = (tv.tv_sec + tv.tv_usec) + gettid();
+	seed = (tv.tv_sec + tv.tv_usec) + getpid();
 
 	/* taken from the rand(3) man page */
 	seed = seed * 1103515245 + 12345;
