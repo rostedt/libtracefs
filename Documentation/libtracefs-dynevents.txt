@@ -182,7 +182,7 @@ int main (int argc, char **argv, char **env)
 	}
 
 	if (tracefs_dynevent_create(kprobe) || tracefs_dynevent_create(kretprobe)){
-		err = tracefs_error_last(NULL);
+		char *err = tracefs_error_last(NULL);
 		perror("Failed to create kprobes:");
 		if (err && strlen(err))
 			fprintf(stderr, "%s\n", err);
