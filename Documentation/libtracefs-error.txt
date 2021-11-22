@@ -52,6 +52,7 @@ EXAMPLE
 
 int main (int argc, char **argv, char **env)
 {
+	struct tracefs_dynevent *kevent;
 	char *system = NULL;
 	char *kprobe;
 	char *format;
@@ -72,7 +73,11 @@ int main (int argc, char **argv, char **env)
 	format = argv[arg++];
 
 	tracefs_error_clear(NULL);
-	tracefs_kprobe_clear_probe(system, kprobe, true);
+	kevent = tracefs_dynevent_get(TRACEFS_DYNEVENT_KPROBE, system, kprobe);
+	if (kevent) {
+		tracefs_dynevent_destroy(kevent, true);
+		tracefs_dynevent_free(kevent);
+	}
 
 	ret = tracefs_kprobe_raw(system, kprobe, addr, format);
 	if (ret < 0) {
