@@ -47,6 +47,8 @@ EXAMPLE
 -------
 [source,c]
 --
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
 
@@ -57,13 +59,23 @@ void stop(int sig)
 	tracefs_trace_pipe_stop(NULL);
 }
 
-int main()
+int main(int argc, char **argv)
 {
 	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-	const char *filename = "trace.txt";
-	int fd = creat(filename, mode);
+	const char *filename;
+	int fd;
 	int ret;
 
+	if (argc < 2) {
+		fprintf(stderr, "usage: %s output_file\n", argv[0]);
+		exit(-1);
+	}
+	filename = argv[1];
+	fd = creat(filename, mode);
+	if (fd < 0) {
+		perror(filename);
+		exit(-1);
+	}
 	signal(SIGINT, stop);
 	ret = tracefs_trace_pipe_stream(fd, NULL, SPLICE_F_NONBLOCK);
 	close(fd);
