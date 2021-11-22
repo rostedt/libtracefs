@@ -101,7 +101,7 @@ EXAMPLE
 #include <unistd.h>
 #include <sys/wait.h>
 
-#include <tracefs/tracefs.h>
+#include <tracefs.h>
 
 static struct tep_event *open_event;
 static struct tep_format_field *file_field;

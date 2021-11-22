@@ -222,7 +222,7 @@ EXAMPLE
 [source,c]
 --
 #include <stdlib.h>
-#include <tracefs/tracefs.h>
+#include <tracefs.h>
 
 enum commands {
 	START,

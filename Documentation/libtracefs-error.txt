@@ -48,7 +48,7 @@ EXAMPLE
 #include <unistd.h>
 #include <errno.h>
 
-#include <tracefs/tracefs.h>
+#include <tracefs.h>
 
 int main (int argc, char **argv, char **env)
 {
