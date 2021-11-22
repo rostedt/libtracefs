@@ -7,9 +7,22 @@
 
 include $(src)/scripts/utils.mk
 
+EXAMPLES :=
+EXAMPLES += dynevents
+EXAMPLES += kprobes
+EXAMPLES += eprobes
+EXAMPLES += synth
+EXAMPLES += error
+EXAMPLES += filter
+EXAMPLES += function-filter
+EXAMPLES += hist
+EXAMPLES += hist-cont
+EXAMPLES += tracer
+EXAMPLES += stream
+
 TARGETS :=
 TARGETS += sqlhist
-TARGETS += dynevent
+TARGETS += $(EXAMPLES)
 
 bdir := $(obj)/bin
 
@@ -21,7 +34,9 @@ extract_example = \
 $(bdir)/sqlhist.c: ../Documentation/libtracefs-sql.txt
 	$(call extract_example,$<,$@)
 
-$(bdir)/dynevent.c: ../Documentation/libtracefs-dynevents.txt
+EXAMPLE_C_CODE := $(patsubst %,$(bdir)/%.c,$(EXAMPLES))
+
+$(bdir)/%.c: ../Documentation/libtracefs-%.txt
 	$(call extract_example,$<,$@)
 
 $(bdir):
@@ -31,10 +46,21 @@ sqlhist: $(bdir) $(bdir) $(bdir)/sqlhist
 
 $(TARGETS): $(bdir)
 
+# sqlhist is unique and stands on its own
+sqlhist: $(bdir)/sqlhist
+
 $(bdir)/%: $(bdir)/%.o
 	$(CC) -o $@ $^ $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS)
 
-$(TARGETS): $(patsubst %,$(bdir)/%,$(TARGETS))
+$(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
+
+## The intermediate files get removed by Make.
+## To examine the .c files created by one of the man pages,
+## uncomment the below, and replace the XX with the exec example
+## name, and the file will not be discarded by make.
+#
+# $(bdir)/XX.o: $(bdir)/XX.c
+#	$(CC) -g -Wall -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 $(bdir)/%.o: %.c
 	$(CC) -g -Wall -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
