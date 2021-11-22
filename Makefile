@@ -142,6 +142,7 @@ LIBS = $(LIBTRACEEVENT_LIBS) -lpthread
 
 export LIBS
 export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
+export LIBTRACEEVENT_LIBS LIBTRACEEVENT_INCLUDES
 
 export Q SILENT VERBOSE EXT
 
@@ -364,21 +365,17 @@ $(bdir)/libtracefs.so.$(TRACEFS_VERSION): force
 	$(Q)mkdir -p $(bdir)
 	$(Q)$(MAKE) -C $(src)/src libtracefs.so
 
-$(bdir)/sqlhist.c: Documentation/libtracefs-sql.txt
-	cat $< | sed -ne '/^EXAMPLE/,/FILES/ { /EXAMPLE/,+2d ; /^FILES/d ;  /^--/d ; p}' > $@
+samples/sqlhist: $(LIBTRACEFS_STATIC)
+	$(Q)$(MAKE) -C $(src)/samples sqlhist
 
-$(bdir)/sqlhist.o: $(bdir)/sqlhist.c
-	$(CC) -g -Wall -c -o $@ $^ -Iinclude/ $(LIBTRACEEVENT_INCLUDES)
-
-sqlhist: $(bdir)/sqlhist.o $(LIBTRACEFS_STATIC)
-	$(CC) -o $@ $^ $(LIBTRACEEVENT_LIBS)
+sqlhist: samples/sqlhist
 
 clean:
 	$(MAKE) -C $(src)/utest clean
 	$(MAKE) -C $(src)/src clean
+	$(MAKE) -C $(src)/samples clean
 	$(RM) $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.so.* $(bdir)/*.o $(bdir)/.*.d
 	$(RM) $(PKG_CONFIG_FILE)
 	$(RM) $(VERSION_FILE)
-	$(RM) $(bdir)/sqlhist.o $(bdir)/sqlhist.c sqlhist
 
 .PHONY: clean
