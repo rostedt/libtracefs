@@ -597,6 +597,51 @@ error:
 }
 
 /**
+ * tracefs_dynevent_get - return a single dynamic event if it exists
+ * @type; Dynamic event type
+ * @system: Get events from that system only. May be NULL.
+ * @event: Get event of the system type (may not be NULL)
+ *
+ * Returns the dynamic event of the given @type and @system for with the @event
+ * name. If @system is NULL, it will return the first dynamic event that it finds
+ * that matches the @event name.
+ *
+ * The returned event must be freed with tracefs_dynevent_free().
+ * NULL is returned if no event match is found, or other error.
+ */
+struct tracefs_dynevent *
+tracefs_dynevent_get(enum tracefs_dynevent_type type, const char *system,
+		     const char *event)
+{
+	struct tracefs_dynevent **events;
+	struct tracefs_dynevent *devent = NULL;
+	int count;
+	int i;
+
+	if (!event) {
+		errno = -EINVAL;
+		return NULL;
+	}
+
+	count = get_all_dynevents(type, system, &events);
+	if (count <= 0)
+		return NULL;
+
+	for (i = 0; i < count; i++) {
+		if (strcmp(events[i]->event, event) == 0)
+			break;
+	}
+	if (i < count) {
+		devent = events[i];
+		events[i] = NULL;
+	}
+
+	tracefs_dynevent_list_free(events);
+
+	return devent;
+}
+
+/**
  * tracefs_dynevent_destroy_all - removes all dynamic events of given types from the system
  * @types: Dynamic event type, or bitmask of dynamic event types. If 0 is passed, all types
  *	   are considered.
