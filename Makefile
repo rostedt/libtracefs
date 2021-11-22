@@ -370,6 +370,9 @@ samples/sqlhist: $(LIBTRACEFS_STATIC)
 
 sqlhist: samples/sqlhist
 
+samples: $(LIBTRACEFS_STATIC) force
+	$(Q)$(MAKE) -C $(src)/samples all
+
 clean:
 	$(MAKE) -C $(src)/utest clean
 	$(MAKE) -C $(src)/src clean

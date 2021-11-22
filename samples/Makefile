@@ -7,20 +7,36 @@
 
 include $(src)/scripts/utils.mk
 
+TARGETS :=
+TARGETS += sqlhist
+TARGETS += dynevent
+
 bdir := $(obj)/bin
+
+all: $(TARGETS)
+
+extract_example = \
+	cat $1 | sed -ne '/^EXAMPLE/,/FILES/ { /EXAMPLE/,+2d ; /^FILES/d ;  /^--/d ; p}' > $2
+
+$(bdir)/sqlhist.c: ../Documentation/libtracefs-sql.txt
+	$(call extract_example,$<,$@)
+
+$(bdir)/dynevent.c: ../Documentation/libtracefs-dynevents.txt
+	$(call extract_example,$<,$@)
 
 $(bdir):
 	@mkdir -p $(bdir)
 
 sqlhist: $(bdir) $(bdir) $(bdir)/sqlhist
 
-$(bdir)/sqlhist: $(bdir)/sqlhist.o $(LIBTRACEFS_STATIC)
-	$(CC) -o $@ $^ $(LIBTRACEEVENT_LIBS)
+$(TARGETS): $(bdir)
 
-$(bdir)/sqlhist.c: ../Documentation/libtracefs-sql.txt
-	cat $< | sed -ne '/^EXAMPLE/,/FILES/ { /EXAMPLE/,+2d ; /^FILES/d ;  /^--/d ; p}' > $@
+$(bdir)/%: $(bdir)/%.o
+	$(CC) -o $@ $^ $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS)
 
-$(bdir)/sqlhist.o: $(bdir)/sqlhist.c
+$(TARGETS): $(patsubst %,$(bdir)/%,$(TARGETS))
+
+$(bdir)/%.o: %.c
 	$(CC) -g -Wall -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 clean:
