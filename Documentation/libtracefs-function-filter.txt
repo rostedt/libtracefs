@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 	printf("Ignoring the following functions:\n");
 	for (i = 0; func_list[i]; i++)
 		printf("  %s\n", func_list[i]);
-	tracefs_free_list(func_list);
+	tracefs_list_free(func_list);
 
 	/* Do not trace any function with the word "lock" in it */
 	ret = tracefs_function_notrace(inst, "*lock*", NULL, TRACEFS_FL_RESET);
