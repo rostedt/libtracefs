@@ -66,6 +66,7 @@ int main (int argc, char **argv, char **env)
 {
 	struct tracefs_instance *instance;
 	struct tracefs_hist *hist;
+	struct tep_handle *tep;
 	enum commands cmd;
 	char *cmd_str;
 	int ret;
@@ -94,22 +95,29 @@ int main (int argc, char **argv, char **env)
 		exit(-1);
 	}
 
+	tep = tracefs_local_events(NULL);
+	if (!tep) {
+		perror("Reading tracefs");
+		exit(-1);
+	}
+
 	instance = tracefs_instance_create("hist_test");
 	if (!instance) {
 		fprintf(stderr, "Failed instance create\n");
 		exit(-1);
 	}
 
-	hist = tracefs_hist_alloc(instance, "kmem", "kmalloc",
-				  "call_site", TRACEFS_HIST_KEY_SYM,
-				  "bytes_req", 0);
+	hist = tracefs_hist2d_alloc(tep, "kmem", "kmalloc",
+				    "call_site",TRACEFS_HIST_KEY_SYM,
+				    "bytes_req", 0);
 	if (!hist) {
 		fprintf(stderr, "Failed hist create\n");
 		exit(-1);
 	}
 
 	ret = tracefs_hist_add_value(hist, "bytes_alloc");
-	ret |= tracefs_hist_add_sort_key(hist, "bytes_req", "bytes_alloc", NULL);
+	ret |= tracefs_hist_add_sort_key(hist, "bytes_req");
+	ret |= tracefs_hist_add_sort_key(hist, "bytes_alloc");
 
 	ret |= tracefs_hist_sort_key_direction(hist, "bytes_alloc",
 					       TRACEFS_HIST_SORT_DESCENDING);
@@ -122,7 +130,7 @@ int main (int argc, char **argv, char **env)
 
 	switch (cmd) {
 	case START:
-		ret = tracefs_hist_start(hist);
+		ret = tracefs_hist_start(instance, hist);
 		if (ret) {
 			char *err = tracefs_error_last(instance);
 			if (err)
@@ -130,16 +138,16 @@ int main (int argc, char **argv, char **env)
 		}
 		break;
 	case PAUSE:
-		ret = tracefs_hist_pause(hist);
+		ret = tracefs_hist_pause(instance, hist);
 		break;
 	case CONT:
-		ret = tracefs_hist_continue(hist);
+		ret = tracefs_hist_continue(instance, hist);
 		break;
 	case RESET:
-		ret = tracefs_hist_reset(hist);
+		ret = tracefs_hist_reset(instance, hist);
 		break;
 	case DELETE:
-		ret = tracefs_hist_destroy(hist);
+		ret = tracefs_hist_destroy(instance, hist);
 		break;
 	case SHOW: {
 		char *content;
@@ -157,6 +165,7 @@ int main (int argc, char **argv, char **env)
 		fprintf(stderr, "Failed: command\n");
 	exit(ret);
 }
+
 --
 
 FILES
