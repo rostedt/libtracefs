@@ -62,8 +62,6 @@ static int callback(struct tep_event *event, struct tep_record *record,
 
 	trace_seq_terminate(&seq);
 	trace_seq_do_printf(&seq);
-
-out:
 	trace_seq_destroy(&seq);
 
 	return 0;
@@ -89,7 +87,7 @@ int main (int argc, char **argv, char **env)
 	struct tracefs_dynevent *eprobe;
 	struct tracefs_instance *instance;
 	struct tep_handle *tep;
-	const char *sysnames[] = { mykprobe, NULL };
+	const char *sysnames[] = { myprobe, NULL };
 	pid_t pid;
 
 	if (argc < 2) {
