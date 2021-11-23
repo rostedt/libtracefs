@@ -12,6 +12,23 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
+enum tracefs_hist_key_type {
+	TRACEFS_HIST_KEY_NORMAL = 0,
+	TRACEFS_HIST_KEY_HEX,
+	TRACEFS_HIST_KEY_SYM,
+	TRACEFS_HIST_KEY_SYM_OFFSET,
+	TRACEFS_HIST_KEY_SYSCALL,
+	TRACEFS_HIST_KEY_EXECNAME,
+	TRACEFS_HIST_KEY_LOG,
+	TRACEFS_HIST_KEY_USECS,
+	TRACEFS_HIST_KEY_MAX
+};
+
+struct tracefs_hist_axis {
+	const char *key;
+	enum tracefs_hist_key_type type;
+};
+
 struct tracefs_hist pass:[*]tracefs_hist1d_alloc(struct tracefs_tep pass:[*] tep,
 			const char pass:[*]system, const char pass:[*]event,
 			const char pass:[*]key, enum tracefs_hist_key_type type);
@@ -21,27 +38,33 @@ struct tracefs_hist pass:[*]tracefs_hist2d_alloc(struct tracefs_tep pass:[*] tep
 			const char pass:[*]key2, enum tracefs_hist_key_type type2));
 struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_tep pass:[*] tep,
 			const char pass:[*]system, const char pass:[*]event,
-			struct tracefs_hist_axis [*]axes);
+			struct tracefs_hist_axis pass:[*]axes);
 void tracefs_hist_free(struct tracefs_hist pass:[*]hist);
+
 int tracefs_hist_add_key(struct tracefs_hist pass:[*]hist, const char pass:[*]key,
 			 enum tracefs_hist_key_type type);
 int tracefs_hist_add_value(struct tracefs_hist pass:[*]hist, const char pass:[*]value);
 int tracefs_hist_add_sort_key(struct tracefs_hist pass:[*]hist,
 			      const char pass:[*]sort_key);
+
 int tracefs_hist_set_sort_key(struct tracefs_hist pass:[*]hist,
 			      const char pass:[*]sort_key, ...);
 int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
 				    const char pass:[*]sort_key,
 				    enum tracefs_hist_sort_direction dir);
+
 int tracefs_hist_add_name(struct tracefs_hist pass:[*]hist, const char pass:[*]name);
+
 int tracefs_hist_append_filter(struct tracefs_hist pass:[*]hist,
 			       enum tracefs_filter type,
 			       const char pass:[*]field,
 			       enum tracefs_compare compare,
 			       const char pass:[*]val);
+
 int tracefs_hist_echo_cmd(struct trace_seq pass:[*]s, struct tracefs_instance pass:[*]instance,
 			  struct tracefs_hist pass:[*]hist,
 			  enum tracefs_hist_command command);
+
 int tracefs_hist_command(struct tracefs_instance pass:[*]instance,
 			 struct tracefs_hist pass:[*]hist,
 			 enum tracefs_hist_command command);
