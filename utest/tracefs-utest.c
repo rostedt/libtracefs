@@ -337,28 +337,28 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 
 	synth = tracefs_sql(tep, SQL_1_EVENT, SQL_1_SQL, NULL);
 	CU_TEST(synth != NULL);
-	ret = tracefs_synth_show(&seq, synth);
+	ret = tracefs_synth_echo_cmd(&seq, synth);
 	CU_TEST(ret == 0);
 	tracefs_synth_free(synth);
 	trace_seq_reset(&seq);
 
 	synth = tracefs_sql(tep, SQL_2_EVENT, SQL_2_SQL, NULL);
 	CU_TEST(synth != NULL);
-	ret = tracefs_synth_show(&seq, synth);
+	ret = tracefs_synth_echo_cmd(&seq, synth);
 	CU_TEST(ret == 0);
 	tracefs_synth_free(synth);
 	trace_seq_reset(&seq);
 
 	synth = tracefs_sql(tep, SQL_3_EVENT, SQL_3_SQL, NULL);
 	CU_TEST(synth != NULL);
-	ret = tracefs_synth_show(&seq, synth);
+	ret = tracefs_synth_echo_cmd(&seq, synth);
 	CU_TEST(ret == 0);
 	tracefs_synth_free(synth);
 	trace_seq_reset(&seq);
 
 	synth = tracefs_sql(tep, SQL_4_EVENT, SQL_4_SQL, NULL);
 	CU_TEST(synth != NULL);
-	ret = tracefs_synth_show(&seq, synth);
+	ret = tracefs_synth_echo_cmd(&seq, synth);
 	CU_TEST(ret == 0);
 	tracefs_synth_free(synth);
 	trace_seq_reset(&seq);
@@ -367,7 +367,7 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 	if (event) {
 		synth = tracefs_sql(tep, SQL_5_EVENT, SQL_5_SQL, NULL);
 		CU_TEST(synth != NULL);
-		ret = tracefs_synth_show(&seq, synth);
+		ret = tracefs_synth_echo_cmd(&seq, synth);
 		CU_TEST(ret == 0);
 		tracefs_synth_free(synth);
 		trace_seq_reset(&seq);

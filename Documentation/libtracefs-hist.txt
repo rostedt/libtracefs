@@ -39,9 +39,9 @@ int tracefs_hist_append_filter(struct tracefs_hist pass:[*]hist,
 			       const char pass:[*]field,
 			       enum tracefs_compare compare,
 			       const char pass:[*]val);
-int tracefs_hist_show(struct trace_seq pass:[*]s, struct tracefs_instance pass:[*]instance,
-			 struct tracefs_hist pass:[*]hist,
-			 enum tracefs_hist_command command);
+int tracefs_hist_echo_cmd(struct trace_seq pass:[*]s, struct tracefs_instance pass:[*]instance,
+			  struct tracefs_hist pass:[*]hist,
+			  enum tracefs_hist_command command);
 int tracefs_hist_command(struct tracefs_instance pass:[*]instance,
 			 struct tracefs_hist pass:[*]hist,
 			 enum tracefs_hist_command command);
@@ -155,7 +155,7 @@ _field_, _compare_, and _val_ are ignored unless _type_ is equal to
 
 *TRACEFS_COMPARE_AND* - _field_ & _val_ : where _field_ is a flags field.
 
-*trace_hist_show*() prints the commands needed to create the given histogram
+*trace_hist_echo_cmd*() prints the commands needed to create the given histogram
 in the given _instance_, or NULL for the top level, into the _seq_.
 The command that is printed is described by _command_ and shows the functionality
 that would be done by *tracefs_hist_command*(3).

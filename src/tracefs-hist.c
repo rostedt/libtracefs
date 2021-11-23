@@ -103,20 +103,20 @@ static void add_hist_commands(struct trace_seq *seq, struct tracefs_hist *hist,
 }
 
 /*
- * trace_hist_show - show how to start the histogram
+ * trace_hist_echo_cmd - show how to start the histogram
  * @seq: A trace_seq to store the commands to create
  * @hist: The histogram to write into the trigger file
  * @command: If not zero, can pause, continue or clear the histogram
  *
- * This shows the commands to create the histogram for an event
+ * This shows the echo commands to create the histogram for an event
  * with the given fields.
  *
  * Returns 0 on succes -1 on error.
  */
 int
-tracefs_hist_show(struct trace_seq *seq, struct tracefs_instance *instance,
-		  struct tracefs_hist *hist,
-		  enum tracefs_hist_command command)
+tracefs_hist_echo_cmd(struct trace_seq *seq, struct tracefs_instance *instance,
+		      struct tracefs_hist *hist,
+		      enum tracefs_hist_command command)
 {
 	const char *system = hist->system;
 	const char *event = hist->event_name;
@@ -2029,7 +2029,7 @@ int tracefs_synth_destroy(struct tracefs_synth *synth)
 }
 
 /**
- * tracefs_synth_show - show the command lines to create the synthetic event
+ * tracefs_synth_echo_cmd - show the command lines to create the synthetic event
  * @seq: The trace_seq to store the command lines in
  * @synth: The tracefs_synth descriptor
  *
@@ -2040,8 +2040,8 @@ int tracefs_synth_destroy(struct tracefs_synth *synth)
  * On error, errno is set to:
  * ENOMEM - memory allocation failure.
  */
-int tracefs_synth_show(struct trace_seq *seq,
-		       struct tracefs_synth *synth)
+int tracefs_synth_echo_cmd(struct trace_seq *seq,
+			   struct tracefs_synth *synth)
 {
 	bool new_event = false;
 	char *hist = NULL;

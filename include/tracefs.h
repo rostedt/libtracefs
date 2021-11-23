@@ -371,8 +371,8 @@ int tracefs_hist_append_filter(struct tracefs_hist *hist,
 			       const char *field,
 			       enum tracefs_compare compare,
 			       const char *val);
-int tracefs_hist_show(struct trace_seq *seq,  struct tracefs_instance *instance,
-		      struct tracefs_hist *hist, enum tracefs_hist_command command);
+int tracefs_hist_echo_cmd(struct trace_seq *seq,  struct tracefs_instance *instance,
+			  struct tracefs_hist *hist, enum tracefs_hist_command command);
 int tracefs_hist_command(struct tracefs_instance *instance,
 			 struct tracefs_hist *hist, enum tracefs_hist_command cmd);
 
@@ -530,7 +530,7 @@ struct tracefs_hist *tracefs_synth_get_start_hist(struct tracefs_synth *synth);
 int tracefs_synth_create(struct tracefs_synth *synth);
 int tracefs_synth_destroy(struct tracefs_synth *synth);
 void tracefs_synth_free(struct tracefs_synth *synth);
-int tracefs_synth_show(struct trace_seq *seq, struct tracefs_synth *synth);
+int tracefs_synth_echo_cmd(struct trace_seq *seq, struct tracefs_synth *synth);
 
 struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 				  const char *sql_buffer, char **err);

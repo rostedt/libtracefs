@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_show,tracefs_synth_complete,
+tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_echo_cmd,tracefs_synth_complete,
 tracefs_synth_get_start_hist,tracefs_synth_trace,tracefs_synth_snapshot - Creation of synthetic events
 
 SYNOPSIS
@@ -14,7 +14,7 @@ SYNOPSIS
 
 int tracefs_synth_create(struct tracefs_synth pass:[*]synth);
 int tracefs_synth_destroy(struct tracefs_synth pass:[*]synth);
-int tracefs_synth_show(struct trace_seq pass:[*]seq, struct tracefs_synth pass:[*]synth);
+int tracefs_synth_echo_cmd(struct trace_seq pass:[*]seq, struct tracefs_synth pass:[*]synth);
 bool tracefs_synth_complete(struct tracefs_synth pass:[*]synth);
 struct tracefs_hist pass:[*]tracefs_synth_get_start_hist(struct tracefs_synth pass:[*]synth);
 
@@ -52,7 +52,7 @@ across all instances.
 *tracefs_synth_destroy*() destroys the synthetic event. It will attempt to stop the running of it in
 its instance (top by default), but if its running in another instance this may fail as busy.
 
-*tracefs_synth_show*() acts like *tracefs_synth_create*(), but instead of creating
+*tracefs_synth_echo_cmd*() acts like *tracefs_synth_create*(), but instead of creating
 the synthetic event in the system, it will write the echo commands to manually create
 it in the _seq_ given.
 
@@ -184,7 +184,7 @@ static void make_event(void)
 	 * That's because, when the synth is executed, the remaining close parenthesis
 	 * will be added. That is, the string will end up being:
 	 * "next_prio < 50 || !(prev_prio >= 100)" when one of tracefs_sync_create()
-	 * or tracefs_sync_show() is run.
+	 * or tracefs_sync_echo_cmd() is run.
 	 */
 }
 
@@ -195,7 +195,7 @@ static void show_event(void)
 
 	trace_seq_init(&s);
 
-	tracefs_synth_show(&s, synth);
+	tracefs_synth_echo_cmd(&s, synth);
 	trace_seq_terminate(&s);
 	trace_seq_do_printf(&s);
 	trace_seq_destroy(&s);

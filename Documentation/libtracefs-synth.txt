@@ -257,7 +257,7 @@ static void make_event(void)
 	 * That's because, when the synth is executed, the remaining close parenthesis
 	 * will be added. That is, the string will end up being:
 	 * "next_prio < 50 || !(prev_prio >= 100)" when one of tracefs_sync_create()
-	 * or tracefs_sync_show() is run.
+	 * or tracefs_sync_echo_cmd() is run.
 	 */
 }
 
@@ -268,7 +268,7 @@ static void show_event(void)
 
 	trace_seq_init(&s);
 
-	tracefs_synth_show(&s, synth);
+	tracefs_synth_echo_cmd(&s, synth);
 	trace_seq_terminate(&s);
 	trace_seq_do_printf(&s);
 	trace_seq_destroy(&s);
@@ -312,7 +312,7 @@ SEE ALSO
 --------
 _tracefs_synth_create_(3),
 _tracefs_synth_destroy_(3),
-_tracfes_synth_show_(3),
+_tracfes_synth_echo_cmd(3),
 _libtracefs(3)_,
 _libtraceevent(3)_,
 _trace-cmd(1)_,

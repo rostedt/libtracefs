@@ -405,7 +405,7 @@ static int do_sql(const char *buffer, const char *name, const char *var,
 				}
 			}
 		}
-		tracefs_synth_show(&seq, synth);
+		tracefs_synth_echo_cmd(&seq, synth);
 		if (execute)
 			tracefs_synth_create(synth);
 	} else {
@@ -415,7 +415,7 @@ static int do_sql(const char *buffer, const char *name, const char *var,
 			perror("get_start_hist");
 			exit(-1);
 		}
-		tracefs_hist_show(&seq, NULL, hist, 0);
+		tracefs_hist_echo_cmd(&seq, NULL, hist, 0);
 		if (execute)
 			tracefs_hist_start(NULL, hist);
 	}
@@ -561,7 +561,7 @@ _tracefs_synth_append_end_filter(3)_,
 _tracefs_synth_create(3)_,
 _tracefs_synth_destroy(3)_,
 _tracefs_synth_free(3)_,
-_tracefs_synth_show(3)_,
+_tracefs_synth_echo_cmd(3)_,
 _tracefs_hist_alloc(3)_,
 _tracefs_hist_free(3)_,
 _tracefs_hist_add_key(3)_,
