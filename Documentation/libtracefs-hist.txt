@@ -245,6 +245,7 @@ EXAMPLE
 [source,c]
 --
 #include <stdlib.h>
+#include <unistd.h>
 #include <tracefs.h>
 
 enum commands {
@@ -256,63 +257,184 @@ enum commands {
 	SHOW,
 };
 
-int main (int argc, char **argv, char **env)
+static void parse_system_event(char *group, char **system, char **event)
 {
-	struct tracefs_instance *instance;
+	*system = strtok(group, "/");
+	*event = strtok(NULL, "/");
+	if (!*event) {
+		*event = *system;
+		*system = NULL;
+	}
+}
+
+static int parse_keys(char *keys, struct tracefs_hist_axis **axes)
+{
+	char *sav = NULL;
+	char *key;
+	int cnt = 0;
+
+	for (key = strtok_r(keys, ",", &sav); key; key = strtok_r(NULL, ",", &sav)) {
+		struct tracefs_hist_axis *ax;
+		char *att;
+
+		ax = realloc(*axes, sizeof(*ax) * (cnt + 2));
+		if (!ax) {
+			perror("Failed to allocate axes");
+			exit(-1);
+		}
+		ax[cnt].key = key;
+		ax[cnt].type = 0;
+		ax[cnt + 1].key = NULL;
+		ax[cnt + 1].type = 0;
+
+		*axes = ax;
+
+		att = strchr(key, '.');
+		if (att) {
+			*att++ = '\0';
+			if (strcmp(att, "hex") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_HEX;
+			else if (strcmp(att, "sym") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_SYM;
+			else if (strcmp(att, "sym_offset") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_SYM_OFFSET;
+			else if (strcmp(att, "syscall") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_SYSCALL;
+			else if (strcmp(att, "exec") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_EXECNAME;
+			else if (strcmp(att, "log") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_LOG;
+			else if (strcmp(att, "usecs") == 0)
+				ax[cnt].type = TRACEFS_HIST_KEY_USECS;
+			else {
+				fprintf(stderr, "Undefined attribute '%s'\n", att);
+				fprintf(stderr,"  Acceptable attributes:\n");
+				fprintf(stderr,"    hex, sym, sym_offset, syscall, exe, log, usecs\n");
+				exit(-1);
+			}
+		}
+		cnt++;
+	}
+	return cnt;
+}
+
+static void process_hist(enum commands cmd, const char *instance_name,
+			 char *group, char *keys, char *vals, char *sort,
+			 char *ascend, char *desc)
+{
+	struct tracefs_instance *instance = NULL;
 	struct tracefs_hist *hist;
 	struct tep_handle *tep;
-	enum commands cmd;
-	char *cmd_str;
+	struct tracefs_hist_axis *axes = NULL;
+	char *system;
+	char *event;
+	char *sav;
+	char *val;
 	int ret;
+	int cnt;
 
-	if (argc < 2) {
-		fprintf(stderr, "usage: %s command\n", argv[0]);
-		exit(-1);
-	}
-
-	cmd_str = argv[1];
-
-	if (!strcmp(cmd_str, "start"))
-		cmd = START;
-	else if (!strcmp(cmd_str, "pause"))
-		cmd = PAUSE;
-	else if (!strcmp(cmd_str, "cont"))
-		cmd = CONT;
-	else if (!strcmp(cmd_str, "reset"))
-		cmd = RESET;
-	else if (!strcmp(cmd_str, "delete"))
-		cmd = DELETE;
-	else if (!strcmp(cmd_str, "show"))
-		cmd = SHOW;
-	else {
-		fprintf(stderr, "Unknown command %s\n", cmd_str);
-		exit(-1);
-	}
-
-	instance = tracefs_instance_create("hist_test");
-	if (!instance) {
-		fprintf(stderr, "Failed instance create\n");
-		exit(-1);
+	if (instance_name) {
+		instance = tracefs_instance_create(instance_name);
+		if (!instance) {
+			fprintf(stderr, "Failed instance create\n");
+			exit(-1);
+		}
 	}
 
 	tep = tracefs_local_events(NULL);
-	hist = tracefs_hist2d_alloc(tep, "kmem", "kmalloc",
-				    "call_site", TRACEFS_HIST_KEY_SYM,
-				    "bytes_req", 0);
+	if (!tep) {
+		perror("Could not read events");
+		exit(-1);
+	}
+
+	parse_system_event(group, &system, &event);
+
+	if (cmd == SHOW) {
+		char *content;
+		content = tracefs_event_file_read(instance, system, event,
+						  "hist", NULL);
+		if (!content) {
+			perror("Reading hist file");
+			exit(-1);
+		}
+		printf("%s\n", content);
+		free(content);
+		return;
+	}
+
+	if (!keys) {
+		fprintf(stderr, "Command needs -k option\n");
+		exit(-1);
+	}
+
+	cnt = parse_keys(keys, &axes);
+	if (!cnt) {
+		fprintf(stderr, "No keys??\n");
+		exit(-1);
+	}
+
+	/* Show examples of hist1d and hist2d */
+	switch (cnt) {
+	case 1:
+		hist = tracefs_hist1d_alloc(tep, system, event,
+					    axes[0].key, axes[0].type);
+		break;
+	case 2:
+		hist = tracefs_hist2d_alloc(tep, system, event,
+					    axes[0].key, axes[0].type,
+					    axes[1].key, axes[1].type);
+		break;
+	default:
+		/* Really, 1 and 2 could use this too */
+		hist = tracefs_hist_alloc(tep, system, event, axes);
+	}
 	if (!hist) {
 		fprintf(stderr, "Failed hist create\n");
 		exit(-1);
 	}
 
-	ret = tracefs_hist_add_value(hist, "bytes_alloc");
-	ret |= tracefs_hist_add_sort_key(hist, "bytes_req");
-	ret |= tracefs_hist_add_sort_key(hist, "bytes_alloc");
+	if (vals) {
+		sav = NULL;
+		for (val = strtok_r(vals, ",", &sav); val; val = strtok_r(NULL, ",", &sav)) {
+			ret = tracefs_hist_add_value(hist, val);
+			if (ret) {
+				fprintf(stderr, "Failed to add value %s\n", val);
+				exit(-1);
+			}
+		}
+	}
 
-	ret |= tracefs_hist_sort_key_direction(hist, "bytes_alloc",
-					       TRACEFS_HIST_SORT_DESCENDING);
-	if (ret) {
-		fprintf(stderr, "Failed modifying histogram\n");
-		exit(-1);
+	if (sort) {
+		sav = NULL;
+		for (val = strtok_r(sort, ",", &sav); val; val = strtok_r(NULL, ",", &sav)) {
+			ret = tracefs_hist_add_sort_key(hist, val);
+			if (ret) {
+				fprintf(stderr, "Failed to add sort key/val %s\n", val);
+				exit(-1);
+			}
+		}
+	}
+
+	if (ascend) {
+		sav = NULL;
+		for (val = strtok_r(ascend, ",", &sav); val; val = strtok_r(NULL, ",", &sav)) {
+			ret = tracefs_hist_sort_key_direction(hist, val, TRACEFS_HIST_SORT_ASCENDING);
+			if (ret) {
+				fprintf(stderr, "Failed to add ascending key/val %s\n", val);
+				exit(-1);
+			}
+		}
+	}
+
+	if (desc) {
+		sav = NULL;
+		for (val = strtok_r(desc, ",", &sav); val; val = strtok_r(NULL, ",", &sav)) {
+			ret = tracefs_hist_sort_key_direction(hist, val, TRACEFS_HIST_SORT_DESCENDING);
+			if (ret) {
+				fprintf(stderr, "Failed to add descending key/val %s\n", val);
+				exit(-1);
+			}
+		}
 	}
 
 	tracefs_error_clear(instance);
@@ -338,21 +460,95 @@ int main (int argc, char **argv, char **env)
 	case DELETE:
 		ret = tracefs_hist_destroy(instance, hist);
 		break;
-	case SHOW: {
-		char *content;
-		content = tracefs_event_file_read(instance, "kmem", "kmalloc",
-						  "hist", NULL);
-		ret = content ? 0 : -1;
-		if (content) {
-			printf("%s\n", content);
-			free(content);
-		}
+	case SHOW:
+		/* Show was already done */
 		break;
-	}
 	}
 	if (ret)
 		fprintf(stderr, "Failed: command\n");
 	exit(ret);
+}
+
+int main (int argc, char **argv, char **env)
+{
+	enum commands cmd;
+	char *instance = NULL;
+	char *cmd_str;
+	char *event = NULL;
+	char *keys = NULL;
+	char *vals = NULL;
+	char *sort = NULL;
+	char *desc = NULL;
+	char *ascend = NULL;
+
+	if (argc < 2) {
+		fprintf(stderr, "usage: %s command [-B instance][-e [system/]event][-k keys][-v vals][-s sort]\n", argv[0]);
+		fprintf(stderr, "      [-a ascending][-d descending]\n");
+		exit(-1);
+	}
+
+	cmd_str = argv[1];
+
+	if (!strcmp(cmd_str, "start"))
+		cmd = START;
+	else if (!strcmp(cmd_str, "pause"))
+		cmd = PAUSE;
+	else if (!strcmp(cmd_str, "cont"))
+		cmd = CONT;
+	else if (!strcmp(cmd_str, "reset"))
+		cmd = RESET;
+	else if (!strcmp(cmd_str, "delete"))
+		cmd = DELETE;
+	else if (!strcmp(cmd_str, "show"))
+		cmd = SHOW;
+	else {
+		fprintf(stderr, "Unknown command %s\n", cmd_str);
+		exit(-1);
+	}
+
+	for (;;) {
+		int c;
+
+		c = getopt(argc - 1, argv + 1, "e:k:v:B:s:d:a:");
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'e':
+			event = optarg;
+			break;
+		case 'k':
+			keys = optarg;
+			break;
+		case 'v':
+			vals = optarg;
+			break;
+		case 'B':
+			instance = optarg;
+			break;
+		case 's':
+			sort = optarg;
+			break;
+		case 'd':
+			desc = optarg;
+			break;
+		case 'a':
+			ascend = optarg;
+			break;
+		}
+	}
+	if (!event) {
+		event = "kmem/kmalloc";
+		if (!keys)
+			keys = "call_site.sym,bytes_req";
+		if (!vals)
+			vals = "bytes_alloc";
+		if (!sort)
+			sort = "bytes_req,bytes_alloc";
+		if (!desc)
+			desc = "bytes_alloc";
+	}
+	process_hist(cmd, instance, event, keys, vals, sort, ascend, desc);
 }
 --
 
