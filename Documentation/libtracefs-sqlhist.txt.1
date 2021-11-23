@@ -88,6 +88,11 @@ OPTIONS
     Save the given fields. The fields must be fields of the "end" event given
     in the *SQL-select-command*
 
+*-B* 'instance'::
+    For simple statements that only produce a histogram, the instance given here
+    will be where the histogram will be created. This is ignored for full synthetic
+    event creation, as sythetic events have a global affect on all tracing instances,
+    where as, histograms only affect a single instance.
 
 EXAMPLES
 --------

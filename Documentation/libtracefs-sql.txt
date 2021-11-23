@@ -330,7 +330,8 @@ enum action {
 
 #define ACTIONS ((ACTION_MAX - 1))
 
-static int do_sql(const char *buffer, const char *name, const char *var,
+static int do_sql(const char *instance_name,
+		  const char *buffer, const char *name, const char *var,
 		  const char *trace_dir, bool execute, int action,
 		  char **save_fields)
 {
@@ -409,15 +410,28 @@ static int do_sql(const char *buffer, const char *name, const char *var,
 		if (execute)
 			tracefs_synth_create(synth);
 	} else {
+		struct tracefs_instance *instance = NULL;
 		struct tracefs_hist *hist;
+
 		hist = tracefs_synth_get_start_hist(synth);
 		if (!hist) {
 			perror("get_start_hist");
 			exit(-1);
 		}
-		tracefs_hist_echo_cmd(&seq, NULL, hist, 0);
+		if (instance_name) {
+			if (execute)
+				instance = tracefs_instance_create(instance_name);
+			else
+				instance = tracefs_instance_alloc(trace_dir,
+								  instance_name);
+			if (!instance) {
+				perror("Failed to create instance");
+				exit(-1);
+			}
+		}
+		tracefs_hist_echo_cmd(&seq, instance, hist, 0);
 		if (execute)
-			tracefs_hist_start(NULL, hist);
+			tracefs_hist_start(instance, hist);
 	}
 
 	tracefs_synth_free(synth);
@@ -434,6 +448,7 @@ int main (int argc, char **argv)
 	char buf[BUFSIZ];
 	int buffer_size = 0;
 	const char *file = NULL;
+	const char *instance = NULL;
 	bool execute = false;
 	char **save_fields = NULL;
 	const char *name;
@@ -446,7 +461,7 @@ int main (int argc, char **argv)
 	int i;
 
 	for (;;) {
-		c = getopt(argc, argv, "ht:f:en:m:c:sS:T");
+		c = getopt(argc, argv, "ht:f:en:m:c:sS:TB:");
 		if (c == -1)
 			break;
 
@@ -488,6 +503,9 @@ int main (int argc, char **argv)
 		case 'T':
 			action |= ACTION_TRACE | ACTION_SNAPSHOT;
 			break;
+		case 'B':
+			instance = optarg;
+			break;
 		case 'n':
 			name = optarg;
 			break;
@@ -528,7 +546,7 @@ int main (int argc, char **argv)
 		}
 	}
 
-	do_sql(buffer, name, var, trace_dir, execute, action, save_fields);
+	do_sql(instance, buffer, name, var, trace_dir, execute, action, save_fields);
 	free(buffer);
 
 	return 0;
