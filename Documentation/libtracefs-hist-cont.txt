@@ -107,9 +107,9 @@ int main (int argc, char **argv, char **env)
 		exit(-1);
 	}
 
-	hist = tracefs_hist2d_alloc(tep, "kmem", "kmalloc",
-				    "call_site",TRACEFS_HIST_KEY_SYM,
-				    "bytes_req", 0);
+	hist = tracefs_hist_alloc_2d(tep, "kmem", "kmalloc",
+				     "call_site",TRACEFS_HIST_KEY_SYM,
+				     "bytes_req", 0);
 	if (!hist) {
 		fprintf(stderr, "Failed hist create\n");
 		exit(-1);
@@ -184,6 +184,8 @@ _libtracefs(3)_,
 _libtraceevent(3)_,
 _trace-cmd(1)_,
 _tracefs_hist_alloc(3)_,
+_tracefs_hist_alloc_2d(3)_,
+_tracefs_hist_alloc_nd(3)_,
 _tracefs_hist_free(3)_,
 _tracefs_hist_add_key(3)_,
 _tracefs_hist_add_value(3)_,

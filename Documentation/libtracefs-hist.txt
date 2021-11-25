@@ -29,14 +29,14 @@ struct tracefs_hist_axis {
 	enum tracefs_hist_key_type type;
 };
 
-struct tracefs_hist pass:[*]tracefs_hist1d_alloc(struct tracefs_tep pass:[*] tep,
+struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_tep pass:[*] tep,
 			const char pass:[*]system, const char pass:[*]event,
 			const char pass:[*]key, enum tracefs_hist_key_type type);
-struct tracefs_hist pass:[*]tracefs_hist2d_alloc(struct tracefs_tep pass:[*] tep,
+struct tracefs_hist pass:[*]tracefs_hist_alloc_2d(struct tracefs_tep pass:[*] tep,
 			const char pass:[*]system, const char pass:[*]event,
 			const char pass:[*]key1, enum tracefs_hist_key_type type1,
 			const char pass:[*]key2, enum tracefs_hist_key_type type2));
-struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_tep pass:[*] tep,
+struct tracefs_hist pass:[*]tracefs_hist_alloc_nd(struct tracefs_tep pass:[*] tep,
 			const char pass:[*]system, const char pass:[*]event,
 			struct tracefs_hist_axis pass:[*]axes);
 void tracefs_hist_free(struct tracefs_hist pass:[*]hist);
@@ -78,7 +78,7 @@ The syntax can be complex and difficult to get correct. This API handles the
 syntax, and facilitates the creation and interaction with the event histograms.
 See https://www.kernel.org/doc/html/latest/trace/histogram.html for more information.
 
-*tracefs_hist1d_alloc*() allocates a "struct tracefs_hist" descriptor of a one-dimensional
+*tracefs_hist_alloc*() allocates a "struct tracefs_hist" descriptor of a one-dimensional
 histogram and returns the address of it. This descriptor must be freed by *tracefs_hist_free*().
 The _tep_ is a trace event handle (see *tracefs_local_events*(3)), that holds the
 _system_ and _event_ that the histogram will be attached to. The _system_ is the
@@ -86,7 +86,7 @@ system or group of the event. The _event_ is the event to attach the histogram t
 The _key_ is a field of the event that will be used as the key(dimension) of the histogram.
 The _type_ is the type of the _key_. See KEY TYPES below.
 
-*tracefs_hist2d_alloc*() allocates a "struct tracefs_hist" descriptor of a two-dimensional
+*tracefs_hist_alloc_2d*() allocates a "struct tracefs_hist" descriptor of a two-dimensional
 histogram and returns the address of it. This descriptor must be freed by *tracefs_hist_free*().
 The _tep_ is a trace event handle (see *tracefs_local_events*(3)), that holds the
 _system_ and _event_ that the histogram will be attached to. The _system_ is the
@@ -96,7 +96,7 @@ of the histogram. The _type1_ is the type of the _key1_. See KEY TYPES below.
 The _key2_ is the second field of the event that will be used as the key(dimension)
 of the histogram. The _type2_ is the type of the _key2_. See KEY TYPES below.
 
-*tracefs_hist_alloc*() allocates a "struct tracefs_hist" descriptor of an N-dimensional
+*tracefs_hist_alloc_nd*() allocates a "struct tracefs_hist" descriptor of an N-dimensional
 histogram and returns the address of it. This descriptor must be freed by *tracefs_hist_free*().
 The _tep_ is a trace event handle (see *tracefs_local_events*(3)), that holds the
 _system_ and _event_ that the histogram will be attached to. The _system_ is the
@@ -108,7 +108,7 @@ or disable the running histogram if it was started. *tracefs_hist_destroy*() nee
 to be called to do so.
 
 *tracefs_hist_add_key*() Adds a secondary or tertiary key to the histogram.
-The key passed to *tracefs_hist_alloc*() is the primary key of the histogram.
+The key passed to *tracefs_hist_alloc_nd*() is the primary key of the histogram.
 The first time this function is called, it will add a secondary key (or two dimensional
 histogram). If this function is called again on the same histogram, it will add
 a _tertiary_ key (or three dimensional histogram). The _hist_ parameter is the
@@ -203,7 +203,7 @@ calling conventions a bit easier to understand what is happening.
 KEY TYPES
 ---------
 
-*tracefs_hist_alloc*() and *tracefs_hist_add_key*() both add a key and requires
+*tracefs_hist_alloc_nd*() and *tracefs_hist_add_key*() both add a key and requires
 that key to have a type. The types may be:
 
  *TRACEFS_HIST_KEY_NORMAL* or zero (0) which is to not modify the type.
@@ -232,7 +232,7 @@ in which case it will show the timestamp in microseconds instead of nanoseconds.
 
 RETURN VALUE
 ------------
-*tracefs_hist_alloc*() returns an allocated histogram descriptor which must
+*tracefs_hist_alloc_nd*() returns an allocated histogram descriptor which must
 be freed by *tracefs_hist_free*() or NULL on error.
 
 All the other functions return zero on success or -1 on error.
@@ -376,17 +376,17 @@ static void process_hist(enum commands cmd, const char *instance_name,
 	/* Show examples of hist1d and hist2d */
 	switch (cnt) {
 	case 1:
-		hist = tracefs_hist1d_alloc(tep, system, event,
-					    axes[0].key, axes[0].type);
+		hist = tracefs_hist_alloc(tep, system, event,
+					  axes[0].key, axes[0].type);
 		break;
 	case 2:
-		hist = tracefs_hist2d_alloc(tep, system, event,
-					    axes[0].key, axes[0].type,
-					    axes[1].key, axes[1].type);
+		hist = tracefs_hist_alloc_2d(tep, system, event,
+					     axes[0].key, axes[0].type,
+					     axes[1].key, axes[1].type);
 		break;
 	default:
 		/* Really, 1 and 2 could use this too */
-		hist = tracefs_hist_alloc(tep, system, event, axes);
+		hist = tracefs_hist_alloc_nd(tep, system, event, axes);
 	}
 	if (!hist) {
 		fprintf(stderr, "Failed hist create\n");

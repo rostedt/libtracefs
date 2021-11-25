@@ -206,7 +206,7 @@ void tracefs_hist_free(struct tracefs_hist *hist)
 }
 
 /**
- * tracefs_hist1d_alloc - Initialize one-dimensional histogram
+ * tracefs_hist_alloc - Initialize one-dimensional histogram
  * @tep: The tep handle that has the @system and @event.
  * @system: The system the histogram event is in.
  * @event_name: The name of the event that the histogram will be attached to.
@@ -222,17 +222,17 @@ void tracefs_hist_free(struct tracefs_hist *hist)
  * NULL on failure.
  */
 struct tracefs_hist *
-tracefs_hist1d_alloc(struct tep_handle *tep,
-		     const char *system, const char *event_name,
-		     const char *key, enum tracefs_hist_key_type type)
+tracefs_hist_alloc(struct tep_handle *tep,
+		   const char *system, const char *event_name,
+		   const char *key, enum tracefs_hist_key_type type)
 {
 	struct tracefs_hist_axis axis[] = {{key, type}, {NULL, 0}};
 
-	return tracefs_hist_alloc(tep, system, event_name, axis);
+	return tracefs_hist_alloc_nd(tep, system, event_name, axis);
 }
 
 /**
- * tracefs_hist2d_alloc - Initialize two-dimensional histogram
+ * tracefs_hist_alloc_2d - Initialize two-dimensional histogram
  * @tep: The tep handle that has the @system and @event.
  * @system: The system the histogram event is in.
  * @event: The event that the histogram will be attached to.
@@ -250,20 +250,20 @@ tracefs_hist1d_alloc(struct tep_handle *tep,
  * NULL on failure.
  */
 struct tracefs_hist *
-tracefs_hist2d_alloc(struct tep_handle *tep,
-		     const char *system, const char *event_name,
-		     const char *key1, enum tracefs_hist_key_type type1,
-		     const char *key2, enum tracefs_hist_key_type type2)
+tracefs_hist_alloc_2d(struct tep_handle *tep,
+		      const char *system, const char *event_name,
+		      const char *key1, enum tracefs_hist_key_type type1,
+		      const char *key2, enum tracefs_hist_key_type type2)
 {
 	struct tracefs_hist_axis axis[] = {{key1, type1},
 					   {key2, type2},
 					   {NULL, 0}};
 
-	return tracefs_hist_alloc(tep, system, event_name, axis);
+	return tracefs_hist_alloc_nd(tep, system, event_name, axis);
 }
 
 /**
- * tracefs_hist_alloc - Initialize N-dimensional histogram
+ * tracefs_hist_alloc_nd - Initialize N-dimensional histogram
  * @tep: The tep handle that has the @system and @event.
  * @system: The system the histogram event is in
  * @event: The event that the histogram will be attached to
@@ -278,9 +278,9 @@ tracefs_hist2d_alloc(struct tep_handle *tep,
  * NULL on failure.
  */
 struct tracefs_hist *
-tracefs_hist_alloc(struct tep_handle *tep,
-		   const char *system, const char *event_name,
-		   struct tracefs_hist_axis *axes)
+tracefs_hist_alloc_nd(struct tep_handle *tep,
+		      const char *system, const char *event_name,
+		      struct tracefs_hist_axis *axes)
 {
 	struct tep_event *event;
 	struct tracefs_hist *hist;
@@ -1861,8 +1861,8 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 				return NULL;
 			}
 		} else {
-			hist = tracefs_hist1d_alloc(tep, system, event,
-						    key, type);
+			hist = tracefs_hist_alloc(tep, system, event,
+						  key, type);
 			if (!hist)
 				return NULL;
 		}

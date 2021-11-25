@@ -334,14 +334,14 @@ enum tracefs_compare {
 
 void tracefs_hist_free(struct tracefs_hist *hist);
 struct tracefs_hist *
-tracefs_hist1d_alloc(struct tep_handle *tep,
-		     const char *system, const char *event_name,
-		     const char *key, enum tracefs_hist_key_type type);
+tracefs_hist_alloc(struct tep_handle *tep,
+		   const char *system, const char *event_name,
+		   const char *key, enum tracefs_hist_key_type type);
 struct tracefs_hist *
-tracefs_hist2d_alloc(struct tep_handle *tep,
-		     const char *system, const char *event_name,
-		     const char *key1, enum tracefs_hist_key_type type1,
-		     const char *key2, enum tracefs_hist_key_type type2);
+tracefs_hist_alloc_2d(struct tep_handle *tep,
+		      const char *system, const char *event_name,
+		      const char *key1, enum tracefs_hist_key_type type1,
+		      const char *key2, enum tracefs_hist_key_type type2);
 
 struct tracefs_hist_axis {
 	const char *key;
@@ -349,9 +349,9 @@ struct tracefs_hist_axis {
 };
 
 struct tracefs_hist *
-tracefs_hist_alloc(struct tep_handle *tep,
-		   const char *system, const char *event_name,
-		   struct tracefs_hist_axis *axes);
+tracefs_hist_alloc_nd(struct tep_handle *tep,
+		      const char *system, const char *event_name,
+		      struct tracefs_hist_axis *axes);
 const char *tracefs_get_hist_name(struct tracefs_hist *hist);
 const char *tracefs_get_hist_event(struct tracefs_hist *hist);
 const char *tracefs_get_hist_system(struct tracefs_hist *hist);
