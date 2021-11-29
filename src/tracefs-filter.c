@@ -338,7 +338,7 @@ __hidden int trace_append_filter(char **filter, unsigned int *state,
 }
 
 /**
- * tracefs_event_append_filter - create or append a filter for an event
+ * tracefs_filter_string_append - create or append a filter for an event
  * @event: tep_event to create / append a filter for
  * @filter: Pointer to string to append to (pointer to NULL to create)
  * @type: The type of element to add to the filter
@@ -387,10 +387,10 @@ __hidden int trace_append_filter(char **filter, unsigned int *state,
  *
  * Returns 0 on success and -1 on failure.
  */
-int tracefs_event_append_filter(struct tep_event *event, char **filter,
-				enum tracefs_filter type,
-				const char *field, enum tracefs_compare compare,
-				const char *val)
+int tracefs_filter_string_append(struct tep_event *event, char **filter,
+				 enum tracefs_filter type,
+				 const char *field, enum tracefs_compare compare,
+				 const char *val)
 {
 	unsigned int open_parens;
 	unsigned int state = 0;
@@ -623,7 +623,7 @@ static int get_val_end(const char *filter, int i, int *end)
 }
 
 /**
- * tracefs_event_verify_filter - verify a given filter works for an event
+ * tracefs_filter_string_verify - verify a given filter works for an event
  * @event: The event to test the given filter for
  * @filter: The filter to test
  * @err: Error message for syntax errors (NULL to ignore)
@@ -634,8 +634,8 @@ static int get_val_end(const char *filter, int i, int *end)
  * errors, @err will be allocated with an error message. It must
  * be freed with free().
  */
-int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
-				char **err)
+int tracefs_filter_string_verify(struct tep_event *event, const char *filter,
+				 char **err)
 {
 	enum tracefs_filter filter_type;
 	enum tracefs_compare compare;
@@ -744,4 +744,19 @@ int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
 
 	free(str);
 	return 0;
+}
+
+/** Deprecated **/
+int tracefs_event_append_filter(struct tep_event *event, char **filter,
+				enum tracefs_filter type,
+				const char *field, enum tracefs_compare compare,
+				const char *val)
+{
+	return tracefs_filter_string_append(event, filter, type, field,
+					    compare, val);
+}
+int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
+				char **err)
+{
+	return tracefs_filter_string_verify(event, filter, err);
 }

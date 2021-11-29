@@ -467,10 +467,20 @@ enum tracefs_synth_calc {
 	TRACEFS_SYNTH_ADD,
 };
 
+int tracefs_filter_string_append(struct tep_event *event, char **filter,
+				 enum tracefs_filter type,
+				 const char *field, enum tracefs_compare compare,
+				 const char *val);
+int tracefs_filter_string_verify(struct tep_event *event, const char *filter,
+				 char **err);
+
+/** Deprecated do not use: Instead use tracefs_filter_string_append() **/
 int tracefs_event_append_filter(struct tep_event *event, char **filter,
 				enum tracefs_filter type,
 				const char *field, enum tracefs_compare compare,
 				const char *val);
+
+/** Deprecated do not use: Instead use tracefs_filter_string_verify()  **/
 int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
 				char **err);
 
