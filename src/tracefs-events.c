@@ -689,13 +689,16 @@ char **tracefs_tracers(const char *tracing_dir)
 }
 
 static int load_events(struct tep_handle *tep,
-		       const char *tracing_dir, const char *system)
+		       const char *tracing_dir, const char *system, bool check)
 {
 	int ret = 0, failure = 0;
 	char **events = NULL;
 	struct stat st;
 	int len = 0;
 	int i;
+
+	if (!tracing_dir)
+		tracing_dir = tracefs_tracing_dir();
 
 	events = tracefs_system_events(tracing_dir, system);
 	if (!events)
@@ -716,6 +719,10 @@ static int load_events(struct tep_handle *tep,
 		if (ret < 0)
 			goto next_event;
 
+		/* check if event is already added, to avoid duplicates */
+		if (check && tep_find_event_by_name(tep, system, events[i]))
+			goto next_event;
+
 		len = str_read_file(format, &buf, true);
 		if (len <= 0)
 			goto next_event;
@@ -730,6 +737,19 @@ next_event:
 
 	tracefs_list_free(events);
 	return failure;
+}
+
+__hidden int trace_rescan_events(struct tep_handle *tep,
+				const char *tracing_dir, const char *system)
+{
+	/* ToDo: add here logic for deleting removed events from tep handle */
+	return load_events(tep, tracing_dir, system, true);
+}
+
+__hidden int trace_load_events(struct tep_handle *tep,
+			       const char *tracing_dir, const char *system)
+{
+	return load_events(tep, tracing_dir, system, false);
 }
 
 static int read_header(struct tep_handle *tep, const char *tracing_dir)
@@ -886,14 +906,14 @@ static int fill_local_events_system(const char *tracing_dir,
 	for (i = 0; systems[i]; i++) {
 		if (sys_names && !contains(systems[i], sys_names))
 			continue;
-		ret = load_events(tep, tracing_dir, systems[i]);
+		ret = trace_load_events(tep, tracing_dir, systems[i]);
 		if (ret && parsing_failures)
 			(*parsing_failures)++;
 	}
 
 	/* Include ftrace, as it is excluded for not having "enable" file */
 	if (!sys_names || contains("ftrace", sys_names))
-		load_events(tep, tracing_dir, "ftrace");
+		trace_load_events(tep, tracing_dir, "ftrace");
 
 	load_mappings(tracing_dir, tep);
 

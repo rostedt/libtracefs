@@ -112,4 +112,9 @@ dynevent_alloc(enum tracefs_dynevent_type type, const char *system,
 	       const char *event, const char *address, const char *format);
 int dynevent_get_count(unsigned int types, const char *system);
 
+int trace_load_events(struct tep_handle *tep,
+		      const char *tracing_dir, const char *system);
+int trace_rescan_events(struct tep_handle *tep,
+			const char *tracing_dir, const char *system);
+
 #endif /* _TRACE_FS_LOCAL_H */
