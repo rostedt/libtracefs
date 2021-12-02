@@ -479,6 +479,8 @@ int tracefs_filter_string_verify(struct tep_event *event, const char *filter,
 int tracefs_event_filter_apply(struct tracefs_instance *instance,
 			       struct tep_event *event, const char *filter);
 
+int tracefs_event_filter_clear(struct tracefs_instance *instance,
+			       struct tep_event *event);
 
 /** Deprecated do not use: Instead use tracefs_filter_string_append() **/
 int tracefs_event_append_filter(struct tep_event *event, char **filter,
@@ -489,7 +491,6 @@ int tracefs_event_append_filter(struct tep_event *event, char **filter,
 /** Deprecated do not use: Instead use tracefs_filter_string_verify()  **/
 int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
 				char **err);
-
 
 #define TRACEFS_TIMESTAMP "common_timestamp"
 #define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"

@@ -764,6 +764,20 @@ int tracefs_event_filter_apply(struct tracefs_instance *instance,
 					"filter", filter);
 }
 
+/**
+ * tracefs_event_filter_clear - clear the filter on event in given instance
+ * @instance: The instance in which the filter will be applied (NULL for toplevel).
+ * @event: The event to apply the filter on.
+ *
+ * Returns 0 on succes and -1 on error.
+ */
+int tracefs_event_filter_clear(struct tracefs_instance *instance,
+			       struct tep_event *event)
+{
+	return tracefs_event_file_write(instance, event->system, event->name,
+					"filter", "0");
+}
+
 /** Deprecated **/
 int tracefs_event_append_filter(struct tep_event *event, char **filter,
 				enum tracefs_filter type,

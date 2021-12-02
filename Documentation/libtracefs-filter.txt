@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_filter_string_append, tracefs_filter_string_verify, tracefs_event_apply_filter -
+tracefs_filter_string_append, tracefs_filter_string_verify, tracefs_event_filter_apply tracefs_event_filter_clear -
 Add, verify and apply event filters
 
 SYNOPSIS
@@ -17,6 +17,8 @@ int tracefs_filter_string_append(struct tep_event pass:[*]event, char pass:[**] 
 				 enum tracefs_synth_compare compare, const char pass:[*]val);
 int tracefs_filter_string_verify(struct tep_event pass:[*]event, const char pass:[*]filter, char pass:[**]err);
 int tracefs_event_filter_apply(struct tracefs_instance pass:[*]instance, struct tep_event pass:[*]event, const char pass:[*]filter);
+int tracefs_event_filter_clear(struct tracefs_instance pass:[*]instance, struct tep_event pass:[*]event);
+
 --
 
 DESCRIPTION
@@ -69,6 +71,8 @@ with *free*().
 
 *tracefs_event_filter_apply*() applies given _filter_ string on _event_ in given _instance_.
 
+*tracefs_event_filter_clear*() clear all filters on _event_ in given _instance_.
+
 RETURN VALUE
 ------------
 *tracefs_filter_string_append*() returns 0 on success and -1 on error.
@@ -79,6 +83,8 @@ contain a string describing what was found wrong with _filter_. _err_ must be
 freed with *free*().
 
 *tracefs_event_filter_apply*() returns 0 on success and -1 on error.
+
+*tracefs_event_filter_clear*() returns 0 on success and -1 on error.
 
 EXAMPLE
 -------
