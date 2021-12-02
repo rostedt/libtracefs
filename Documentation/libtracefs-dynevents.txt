@@ -4,8 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_dynevent_create, tracefs_dynevent_destroy, tracefs_dynevent_destroy_all,
-tracefs_dynevent_free, tracefs_dynevent_list_free, tracefs_dynevent_get_all, tracefs_dynevent_info -
-Create, destroy, free and get dynamic events.
+tracefs_dynevent_free, tracefs_dynevent_list_free, tracefs_dynevent_get_all, tracefs_dynevent_info,
+tracefs_dynevent_get_event - Create, destroy, free and get dynamic events.
 
 SYNOPSIS
 --------
@@ -23,6 +23,7 @@ void *tracefs_dynevent_list_free*(struct tracefs_dynevent pass:[*]pass:[*]_event
 struct tracefs_dynevent pass:[*]*tracefs_dynevent_get*(enum tracefs_dynevent_type _type_, const char pass:[*]_system_, const char pass:[*]_event_);
 struct tracefs_dynevent pass:[*]pass:[*]*tracefs_dynevent_get_all*(unsigned int _types_, const char pass:[*]_system_);
 enum tracefs_dynevent_type *tracefs_dynevent_info*(struct tracefs_dynevent pass:[*]_dynevent_, char pass:[*]pass:[*]_system_, char pass:[*]pass:[*]_event_, char pass:[*]pass:[*]_prefix_, char pass:[*]pass:[*]_addr_, char pass:[*]pass:[*]_format_);
+struct tep_event pass:[*]*tracefs_dynevent_get_event*(struct tep_handle pass:[*]_tep_, struct tracefs_dynevent pass:[*]_dynevent_);
 --
 
 DESCRIPTION
@@ -68,6 +69,10 @@ if relevant for this event type. If _format_ is non NULL, it will hold the forma
 dynamic event. Note, that the content in _group_, _event_, _prefix_, _addr_, and _format_ must be
 freed with free(3) if they are set.
 
+The *tracefs_dynevent_get_event*() function returns a tep event, describing the given dynamic event.
+The API detects any newly created or removed dynamic events. The returned pointer to tep event is
+controlled by @tep and must not be freed.
+
 RETURN VALUE
 ------------
 
@@ -87,6 +92,10 @@ in case of an error or in case there are no events in the system. That array mus
 *tracefs_dynevent_info*() returns the type of the given dynamic event  or TRACEFS_DYNEVENT_UNKNOWN
 on error. If _system_, _event_, _prefix_, _addr_, or _format_ are non NULL, they will contain
 allocated strings that must be freed by free(3).
+
+The *tracefs_dynevent_get_event*() function returns a pointer to a tep event or NULL in case of an
+error or if the requested dynamic event is missing. The returned pointer to tep event is controlled
+by @tep and must not be freed.
 
 ERRORS
 ------

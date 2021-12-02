@@ -262,6 +262,8 @@ tracefs_dynevent_get(enum tracefs_dynevent_type type, const char *system, const 
 enum tracefs_dynevent_type
 tracefs_dynevent_info(struct tracefs_dynevent *dynevent, char **system,
 		      char **event, char **prefix, char **addr, char **format);
+struct tep_event *
+tracefs_dynevent_get_event(struct tep_handle *tep, struct tracefs_dynevent *dynevent);
 
 struct tracefs_dynevent *
 tracefs_eprobe_alloc(const char *system, const char *event,

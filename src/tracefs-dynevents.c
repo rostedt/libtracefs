@@ -752,3 +752,36 @@ error:
 
 	return TRACEFS_DYNEVENT_UNKNOWN;
 }
+
+/**
+ * tracefs_dynevent_get_event - return tep event representing the given dynamic event
+ * @tep: a handle to the trace event parser context that holds the events
+ * @dynevent: a dynamic event context, describing given dynamic event.
+ *
+ * Returns a pointer to a tep event describing the given dynamic event. The pointer
+ * is managed by the @tep handle and must not be freed. In case of an error, or in case
+ * the requested dynamic event is missing in the @tep handler - NULL is returned.
+ */
+struct tep_event *
+tracefs_dynevent_get_event(struct tep_handle *tep, struct tracefs_dynevent *dynevent)
+{
+	struct tep_event *event;
+
+	if (!tep || !dynevent || !dynevent->event)
+		return NULL;
+
+	/* Check if event exists in the system */
+	if (!tracefs_event_file_exists(NULL, dynevent->system, dynevent->event, "format"))
+		return NULL;
+
+	/* If the dynamic event is already loaded in the tep, return it */
+	event = tep_find_event_by_name(tep, dynevent->system, dynevent->event);
+	if (event)
+		return event;
+
+	/* Try to load any new events from the given system */
+	if (trace_rescan_events(tep, NULL, dynevent->system))
+		return NULL;
+
+	return tep_find_event_by_name(tep, dynevent->system, dynevent->event);
+}
