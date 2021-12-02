@@ -746,6 +746,24 @@ int tracefs_filter_string_verify(struct tep_event *event, const char *filter,
 	return 0;
 }
 
+/**
+ * tracefs_event_filter_apply - apply given filter on event in given instance
+ * @instance: The instance in which the filter will be applied (NULL for toplevel).
+ * @event: The event to apply the filter on.
+ * @filter: The filter to apply.
+ *
+ * Apply the @filter to given @event in givem @instance. The @filter string
+ * should be created with tracefs_filter_string_append().
+ *
+ * Returns 0 on succes and -1 on error.
+ */
+int tracefs_event_filter_apply(struct tracefs_instance *instance,
+			       struct tep_event *event, const char *filter)
+{
+	return tracefs_event_file_write(instance, event->system, event->name,
+					"filter", filter);
+}
+
 /** Deprecated **/
 int tracefs_event_append_filter(struct tep_event *event, char **filter,
 				enum tracefs_filter type,

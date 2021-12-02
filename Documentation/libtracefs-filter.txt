@@ -3,7 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_filter_string_append, tracefs_filter_string_verify - Add and verify event filters
+tracefs_filter_string_append, tracefs_filter_string_verify, tracefs_event_apply_filter -
+Add, verify and apply event filters
 
 SYNOPSIS
 --------
@@ -15,7 +16,7 @@ int tracefs_filter_string_append(struct tep_event pass:[*]event, char pass:[**] 
 				 struct tracefs_filter type, const char pass:[*]field,
 				 enum tracefs_synth_compare compare, const char pass:[*]val);
 int tracefs_filter_string_verify(struct tep_event pass:[*]event, const char pass:[*]filter, char pass:[**]err);
-
+int tracefs_event_filter_apply(struct tracefs_instance pass:[*]instance, struct tep_event pass:[*]event, const char pass:[*]filter);
 --
 
 DESCRIPTION
@@ -66,6 +67,8 @@ error in the syntax, and _err_ is not NULL, then it will be allocated with an
 error message stating what was found wrong with the filter. _err_ must be freed
 with *free*().
 
+*tracefs_event_filter_apply*() applies given _filter_ string on _event_ in given _instance_.
+
 RETURN VALUE
 ------------
 *tracefs_filter_string_append*() returns 0 on success and -1 on error.
@@ -74,6 +77,8 @@ RETURN VALUE
 is an error, and _errno_ is not *ENOMEM*, then _err_ is allocated and will
 contain a string describing what was found wrong with _filter_. _err_ must be
 freed with *free*().
+
+*tracefs_event_filter_apply*() returns 0 on success and -1 on error.
 
 EXAMPLE
 -------
@@ -268,6 +273,9 @@ int main (int argc, char **argv)
 			exit(-1);
 		}
 	}
+
+	if (tracefs_event_filter_apply(NULL, event, new_filter))
+		fprintf(stderr, "Failed to apply filter on event");
 
 	tep_free(tep);
 
