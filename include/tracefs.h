@@ -354,9 +354,9 @@ struct tracefs_hist *
 tracefs_hist_alloc_nd(struct tep_handle *tep,
 		      const char *system, const char *event_name,
 		      struct tracefs_hist_axis *axes);
-const char *tracefs_get_hist_name(struct tracefs_hist *hist);
-const char *tracefs_get_hist_event(struct tracefs_hist *hist);
-const char *tracefs_get_hist_system(struct tracefs_hist *hist);
+const char *tracefs_hist_get_name(struct tracefs_hist *hist);
+const char *tracefs_hist_get_event(struct tracefs_hist *hist);
+const char *tracefs_hist_get_system(struct tracefs_hist *hist);
 int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 			 enum tracefs_hist_key_type type);
 int tracefs_hist_add_value(struct tracefs_hist *hist, const char *value);

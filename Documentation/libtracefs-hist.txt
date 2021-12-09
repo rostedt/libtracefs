@@ -4,7 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_hist_alloc, tracefs_hist_free, tracefs_hist_add_key, tracefs_hist_add_value, tracefs_hist_add_name, tracefs_hist_start,
-tracefs_hist_destory, tracefs_hist_add_sort_key, tracefs_hist_set_sort_key,tracefs_hist_sort_key_direction - Create and update event histograms
+tracefs_hist_destory, tracefs_hist_add_sort_key, tracefs_hist_set_sort_key, tracefs_hist_sort_key_direction
+tracefs_hist_echo_cmd, tracefs_hist_get_name, tracefs_hist_get_event, tracefs_hist_get_system - Create, update and describe event histograms
 
 SYNOPSIS
 --------
@@ -68,6 +69,12 @@ int tracefs_hist_echo_cmd(struct trace_seq pass:[*]s, struct tracefs_instance pa
 int tracefs_hist_command(struct tracefs_instance pass:[*]instance,
 			 struct tracefs_hist pass:[*]hist,
 			 enum tracefs_hist_command command);
+
+const char *tracefs_hist_get_name(struct tracefs_hist pass:[*]hist);
+
+const char *tracefs_hist_get_event(struct tracefs_hist pass:[*]hist);
+
+const char *tracefs_hist_get_system(struct tracefs_hist pass:[*]hist);
 
 --
 
@@ -229,11 +236,26 @@ instead of showing the number, show the name of the running task.
 *TRACEFS_HIST_KEY_USECS* for use with "common_timestamp" or TRACEFS_HIST_TIMESTAMP,
 in which case it will show the timestamp in microseconds instead of nanoseconds.
 
+*tracefs_hist_get_name*() returns the name of the histogram or NULL on error.
+The returned string belongs to the histogram object and is freed with the histogram
+by *tracefs_hist_free*().
+
+*tracefs_hist_get_event*() returns the event name of the histogram or NULL on error.
+The returned string belongs to the histogram object and is freed with the histogram
+by *tracefs_hist_free*().
+
+*tracefs_hist_get_system*() returns the system name of the histogram or NULL on error.
+The returned string belongs to the histogram object and is freed with the histogram
+by *tracefs_hist_free*().
+
 
 RETURN VALUE
 ------------
 *tracefs_hist_alloc_nd*() returns an allocated histogram descriptor which must
 be freed by *tracefs_hist_free*() or NULL on error.
+
+*tracefs_hist_get_name*(), *tracefs_hist_get_event*() and *tracefs_hist_get_system*()
+return strings owned by the histogram object.
 
 All the other functions return zero on success or -1 on error.
 

@@ -41,17 +41,35 @@ struct tracefs_hist {
 	unsigned int		filter_state;
 };
 
-const char *tracefs_get_hist_name(struct tracefs_hist *hist)
+/*
+ * tracefs_hist_get_name - get the name of the histogram
+ * @hist: The histogram to get the name for
+ *
+ * Returns name string owned by @hist on success, or NULL on error.
+ */
+const char *tracefs_hist_get_name(struct tracefs_hist *hist)
 {
 	return hist ? hist->name : NULL;
 }
 
-const char *tracefs_get_hist_event(struct tracefs_hist *hist)
+/*
+ * tracefs_hist_get_event - get the event name of the histogram
+ * @hist: The histogram to get the event name for
+ *
+ * Returns event name string owned by @hist on success, or NULL on error.
+ */
+const char *tracefs_hist_get_event(struct tracefs_hist *hist)
 {
 	return hist ? hist->event_name : NULL;
 }
 
-const char *tracefs_get_hist_system(struct tracefs_hist *hist)
+/*
+ * tracefs_hist_get_system - get the system name of the histogram
+ * @hist: The histogram to get the system name for
+ *
+ * Returns system name string owned by @hist on success, or NULL on error.
+ */
+const char *tracefs_hist_get_system(struct tracefs_hist *hist)
 {
 	return hist ? hist->system : NULL;
 }
