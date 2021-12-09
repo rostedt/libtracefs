@@ -702,6 +702,17 @@ struct tracefs_synth {
 	int			arg_cnt;
 };
 
+ /*
+ * tracefs_synth_get_name - get the name of the synthetic event
+ * @synth: The synthetic event to get the name for
+ *
+ * Returns name string owned by @synth on success, or NULL on error.
+ */
+const char *tracefs_synth_get_name(struct tracefs_synth *synth)
+{
+	return synth ? synth->name : NULL;
+}
+
 static void action_free(struct action *action)
 {
 	free(action->handle_field);

@@ -3,8 +3,9 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_echo_cmd,tracefs_synth_complete,
-tracefs_synth_get_start_hist,tracefs_synth_trace,tracefs_synth_snapshot - Creation of synthetic events
+tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_echo_cmd, tracefs_synth_complete,
+tracefs_synth_get_start_hist, tracefs_synth_trace, tracefs_synth_snapshot,
+tracefs_synth_get_name - Creation of synthetic events
 
 SYNOPSIS
 --------
@@ -25,6 +26,7 @@ int tracefs_synth_snapshot(struct tracefs_synth pass:[*]synth,
 int tracefs_synth_save(struct tracefs_synth pass:[*]synth,
 		       enum tracefs_synth_handler type, const char pass:[*]var,
 		       char pass:[**]save_fields);
+const char *tracefs_synth_get_name(struct tracefs_synth pass:[*]synth);
 --
 
 DESCRIPTION
@@ -87,9 +89,15 @@ then saven the given _save_fields_ list. The fields will be stored in the histog
 "hist" file of the event that can be retrieved with *tracefs_event_file_read*(3).
 _var_ changes. _var_ must be one of the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
+*tracefs_synth_get_name*() returns the name of the synthetic event or NULL on error.
+The returned string belongs to the synth event object and is freed with the event
+by *tracefs_synth_free*().
+
 RETURN VALUE
 ------------
-Returns zero on success or -1 on error.
+*tracefs_synth_get_name*() returns a string owned by the synth event object.
+
+All other functions return zero on success or -1 on error.
 
 ERRORS
 ------

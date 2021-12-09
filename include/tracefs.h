@@ -502,6 +502,7 @@ enum tracefs_synth_handler {
 	TRACEFS_SYNTH_HANDLE_CHANGE,
 };
 
+const char *tracefs_synth_get_name(struct tracefs_synth *synth);
 struct tracefs_synth *tracefs_synth_alloc(struct tep_handle *tep,
 					  const char *name,
 					  const char *start_system,
