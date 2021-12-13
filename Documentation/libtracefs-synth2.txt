@@ -5,7 +5,8 @@ NAME
 ----
 tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_echo_cmd, tracefs_synth_complete,
 tracefs_synth_get_start_hist, tracefs_synth_trace, tracefs_synth_snapshot,
-tracefs_synth_get_name - Creation of synthetic events
+tracefs_synth_get_name, tracefs_synth_raw_fmt, tracefs_synth_show_event,
+tracefs_synth_show_start_hist, tracefs_synth_show_end_hist - Creation of synthetic events
 
 SYNOPSIS
 --------
@@ -27,6 +28,11 @@ int tracefs_synth_save(struct tracefs_synth pass:[*]synth,
 		       enum tracefs_synth_handler type, const char pass:[*]var,
 		       char pass:[**]save_fields);
 const char *tracefs_synth_get_name(struct tracefs_synth pass:[*]synth);
+int tracefs_synth_raw_fmt(struct trace_seq pass:[*]seq, struct tracefs_synth pass:[*]synth);
+const char *tracefs_synth_show_event(struct tracefs_synth pass:[*]synth);
+const char *tracefs_synth_show_start_hist(struct tracefs_synth pass:[*]synth);
+const char *tracefs_synth_show_end_hist(struct tracefs_synth pass:[*]synth);
+
 --
 
 DESCRIPTION
@@ -93,9 +99,25 @@ _var_ changes. _var_ must be one of the _name_ elements used in *tracefs_synth_a
 The returned string belongs to the synth event object and is freed with the event
 by *tracefs_synth_free*().
 
+*tracefs_synth_raw_fmt*() writes the raw format strings (dynamic event and histograms) of
+the synthetic event in the _seq_ given.
+
+*tracefs_synth_show_event*() returns the format of the dynamic event used by the synthetic
+event or NULL on error. The returned string belongs to the synth event object and is freed
+with the event by *tracefs_synth_free*().
+
+*tracefs_synth_show_start_hist*() returns the format of the start histogram used by the
+synthetic event or NULL on error. The returned string belongs to the synth event object
+and is freed with the event by *tracefs_synth_free*().
+
+*tracefs_synth_show_end_hist*() returns the format of the end histogram used by the
+synthetic event or NULL on error. The returned string belongs to the synth event object
+and is freed with the event by *tracefs_synth_free*().
+
 RETURN VALUE
 ------------
-*tracefs_synth_get_name*() returns a string owned by the synth event object.
+*tracefs_synth_get_name*(), *tracefs_synth_show_event*(), *tracefs_synth_show_start_hist*()
+and *tracefs_synth_show_end_hist*()  return a string owned by the synth event object.
 
 All other functions return zero on success or -1 on error.
 

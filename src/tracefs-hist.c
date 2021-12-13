@@ -683,6 +683,8 @@ struct tracefs_synth {
 	struct action		*actions;
 	struct action		**next_action;
 	struct tracefs_dynevent	*dyn_event;
+	char			*start_hist;
+	char			*end_hist;
 	char			*name;
 	char			**synthetic_fields;
 	char			**synthetic_args;
@@ -737,6 +739,8 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 		return;
 
 	free(synth->name);
+	free(synth->start_hist);
+	free(synth->end_hist);
 	tracefs_list_free(synth->synthetic_fields);
 	tracefs_list_free(synth->synthetic_args);
 	tracefs_list_free(synth->start_keys);
@@ -1802,6 +1806,67 @@ static char *create_end_hist(struct tracefs_synth *synth)
 	return create_actions(end_hist, synth);
 }
 
+/*
+ * tracefs_synth_raw_fmt - show the raw format of a synthetic event
+ * @seq: A trace_seq to store the format string
+ * @synth: The synthetic event to read format from
+ *
+ * This shows the raw format that describes the synthetic event, including
+ * the format of the dynamic event and the start / end histograms.
+ *
+ * Returns 0 on succes -1 on error.
+ */
+int tracefs_synth_raw_fmt(struct trace_seq *seq, struct tracefs_synth *synth)
+{
+	if (!synth->dyn_event)
+		return -1;
+
+	trace_seq_printf(seq, "%s", synth->dyn_event->format);
+	trace_seq_printf(seq, "\n%s", synth->start_hist);
+	trace_seq_printf(seq, "\n%s", synth->end_hist);
+
+	return 0;
+}
+
+/*
+ * tracefs_synth_show_event - show the dynamic event used by a synth event
+ * @synth: The synthetic event to read format from
+ *
+ * This shows the raw format of the dynamic event used by the synthetic event.
+ *
+ * Returns format string owned by @synth on success, or NULL on error.
+ */
+const char *tracefs_synth_show_event(struct tracefs_synth *synth)
+{
+	return synth->dyn_event ? synth->dyn_event->format : NULL;
+}
+
+/*
+ * tracefs_synth_show_start_hist - show the start histogram used by a synth event
+ * @synth: The synthetic event to read format from
+ *
+ * This shows the raw format of the start histogram used by the synthetic event.
+ *
+ * Returns format string owned by @synth on success, or NULL on error.
+ */
+const char *tracefs_synth_show_start_hist(struct tracefs_synth *synth)
+{
+	return synth->start_hist;
+}
+
+/*
+ * tracefs_synth_show_end_hist - show the end histogram used by a synth event
+ * @synth: The synthetic event to read format from
+ *
+ * This shows the raw format of the end histogram used by the synthetic event.
+ *
+ * Returns format string owned by @synth on success, or NULL on error.
+ */
+const char *tracefs_synth_show_end_hist(struct tracefs_synth *synth)
+{
+	return synth->end_hist;
+}
+
 static char *append_filter(char *hist, char *filter, unsigned int parens)
 {
 	int i;
@@ -1940,8 +2005,6 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
  */
 int tracefs_synth_create(struct tracefs_synth *synth)
 {
-	char *start_hist = NULL;
-	char *end_hist = NULL;
 	int ret;
 
 	if (!synth) {
@@ -1962,40 +2025,35 @@ int tracefs_synth_create(struct tracefs_synth *synth)
 	if (tracefs_dynevent_create(synth->dyn_event))
 		return -1;
 
-	start_hist = create_hist(synth->start_keys, synth->start_vars);
-	start_hist = append_filter(start_hist, synth->start_filter,
-				   synth->start_parens);
-	if (!start_hist)
+	synth->start_hist = create_hist(synth->start_keys, synth->start_vars);
+	synth->start_hist = append_filter(synth->start_hist, synth->start_filter,
+					  synth->start_parens);
+	if (!synth->start_hist)
 		goto remove_synthetic;
 
-	end_hist = create_end_hist(synth);
-	end_hist = append_filter(end_hist, synth->end_filter,
-				   synth->end_parens);
-	if (!end_hist)
+	synth->end_hist = create_end_hist(synth);
+	synth->end_hist = append_filter(synth->end_hist, synth->end_filter,
+					synth->end_parens);
+	if (!synth->end_hist)
 		goto remove_synthetic;
 
 	ret = tracefs_event_file_append(synth->instance, synth->start_event->system,
 					synth->start_event->name,
-					"trigger", start_hist);
+					"trigger", synth->start_hist);
 	if (ret < 0)
 		goto remove_synthetic;
 
 	ret = tracefs_event_file_append(synth->instance, synth->end_event->system,
 					synth->end_event->name,
-					"trigger", end_hist);
+					"trigger", synth->end_hist);
 	if (ret < 0)
 		goto remove_start_hist;
-
-	free(start_hist);
-	free(end_hist);
 
 	return 0;
 
  remove_start_hist:
-	remove_hist(synth->instance, synth->start_event, start_hist);
+	remove_hist(synth->instance, synth->start_event, synth->start_hist);
  remove_synthetic:
-	free(end_hist);
-	free(start_hist);
 	tracefs_dynevent_destroy(synth->dyn_event, false);
 	return -1;
 }

@@ -250,6 +250,7 @@ enum tracefs_dynevent_type {
 	TRACEFS_DYNEVENT_SYNTH		= 1 << 5,
 	TRACEFS_DYNEVENT_MAX		= 1 << 6,
 };
+
 int tracefs_dynevent_create(struct tracefs_dynevent *devent);
 int tracefs_dynevent_destroy(struct tracefs_dynevent *devent, bool force);
 int tracefs_dynevent_destroy_all(unsigned int types, bool force);
@@ -550,6 +551,10 @@ int tracefs_synth_create(struct tracefs_synth *synth);
 int tracefs_synth_destroy(struct tracefs_synth *synth);
 void tracefs_synth_free(struct tracefs_synth *synth);
 int tracefs_synth_echo_cmd(struct trace_seq *seq, struct tracefs_synth *synth);
+int tracefs_synth_raw_fmt(struct trace_seq *seq, struct tracefs_synth *synth);
+const char *tracefs_synth_show_event(struct tracefs_synth *synth);
+const char *tracefs_synth_show_start_hist(struct tracefs_synth *synth);
+const char *tracefs_synth_show_end_hist(struct tracefs_synth *synth);
 
 struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 				  const char *sql_buffer, char **err);
