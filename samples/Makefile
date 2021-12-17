@@ -24,9 +24,9 @@ TARGETS :=
 TARGETS += sqlhist
 TARGETS += $(EXAMPLES)
 
-bdir := $(obj)/bin
+sdir := $(obj)/bin
 
-TARGETS := $(patsubst %,$(bdir)/%,$(TARGETS))
+TARGETS := $(patsubst %,$(sdir)/%,$(TARGETS))
 
 all: $(TARGETS)
 
@@ -36,20 +36,21 @@ $(bdir)/sqlhist.c: $(src)/Documentation/libtracefs-sql.txt
 $(bdir)/%.c: ../Documentation/libtracefs-%.txt
 	$(call extract_example,$<,$@)
 
-$(bdir):
-	@mkdir -p $(bdir)
+$(sdir):
+	@mkdir -p $(sdir)
 
-sqlhist: $(bdir)/sqlhist.c
+sqlhist: $(sdir)/sqlhist
 
-$(TARGETS): $(bdir)
+$(TARGETS): $(sdir)
 
 # sqlhist is unique and stands on its own
-$(bdir)/sqlhist: $(bdir)/sqlhist.c
-
-$(bdir)/%: $(bdir)/%.o
+$(sdir)/sqlhist: $(bdir)/sqlhist.c
 	$(call do_sample_build,$@,$<)
 
-$(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
+$(sdir)/%: $(bdir)/%.o
+	$(call do_sample_build,$@,$<)
+
+$(EXAMPLES): $(patsubst %,$(sdir)/%,$(TARGETS))
 
 ## The intermediate files get removed by Make.
 ## To examine the .c files created by one of the man pages,
@@ -63,4 +64,4 @@ $(bdir)/%.o: $(bdir)/%.c
 	$(call do_sample_obj,$@,$^)
 
 clean:
-	$(Q)$(call do_clean,$(bdir)/*)
+	$(Q)$(call do_clean,$(sdir)/* $(bdir)/sqlhist.c $(bdir)/sqlhist.o)
