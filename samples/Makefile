@@ -26,15 +26,15 @@ TARGETS += $(EXAMPLES)
 
 bdir := $(obj)/bin
 
+TARGETS := $(patsubst %,$(bdir)/%,$(TARGETS))
+
 all: $(TARGETS)
 
 extract_example = \
 	cat $1 | sed -ne '/^EXAMPLE/,/FILES/ { /EXAMPLE/,+2d ; /^FILES/d ;  /^--/d ; p}' > $2
 
-$(bdir)/sqlhist.c: ../Documentation/libtracefs-sql.txt
+$(bdir)/sqlhist.c: $(src)/Documentation/libtracefs-sql.txt
 	$(call extract_example,$<,$@)
-
-EXAMPLE_C_CODE := $(patsubst %,$(bdir)/%.c,$(EXAMPLES))
 
 $(bdir)/%.c: ../Documentation/libtracefs-%.txt
 	$(call extract_example,$<,$@)
@@ -42,15 +42,15 @@ $(bdir)/%.c: ../Documentation/libtracefs-%.txt
 $(bdir):
 	@mkdir -p $(bdir)
 
-sqlhist: $(bdir) $(bdir) $(bdir)/sqlhist
+sqlhist: $(bdir)/sqlhist.c
 
 $(TARGETS): $(bdir)
 
 # sqlhist is unique and stands on its own
-sqlhist: $(bdir)/sqlhist
+$(bdir)/sqlhist: $(bdir)/sqlhist.c
 
 $(bdir)/%: $(bdir)/%.o
-	$(CC) -o $@ $^ $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS)
+	$(CC) -o $@ $< $(CFLAGS) $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS)
 
 $(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
 
@@ -60,9 +60,9 @@ $(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
 ## name, and the file will not be discarded by make.
 #
 # $(bdir)/XX.o: $(bdir)/XX.c
-#	$(CC) -g -Wall -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
+#	$(CC) -g -Wall $(CFLAGS) -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
-$(bdir)/%.o: %.c
+$(bdir)/%.o: $(bdir)/%.c
 	$(CC) -g -Wall -c $(CFLAGS) -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 clean:
