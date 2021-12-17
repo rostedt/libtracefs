@@ -373,11 +373,12 @@ samples: $(LIBTRACEFS_STATIC) force
 	$(Q)$(call descend,$(src)/samples,all)
 
 clean:
-	$(MAKE) -C $(src)/utest clean
-	$(MAKE) -C $(src)/src clean
-	$(MAKE) -C $(src)/samples clean
-	$(RM) $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.so.* $(bdir)/*.o $(bdir)/.*.d
-	$(RM) $(PKG_CONFIG_FILE)
-	$(RM) $(VERSION_FILE)
+	$(Q)$(MAKE) -C $(src)/utest clean
+	$(Q)$(MAKE) -C $(src)/src clean
+	$(Q)$(MAKE) -C $(src)/samples clean
+	$(Q)$(call do_clean, \
+	  $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.so.* $(bdir)/*.o $(bdir)/.*.d \
+	  $(PKG_CONFIG_FILE) \
+	  $(VERSION_FILE))
 
 .PHONY: clean

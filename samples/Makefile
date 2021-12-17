@@ -66,4 +66,4 @@ $(bdir)/%.o: $(bdir)/%.c
 	$(CC) -g -Wall -c $(CFLAGS) -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 clean:
-	$(RM) $(bdir)/*
+	$(Q)$(call do_clean,$(bdir)/*)

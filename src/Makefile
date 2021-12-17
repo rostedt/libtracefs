@@ -61,7 +61,7 @@ $(OBJS): | $(bdir)
 $(DEPS): | $(bdir)
 
 clean:
-	$(RM) $(OBJS)
+	$(Q)$(call do_clean,$(OBJS))
 
 dep_includes := $(wildcard $(DEPS))
 

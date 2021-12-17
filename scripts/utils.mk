@@ -2,9 +2,11 @@
 
 # Utils
 
+ PWD		:= $(shell /bin/pwd)
  GOBJ		= $(notdir $(strip $@))
  BASE1		= $(notdir $(strip $1))
  BASE2		= $(notdir $(strip $2))
+ BASEPWD	= $(notdir $(strip $(PWD)))
 
 
 ifeq ($(VERBOSE),1)
@@ -27,6 +29,7 @@ ifeq ($(findstring 1,$(SILENT)$(VERBOSE)),1)
   print_uninstall =
   print_update =
   print_descend =
+  print_clean =
 else
   print_compile =		echo '  COMPILE            '$(GOBJ);
   print_app_build =		echo '  BUILD              '$(GOBJ);
@@ -39,6 +42,7 @@ else
   print_uninstall =		echo '  UNINSTALL     $(DESTDIR_SQ)$1';
   print_update =		echo '  UPDATE             '$(GOBJ);
   print_descend =		echo '  DESCEND            '$(BASE1) $(BASE2);
+  print_clean =			echo '  CLEAN              '$(BASEPWD);
 endif
 
 do_fpic_compile =					\
@@ -77,6 +81,10 @@ do_compile_python_plugin_obj =			\
 do_python_plugin_build =			\
 	($(print_plugin_build)			\
 	$(CC) $< -shared $(LDFLAGS) $(PYTHON_LDFLAGS) -o $@)
+
+do_clean =					\
+	($(print_clean)				\
+	$(RM) $1)
 
 ifneq ($(findstring $(MAKEFLAGS), w),w)
 PRINT_DIR = --no-print-directory

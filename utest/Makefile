@@ -40,4 +40,4 @@ dep_includes := $(wildcard $(DEPS))
 test: $(TARGETS)
 
 clean:
-	$(RM) $(TARGETS) $(bdir)/*.o $(bdir)/.*.d
+	$(Q)$(call do_clean,$(TARGETS) $(bdir)/*.o $(bdir)/.*.d)
