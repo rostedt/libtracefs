@@ -182,7 +182,7 @@ test: force $(LIBTRACEFS_STATIC)
 ifneq ($(CUNIT_INSTALLED),1)
 	$(error CUnit framework not installed, cannot build unit tests))
 endif
-	$(Q)$(MAKE) -C $(src)/$(UTEST_DIR) $@
+	$(Q)$(call descend,$(src)/$(UTEST_DIR),$@)
 
 test_mem: test
 ifeq (, $(VALGRIND))
@@ -279,13 +279,13 @@ install_pkgconfig: $(PKG_CONFIG_FILE)
 		$(call do_install_pkgconfig_file,$(prefix))
 
 doc:
-	$(MAKE) -C $(src)/Documentation all
+	$(Q)$(call descend,$(src)/Documentation,all)
 
 doc_clean:
-	$(MAKE) -C $(src)/Documentation clean
+	$(Q)$(call descend,$(src)/Documentation,clean)
 
 install_doc:
-	$(MAKE) -C $(src)/Documentation install
+	$(Q)$(call descend,$(src)/Documentation,install)
 
 define build_uninstall_script
 	$(Q)mkdir $(BUILD_OUTPUT)/tmp_build
@@ -358,19 +358,19 @@ $(VERSION_FILE): force
 
 $(LIBTRACEFS_STATIC): force
 	$(Q)mkdir -p $(bdir)
-	$(Q)$(MAKE) -C $(src)/src $@
+	$(Q)$(call descend,$(src)/src,$@)
 
 $(bdir)/libtracefs.so.$(TRACEFS_VERSION): force
 	$(Q)mkdir -p $(bdir)
-	$(Q)$(MAKE) -C $(src)/src libtracefs.so
+	$(Q)$(call descend,$(src)/src,libtracefs.so)
 
 samples/sqlhist: $(LIBTRACEFS_STATIC)
-	$(Q)$(MAKE) -C $(src)/samples sqlhist
+	$(Q)$(call descend,$(src)/samples,sqlhist)
 
 sqlhist: samples/sqlhist
 
 samples: $(LIBTRACEFS_STATIC) force
-	$(Q)$(MAKE) -C $(src)/samples all
+	$(Q)$(call descend,$(src)/samples,all)
 
 clean:
 	$(MAKE) -C $(src)/utest clean
