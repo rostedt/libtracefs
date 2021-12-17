@@ -375,9 +375,9 @@ samples: libtracefs.a force
 	$(Q)$(call descend,$(src)/samples,all)
 
 clean:
-	$(Q)$(MAKE) -C $(src)/utest clean
-	$(Q)$(MAKE) -C $(src)/src clean
-	$(Q)$(MAKE) -C $(src)/samples clean
+	$(Q)$(call descend_clean,utest)
+	$(Q)$(call descend_clean,src)
+	$(Q)$(call descend_clean,samples)
 	$(Q)$(call do_clean, \
 	  $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.so.* $(bdir)/*.o $(bdir)/.*.d \
 	  $(PKG_CONFIG_FILE) \
