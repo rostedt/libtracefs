@@ -51,6 +51,7 @@ EXAMPLE
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include <tracefs.h>
 

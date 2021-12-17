@@ -63,7 +63,7 @@ $(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
 #	$(CC) -g -Wall -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 $(bdir)/%.o: %.c
-	$(CC) -g -Wall -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
+	$(CC) -g -Wall -c $(CFLAGS) -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 clean:
 	$(RM) $(bdir)/*
