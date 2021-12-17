@@ -771,3 +771,206 @@ out:
 	free(all_clocks);
 	return ret;
 }
+
+/**
+ * tracefs_instance_set_affinity_raw - write a hex bitmask into the affinity
+ * @instance: The instance to set affinity to (NULL for top level)
+ * @mask: String containing the hex value to set the tracing affinity to.
+ *
+ * Sets the tracing affinity CPU mask for @instance. The @mask is the raw
+ * value that is used to write into the tracing system.
+ *
+ * Return 0 on success and -1 on error.
+ */
+int tracefs_instance_set_affinity_raw(struct tracefs_instance *instance,
+				      const char *mask)
+{
+	return tracefs_instance_file_write(instance, "tracing_cpumask", mask);
+}
+
+/**
+ * tracefs_instance_set_affinity_set - use a cpu_set to define tracing affinity
+ * @instance: The instance to set affinity to (NULL for top level)
+ * @set: A CPU set that describes the CPU affinity to set tracing to.
+ * @set_size: The size in bytes of @set (use CPU_ALLOC_SIZE() to get this value)
+ *
+ * Sets the tracing affinity CPU mask for @instance. The bits in @set will be
+ * used to set the CPUs to have tracing on.
+ *
+ * If @set is NULL, then all CPUs defined by sysconf(_SC_NPROCESSORS_CONF)
+ * will be set, and @set_size is ignored.
+ *
+ * Return 0 on success and -1 on error.
+ */
+int tracefs_instance_set_affinity_set(struct tracefs_instance *instance,
+				      cpu_set_t *set, size_t set_size)
+{
+	struct trace_seq seq;
+	bool free_set = false;
+	bool hit = false;
+	int nr_cpus;
+	int cpu;
+	int ret = -1;
+	int w, n, i;
+
+	trace_seq_init(&seq);
+
+	/* NULL set means all CPUs to be set */
+	if (!set) {
+		nr_cpus = sysconf(_SC_NPROCESSORS_CONF);
+		set = CPU_ALLOC(nr_cpus);
+		if (!set)
+			goto out;
+		set_size = CPU_ALLOC_SIZE(nr_cpus);
+		CPU_ZERO_S(set_size, set);
+		/* Set all CPUS */
+		for (cpu = 0; cpu < nr_cpus; cpu++)
+			CPU_SET_S(cpu, set_size, set);
+		free_set = true;
+	}
+	/* Convert to a bitmask hex string */
+	nr_cpus = (set_size + 1) * 8;
+	if (nr_cpus < 1) {
+		/* Must have at least one bit set */
+		errno = EINVAL;
+		goto out;
+	}
+	/* Start backwards from 32 bits */
+	for (w = ((nr_cpus + 31) / 32) - 1; w >= 0; w--) {
+		/* Now move one nibble at a time */
+		for (n = 7; n >= 0; n--) {
+			int nibble = 0;
+
+			if ((n * 4) + (w * 32) >= nr_cpus)
+				continue;
+
+			/* One bit at a time */
+			for (i = 3; i >= 0; i--) {
+				cpu = (w * 32) + (n * 4) + i;
+				if (cpu >= nr_cpus)
+					continue;
+				if (CPU_ISSET_S(cpu, set_size, set)) {
+					nibble |= 1 << i;
+					hit = true;
+				}
+			}
+			if (hit && trace_seq_printf(&seq, "%x", nibble) < 0)
+				goto out;
+		}
+		if (hit && w)
+			if (trace_seq_putc(&seq, ',') < 0)
+				goto out;
+	}
+	if (!hit) {
+		errno = EINVAL;
+		goto out;
+	}
+	trace_seq_terminate(&seq);
+	ret = tracefs_instance_set_affinity_raw(instance, seq.buffer);
+ out:
+	trace_seq_destroy(&seq);
+	if (free_set)
+		CPU_FREE(set);
+	return ret;
+}
+
+/**
+ * tracefs_instance_set_affinity - Set the affinity defined by CPU values.
+ * @instance: The instance to set affinity to (NULL for top level)
+ * @cpu_str: A string of values that define what CPUs to set.
+ *
+ * Sets the tracing affinity CPU mask for @instance. The @cpu_str is a set
+ * of decimal numbers used to state which CPU should be part of the affinity
+ * mask. A range may also be specified via a hyphen.
+ *
+ * For example, "1,4,6-8"
+ *
+ * The numbers do not need to be in order.
+ *
+ * If @cpu_str is NULL, then all CPUs defined by sysconf(_SC_NPROCESSORS_CONF)
+ * will be set.
+ *
+ * Return 0 on success and -1 on error.
+ */
+int tracefs_instance_set_affinity(struct tracefs_instance *instance,
+				  const char *cpu_str)
+{
+	cpu_set_t *set = NULL;
+	size_t set_size;
+	char *word;
+	char *cpus;
+	char *del;
+	char *c;
+	int max_cpu = 0;
+	int cpu1, cpu2;
+	int len;
+	int ret = -1;
+
+	/* NULL cpu_str means to set all CPUs in the mask */
+	if (!cpu_str)
+		return tracefs_instance_set_affinity_set(instance, NULL, 0);
+
+	/* First, find out how many CPUs are needed */
+	cpus = strdup(cpu_str);
+	if (!cpus)
+		return -1;
+	len = strlen(cpus) + 1;
+	for (word = strtok_r(cpus, ",", &del); word; word = strtok_r(NULL, ",", &del)) {
+		cpu1 = atoi(word);
+		if (cpu1 < 0) {
+			errno = EINVAL;
+			goto out;
+		}
+		if (cpu1 > max_cpu)
+			max_cpu = cpu1;
+		cpu2 = -1;
+		if ((c = strchr(word, '-'))) {
+			c++;
+			cpu2 = atoi(c);
+			if (cpu2 < cpu1) {
+				errno = EINVAL;
+				goto out;
+			}
+			if (cpu2 > max_cpu)
+				max_cpu = cpu2;
+		}
+	}
+	/*
+	 * Now ideally, cpus should fit cpu_str as it was orginally allocated
+	 * by strdup(). But I'm paranoid, and can imagine someone playing tricks
+	 * with threads, and changes cpu_str from another thread and messes
+	 * with this. At least only copy what we know is allocated.
+	 */
+	strncpy(cpus, cpu_str, len);
+
+	set = CPU_ALLOC(max_cpu + 1);
+	if (!set)
+		goto out;
+	set_size = CPU_ALLOC_SIZE(max_cpu + 1);
+	CPU_ZERO_S(set_size, set);
+
+	for (word = strtok_r(cpus, ",", &del); word; word = strtok_r(NULL, ",", &del)) {
+		cpu1 = atoi(word);
+		if (cpu1 < 0 || cpu1 > max_cpu) {
+			/* Someone playing games? */
+			errno = EACCES;
+			goto out;
+		}
+		cpu2 = cpu1;
+		if ((c = strchr(word, '-'))) {
+			c++;
+			cpu2 = atoi(c);
+			if (cpu2 < cpu1 || cpu2 > max_cpu) {
+				errno = EACCES;
+				goto out;
+			}
+		}
+		for ( ; cpu1 <= cpu2; cpu1++)
+			CPU_SET(cpu1, set);
+	}
+	ret = tracefs_instance_set_affinity_set(instance, set, set_size);
+ out:
+	free(cpus);
+	CPU_FREE(set);
+	return ret;
+}

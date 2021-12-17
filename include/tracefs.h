@@ -43,6 +43,12 @@ int tracefs_instance_file_read_number(struct tracefs_instance *instance,
 int tracefs_instance_file_open(struct tracefs_instance *instance,
 			       const char *file, int mode);
 int tracefs_instances_walk(int (*callback)(const char *, void *), void *context);
+int tracefs_instance_set_affinity_set(struct tracefs_instance *instance,
+				  cpu_set_t *set, size_t set_size);
+int tracefs_instance_set_affinity_raw(struct tracefs_instance *instance,
+				      const char *mask);
+int tracefs_instance_set_affinity(struct tracefs_instance *instance,
+				  const char *cpu_str);
 char **tracefs_instances(const char *regex);
 
 bool tracefs_instance_exists(const char *name);
