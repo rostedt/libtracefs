@@ -70,3 +70,5 @@ ifneq ($(dep_includes),)
 endif
 
 $(bdir)/tracefs-sqlhist.o tracefs-sqlhist.o: sqlhist.tab.h
+
+.PHONY: $(LIBTRACEFS_SHARED_SO) $(LIBTRACEFS_STATIC)
