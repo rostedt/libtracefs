@@ -119,12 +119,15 @@ srctree		:= $(if $(BUILD_SRC),$(BUILD_SRC),$(CURDIR))
 objtree		:= $(BUILD_OUTPUT)
 src		:= $(srctree)
 obj		:= $(objtree)
-bdir		:= $(obj)/lib/tracefs
+bdir		:= $(obj)/lib
 
 export prefix src obj bdir
 
 LIBTRACEFS_STATIC = $(bdir)/libtracefs.a
 LIBTRACEFS_SHARED = $(bdir)/libtracefs.so.$(TRACEFS_VERSION)
+
+LIBTRACEFS_SHARED_SO = $(bdir)/libtracefs.so
+LIBTRACEFS_SHARED_VERSION = $(bdir)/libtracefs.so.$(TFS_VERSION)
 
 PKG_CONFIG_SOURCE_FILE = libtracefs.pc
 PKG_CONFIG_FILE := $(addprefix $(obj)/,$(PKG_CONFIG_SOURCE_FILE))
@@ -134,6 +137,7 @@ LIBS = $(LIBTRACEEVENT_LIBS) -lpthread
 export LIBS
 export LIBTRACEFS_STATIC LIBTRACEFS_SHARED
 export LIBTRACEEVENT_LIBS LIBTRACEEVENT_INCLUDES
+export LIBTRACEFS_SHARED_SO LIBTRACEFS_SHARED_VERSION
 
 export Q SILENT VERBOSE EXT
 
@@ -165,12 +169,12 @@ LIB_TARGET  = libtracefs.a libtracefs.so.$(TRACEFS_VERSION)
 LIB_INSTALL = libtracefs.a libtracefs.so*
 LIB_INSTALL := $(addprefix $(bdir)/,$(LIB_INSTALL))
 
-TARGETS = $(LIBTRACEFS_SHARED) $(LIBTRACEFS_STATIC)
+TARGETS = libtracefs.so libtracefs.a
 
 all_cmd: $(TARGETS) $(PKG_CONFIG_FILE)
 
-libtracefs.a: $(LIBTRACEFS_STATIC)
-libtracefs.so: $(LIBTRACEFS_SHARED)
+libtracefs.a: $(bdir) $(LIBTRACEFS_STATIC)
+libtracefs.so: $(bdir) $(LIBTRACEFS_SHARED)
 
 libs: libtracefs.a libtracefs.so
 
@@ -357,19 +361,17 @@ $(VERSION_FILE): force
 	$(Q)$(call update_version.h)
 
 $(LIBTRACEFS_STATIC): force
-	$(Q)mkdir -p $(bdir)
 	$(Q)$(call descend,$(src)/src,$@)
 
 $(bdir)/libtracefs.so.$(TRACEFS_VERSION): force
-	$(Q)mkdir -p $(bdir)
 	$(Q)$(call descend,$(src)/src,libtracefs.so)
 
-samples/sqlhist: $(LIBTRACEFS_STATIC)
+samples/sqlhist: libtracefs.a
 	$(Q)$(call descend,$(src)/samples,sqlhist)
 
 sqlhist: samples/sqlhist
 
-samples: $(LIBTRACEFS_STATIC) force
+samples: libtracefs.a force
 	$(Q)$(call descend,$(src)/samples,all)
 
 clean:

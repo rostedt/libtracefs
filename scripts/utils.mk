@@ -120,7 +120,8 @@ endif
 #
 descend = \
 	($(print_descend)		\
-	$(MAKE) $(PRINT_DIR) -C $(1) $(2))
+	mkdir -p $(obj)/$(BASE1); \
+	$(MAKE) $(PRINT_DIR) bdir=$(obj)/$(BASE1) -C $(1) $(2))
 
 
 define make_version.h

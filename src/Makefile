@@ -22,9 +22,6 @@ OBJS += tracefs-sqlhist.o
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
 
-LIBTRACEFS_SHARED_SO = $(bdir)/libtracefs.so
-LIBTRACEFS_SHARED_VERSION = $(bdir)/libtracefs.so.$(TFS_VERSION)
-
 $(LIBTRACEFS_STATIC): $(OBJS)
 	$(Q)$(call do_build_static_lib)
 
