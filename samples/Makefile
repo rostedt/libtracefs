@@ -30,9 +30,6 @@ TARGETS := $(patsubst %,$(bdir)/%,$(TARGETS))
 
 all: $(TARGETS)
 
-extract_example = \
-	cat $1 | sed -ne '/^EXAMPLE/,/FILES/ { /EXAMPLE/,+2d ; /^FILES/d ;  /^--/d ; p}' > $2
-
 $(bdir)/sqlhist.c: $(src)/Documentation/libtracefs-sql.txt
 	$(call extract_example,$<,$@)
 
@@ -50,7 +47,7 @@ $(TARGETS): $(bdir)
 $(bdir)/sqlhist: $(bdir)/sqlhist.c
 
 $(bdir)/%: $(bdir)/%.o
-	$(CC) -o $@ $< $(CFLAGS) $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS)
+	$(call do_sample_build,$@,$<)
 
 $(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
 
@@ -63,7 +60,7 @@ $(EXAMPLES): $(patsubst %,$(bdir)/%,$(TARGETS))
 #	$(CC) -g -Wall $(CFLAGS) -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
 $(bdir)/%.o: $(bdir)/%.c
-	$(CC) -g -Wall -c $(CFLAGS) -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
+	$(call do_sample_obj,$@,$^)
 
 clean:
 	$(Q)$(call do_clean,$(bdir)/*)
