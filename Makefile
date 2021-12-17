@@ -104,9 +104,6 @@ SILENT := $(if $(findstring s,$(filter-out --%,$(MAKEFLAGS))),1)
 test-build = $(if $(shell sh -c 'echo "$(1)" | \
 	$(CC) -o /dev/null -c -x c - > /dev/null 2>&1 && echo y'), $2)
 
-# have flush/fua block layer instead of barriers?
-blk-flags := $(call test-build,$(BLK_TC_FLUSH_SOURCE),-DHAVE_BLK_TC_FLUSH)
-
 ifeq ("$(origin O)", "command line")
 
   saved-output := $(O)
