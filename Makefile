@@ -207,7 +207,7 @@ endif
 		$(src)/$(UTEST_DIR)/$(UTEST_BINARY)
 
 define find_tag_files
-	find . -name '\.pc' -prune -o -name '*\.[ch]' -print -o -name '*\.[ch]pp' \
+	find $(src) -name '\.pc' -prune -o -name '*\.[ch]' -print -o -name '*\.[ch]pp' \
 		! -name '\.#' -print
 endef
 
@@ -230,17 +230,25 @@ $(BUILD_PREFIX): force
 $(PKG_CONFIG_FILE) : ${PKG_CONFIG_SOURCE_FILE}.template $(BUILD_PREFIX) $(VERSION_FILE)
 	$(Q) $(call do_make_pkgconfig_file,$(prefix))
 
-tags:	force
-	$(RM) tags
-	$(call find_tag_files) | xargs ctags --extra=+f --c-kinds=+px
+VIM_TAGS = $(obj)/tags
+EMACS_TAGS = $(obj)/TAGS
+CSCOPE_TAGS = $(obj)/cscope
 
-TAGS:	force
-	$(RM) TAGS
-	$(call find_tag_files) | xargs etags
+$(VIM_TAGS): force
+	$(RM) $@
+	$(call find_tag_files) | (cd $(obj) && xargs ctags --extra=+f --c-kinds=+px)
 
-cscope: force
-	$(RM) cscope*
+$(EMACS_TAGS): force
+	$(RM) $@
+	$(call find_tag_files) | (cd $(obj) && xargs etags)
+
+$(CSCOPE_TAGS): force
+	$(RM) $(obj)/cscope*
 	$(call find_tag_files) | cscope -b -q
+
+tags: $(VIM_TAGS)
+TAGS: $(EMACS_TAGS)
+cscope: $(CSCOPE_TAGS)
 
 ifeq ("$(DESTDIR)", "")
 # If DESTDIR is not defined, then test if after installing the library
