@@ -1,4 +1,5 @@
 *.3
+sqlhist.1
 *.m
 *.xml
 *.html
