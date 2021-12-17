@@ -60,7 +60,10 @@ do_app_build =						\
 
 do_build_static_lib =				\
 	($(print_static_lib_build)		\
-	mv $@ $@.rm; $(RM) $@.rm;  $(AR) rcs $@ $^)
+	if [ -f $@ ]; then			\
+	    mv $@ $@.rm; $(RM) $@.rm;		\
+	fi;					\
+	$(AR) rcs $@ $^)
 
 do_compile_shared_library =			\
 	($(print_shared_lib_compile)		\
