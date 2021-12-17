@@ -381,6 +381,7 @@ clean:
 	$(Q)$(call do_clean, \
 	  $(TARGETS) $(bdir)/*.a $(bdir)/*.so $(bdir)/*.so.* $(bdir)/*.o $(bdir)/.*.d \
 	  $(PKG_CONFIG_FILE) \
-	  $(VERSION_FILE))
+	  $(VERSION_FILE) \
+	  $(BUILD_PREFIX))
 
 .PHONY: clean
