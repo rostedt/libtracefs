@@ -2197,3 +2197,21 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 	}
 	return ret;
 }
+
+/**
+ * tracefs_synth_get_event - return tep event representing the given synthetic event
+ * @tep: a handle to the trace event parser context that holds the events
+ * @synth: a synthetic event context, describing given synthetic event.
+ *
+ * Returns a pointer to a tep event describing the given synthetic event. The pointer
+ * is managed by the @tep handle and must not be freed. In case of an error, or in case
+ * the requested synthetic event is missing in the @tep handler - NULL is returned.
+ */
+struct tep_event *
+tracefs_synth_get_event(struct tep_handle *tep, struct tracefs_synth *synth)
+{
+	if (!tep || !synth || !synth->name)
+		return NULL;
+
+	return get_tep_event(tep, SYNTHETIC_GROUP, synth->name);
+}

@@ -752,6 +752,27 @@ __hidden int trace_load_events(struct tep_handle *tep,
 	return load_events(tep, tracing_dir, system, false);
 }
 
+__hidden struct tep_event *get_tep_event(struct tep_handle *tep,
+					 const char *system, const char *name)
+{
+	struct tep_event *event;
+
+	/* Check if event exists in the system */
+	if (!tracefs_event_file_exists(NULL, system, name, "format"))
+		return NULL;
+
+	/* If the event is already loaded in the tep, return it */
+	event = tep_find_event_by_name(tep, system, name);
+	if (event)
+		return event;
+
+	/* Try to load any new events from the given system */
+	if (trace_rescan_events(tep, NULL, system))
+		return NULL;
+
+	return tep_find_event_by_name(tep, system, name);
+}
+
 static int read_header(struct tep_handle *tep, const char *tracing_dir)
 {
 	struct stat st;

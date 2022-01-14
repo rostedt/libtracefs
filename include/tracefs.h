@@ -564,5 +564,7 @@ const char *tracefs_synth_show_end_hist(struct tracefs_synth *synth);
 
 struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 				  const char *sql_buffer, char **err);
+struct tep_event *
+tracefs_synth_get_event(struct tep_handle *tep, struct tracefs_synth *synth);
 
 #endif /* _TRACE_FS_H */

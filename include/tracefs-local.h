@@ -116,5 +116,7 @@ int trace_load_events(struct tep_handle *tep,
 		      const char *tracing_dir, const char *system);
 int trace_rescan_events(struct tep_handle *tep,
 			const char *tracing_dir, const char *system);
+struct tep_event *get_tep_event(struct tep_handle *tep,
+				const char *system, const char *name);
 
 #endif /* _TRACE_FS_LOCAL_H */

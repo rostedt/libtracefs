@@ -765,23 +765,8 @@ error:
 struct tep_event *
 tracefs_dynevent_get_event(struct tep_handle *tep, struct tracefs_dynevent *dynevent)
 {
-	struct tep_event *event;
-
 	if (!tep || !dynevent || !dynevent->event)
 		return NULL;
 
-	/* Check if event exists in the system */
-	if (!tracefs_event_file_exists(NULL, dynevent->system, dynevent->event, "format"))
-		return NULL;
-
-	/* If the dynamic event is already loaded in the tep, return it */
-	event = tep_find_event_by_name(tep, dynevent->system, dynevent->event);
-	if (event)
-		return event;
-
-	/* Try to load any new events from the given system */
-	if (trace_rescan_events(tep, NULL, dynevent->system))
-		return NULL;
-
-	return tep_find_event_by_name(tep, dynevent->system, dynevent->event);
+	return get_tep_event(tep, dynevent->system, dynevent->event);
 }

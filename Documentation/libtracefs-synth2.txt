@@ -6,7 +6,8 @@ NAME
 tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_echo_cmd, tracefs_synth_complete,
 tracefs_synth_get_start_hist, tracefs_synth_trace, tracefs_synth_snapshot,
 tracefs_synth_get_name, tracefs_synth_raw_fmt, tracefs_synth_show_event,
-tracefs_synth_show_start_hist, tracefs_synth_show_end_hist - Creation of synthetic events
+tracefs_synth_show_start_hist, tracefs_synth_show_end_hist, tracefs_synth_get_event
+- Creation of synthetic events
 
 SYNOPSIS
 --------
@@ -32,6 +33,7 @@ int *tracefs_synth_raw_fmt*(struct trace_seq pass:[*]_seq_, struct tracefs_synth
 const char pass:[*]*tracefs_synth_show_event*(struct tracefs_synth pass:[*]_synth_);
 const char pass:[*]*tracefs_synth_show_start_hist*(struct tracefs_synth pass:[*]_synth_);
 const char pass:[*]*tracefs_synth_show_end_hist*(struct tracefs_synth pass:[*]_synth_);
+struct tep_event pass:[*]*tracefs_synth_get_event*(struct tep_handle pass:[*]_tep_, struct tracefs_synth pass:[*]_synth_);
 
 --
 
@@ -117,10 +119,18 @@ and is freed with the event by *tracefs_synth_free*().
 synthetic event or NULL on error. The returned string belongs to the synth event object
 and is freed with the event by *tracefs_synth_free*().
 
+The *tracefs_synth_get_event*() function returns a tep event, describing the given synthetic
+event. The API detects any newly created or removed dynamic events. The returned pointer to
+tep event is controlled by @tep and must not be freed.
+
 RETURN VALUE
 ------------
 *tracefs_synth_get_name*(), *tracefs_synth_show_event*(), *tracefs_synth_show_start_hist*()
 and *tracefs_synth_show_end_hist*()  return a string owned by the synth event object.
+
+The *tracefs_synth_get_event*() function returns a pointer to a tep event or NULL in case of an
+error or if the requested synthetic event is missing. The returned pointer to tep event is
+controlled by @tep and must not be freed.
 
 All other functions return zero on success or -1 on error.
 
