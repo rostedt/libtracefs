@@ -94,19 +94,19 @@ regular expression.
 RETURN VALUE
 ------------
 
-For _tracefs_function_filter_() and _tracefs_function_notrace()_ a
+For *tracefs_function_filter()* and *tracefs_function_notrace()* a
 return of 0 means success. If the there is an error but the filtering was not
 started, then 1 is returned. If filtering was started but an error occurs,
 then -1 is returned. The state of the filtering may be in an unknown state.
 
 If *TRACEFS_FL_CONTINUE* was set, and 0 or -1 was returned, then another call
-to tracefs_function_filter() must be done without *TRACEFS_FL_CONTINUE* set
+to *tracefs_function_filter()* must be done without *TRACEFS_FL_CONTINUE* set
 in order to commit (and close) the filtering.
 
-For _tracefs_filter_functions_(), a return of 0 means success, and the _list_
+For *tracefs_filter_functions()*, a return of 0 means success, and the _list_
 parameter is filled with a list of function names that matched _filter_ and
 _module_. _list_ is a string array, where the last string pointer in the
-array is NULL. The _list_ must be freed with _tracefs_list_free()_.
+array is NULL. The _list_ must be freed with *tracefs_list_free()*.
 On failure, a negative is returned, and _list_ is ignored.
 
 ERRORS

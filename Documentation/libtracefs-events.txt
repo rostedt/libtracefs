@@ -14,9 +14,14 @@ SYNOPSIS
 
 char pass:[*]pass:[*]*tracefs_event_systems*(const char pass:[*]_tracing_dir_);
 char pass:[*]pass:[*]*tracefs_system_events*(const char pass:[*]_tracing_dir_, const char pass:[*]_system_);
-int *tracefs_event_enable*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_);
-int *tracefs_event_disable*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_);
-int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_, cpu_set_t pass:[*]_cpus_, int _cpu_size_, int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]), void pass:[*]_callback_context_);
+int *tracefs_event_enable*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_,
+			   const char pass:[*]_event_);
+int *tracefs_event_disable*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_,
+			    const char pass:[*]_event_);
+int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_,
+				 cpu_set_t pass:[*]_cpus_, int _cpu_size_,
+				 int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]),
+				 void pass:[*]_callback_context_);
 
 --
 
@@ -24,22 +29,22 @@ DESCRIPTION
 -----------
 Trace systems and events related APIs.
 
-The _tracefs_event_systems()_ function returns array of strings with the
+The *tracefs_event_systems()* function returns array of strings with the
 names of all registered trace systems, located in the given _tracing_dir_
 directory. This could be NULL or the location of the tracefs mount point
 for the trace systems of the local machine, or it may be a path to a copy
 of the tracefs directory from another machine. The last entry in the array
-is a NULL pointer. The array must be freed with _tracefs_list_free()_ API.
+is a NULL pointer. The array must be freed with *tracefs_list_free()* API.
 
-The _tracefs_system_events()_ function returns array of strings with the
+The *tracefs_system_events()* function returns array of strings with the
 names of all registered trace events for given trace system specified by
 _system_, located in the given _tracing_dir_ directory. This could be NULL
 or the location of the tracefs mount point for the trace systems of the
 local machine, or it may be a path to a copy of the tracefs directory
 from another machine. The last entry in the array as a NULL pointer.
-The array must be freed with _tracefs_list_free()_ API.
+The array must be freed with *tracefs_list_free()* API.
 
-The _tracefs_event_enable()_ function enables a given event based on
+The *tracefs_event_enable()* function enables a given event based on
 the _system_ and _event_ passed in for the given _instance_. If _instance_
 is NULL, then the top level tracing directory is used. If _system_
 and _event_ are both NULL, then all events are enabled for the  _instance_.
@@ -48,17 +53,17 @@ If _system_ is NULL, then all systems are searched and any event within
 a system that matches _event_ is enabled. Both _system_ and _event_ may
 be regular expressions as defined by *regex*(3).
 
-The _tracefs_event_disable()_ function disables the events that match
+The *tracefs_event_disable()* function disables the events that match
 the _system_ and _event_ parameters for the given _instance_. What events
-are disable follow the same rules as _tracefs_event_enable()_ for matching
+are disable follow the same rules as *tracefs_event_enable()* for matching
 events. That is, if _instance_ is NULL, then the top level tracing directory
 is used. If both _system_ and _event_ are NULL then all events are disabled
 for the given _instance_, and so on.
 
-The _tracefs_iterate_raw_events()_ function will read the tracefs raw
+The *tracefs_iterate_raw_events()* function will read the tracefs raw
 data buffers and call the specified _callback_ function for every event it
 encounters. Events are iterated in sorted order: oldest first. An initialized
-_tep_ handler is required (See _tracefs_local_events_(3)). If _instance_ is
+_tep_ handler is required (See *tracefs_local_events*(3)). If _instance_ is
 NULL, then the toplevel tracefs buffer is used, otherwise the buffer for
 the corresponding _instance_ is read. To filter only on a subset of CPUs,
 _cpus_ and _cpu_size_ may be set to only call _callback_ with events that
@@ -73,19 +78,19 @@ returns non-zero, the iteration stops.
 
 RETURN VALUE
 ------------
-The _tracefs_event_systems()_ and __tracefs_system_events()_ functions return
+The *tracefs_event_systems()* and *tracefs_system_events()* functions return
 an array of strings. The last element in that array is a NULL pointer. The array
-must be freed with _tracefs_list_free()_ API. In case of an error, NULL is returned.
+must be freed with *tracefs_list_free()* API. In case of an error, NULL is returned.
 
-Both _tracefs_event_enable()_ and _tracefs_event_disable()_ return 0 if they found
+Both *tracefs_event_enable()* and *tracefs_event_disable()* return 0 if they found
 any matching events (Note it does not check the previous status of the event. If
-_tracefs_event_enable()_ finds an event that is already enabled, and there are no
+*tracefs_event_enable()* finds an event that is already enabled, and there are no
 other errors, then it will return 0). If an error occurs, even if other events were
 found, it will return -1 and errno will be set. If no errors occur, but no events
 are found that match the _system_ and _event_ parameters, then -1 is returned
 and errno is not set.
 
-The _tracefs_iterate_raw_events()_ function returns -1 in case of an error or
+The *tracefs_iterate_raw_events()* function returns -1 in case of an error or
 0 otherwise.
 
 EXAMPLE

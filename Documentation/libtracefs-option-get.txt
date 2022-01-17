@@ -25,35 +25,35 @@ DESCRIPTION
 This set of APIs can be used to get and check current ftrace options. Supported ftrace options may
 depend on the kernel version and the kernel configuration.
 
-The _tracefs_options_get_supported()_ function gets all ftrace options supported by the system in
+The *tracefs_options_get_supported()* function gets all ftrace options supported by the system in
 the given _instance_. If _instance_ is NULL, supported options of the top trace instance are
 returned. The set of supported options is the same in all created trace instances, but may be different
 than the top trace instance.
 
-The _tracefs_option_is_supported()_ function checks if the option with given _id_ is supported by
+The *tracefs_option_is_supported()/ function checks if the option with given _id_ is supported by
 the system in the given _instance_. If _instance_ is NULL, the top trace instance is used. If an
 option is supported at the top trace instance, it it may not be supported in a created trace instance.
 
-The _tracefs_options_get_enabled()_ function gets all ftrace options, currently enabled in
+The *tracefs_options_get_enabled()* function gets all ftrace options, currently enabled in
 the given _instance_. If _instance_ is NULL, enabled options of the top trace instance are returned.
 
-The _tracefs_option_is_enabled()_ function checks if the option with given _id_ is enabled in the
+The *tracefs_option_is_enabled()* function checks if the option with given _id_ is enabled in the
 given _instance_. If _instance_ is NULL, the top trace instance is used.
 
-The _tracefs_option_mask_is_set()_ function checks if the bit, corresponding to the option with _id_ is
-set in the _options_ bitmask returned from _tracefs_option_get_enabled()_ and _tracefs_option_is_supported()_.
+The *tracefs_option_mask_is_set()* function checks if the bit, corresponding to the option with _id_ is
+set in the _options_ bitmask returned from *tracefs_option_get_enabled()* and *tracefs_option_is_supported()*.
 
 RETURN VALUE
 ------------
-The _tracefs_options_get_supported()_ and _tracefs_options_get_enabled()_ functions, on success,
+The *tracefs_options_get_supported()* and *tracefs_options_get_enabled()* functions, on success,
 return a pointer to the bitmask within the instance, or a global bitmask for the top level,
 or NULL in case of an error. As the returned bitmask is part of the instance structure (or a
 global variable) and must not be freed or modified.
 
-The _tracefs_option_is_supported()_ and _tracefs_option_is_enabled()_ functions return true if the
+The *tracefs_option_is_supported()* and *tracefs_option_is_enabled()* functions return true if the
 option in supported / enabled, or false otherwise.
 
-The _tracefs_option_mask_is_set()_ returns true if the corresponding option is set in the mask
+The *tracefs_option_mask_is_set()* returns true if the corresponding option is set in the mask
 or false otherwise.
 
 EXAMPLE

@@ -21,28 +21,28 @@ DESCRIPTION
 -----------
 Various useful functions for working with trace file system.
 
-The _tracefs_tracers()_ function returns array of strings with the
+The *tracefs_tracers()* function returns array of strings with the
 names of supported tracer plugins, located in the given _tracing_dir_
 directory. This could be NULL or the location of the tracefs mount point
 for the trace systems of the local machine, or it may be a path to a copy
 of the tracefs directory from another machine. The last entry in the array
-as a NULL pointer. The array must be freed with _tracefs_list_free()_ API.
+as a NULL pointer. The array must be freed with *tracefs_list_free()* API.
 
-The _tracefs_get_clock()_ function returns name of the current trace clock,
+The *tracefs_get_clock()* function returns name of the current trace clock,
 used in the given _instance_. If _instance_ is NULL, the clock of the main
 trace instance is returned. The returned string must be freed with free().
 
-The _tracefs_list_free()_ function frees an array of strings, returned by
-_tracefs_event_systems()_, _tracefs_system_events()_ and _tracefs_tracers()_
+The *tracefs_list_free()* function frees an array of strings, returned by
+*tracefs_event_systems()*, *tracefs_system_events()* and *tracefs_tracers()*
 APIs.
 
 RETURN VALUE
 ------------
-The _tracefs_tracers()_ returns array of strings. The last element in that
-array is a NULL pointer. The array must be freed with _tracefs_list_free()_ API.
+The *tracefs_tracers()* returns array of strings. The last element in that
+array is a NULL pointer. The array must be freed with *tracefs_list_free()* API.
 In case of an error, NULL is returned.
 
-The _tracefs_get_clock()_ returns string, that must be freed with free(), or NULL
+The *tracefs_get_clock()* returns string, that must be freed with free(), or NULL
 in case of an error.
 
 EXAMPLE

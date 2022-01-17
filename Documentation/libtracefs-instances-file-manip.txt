@@ -30,47 +30,47 @@ Each of these APIs take an _instance_ argument, that can be NULL to act
 on the top level instance. Otherwise, it acts on an instance created with
 *tracefs_insance_create*(3)
 
-The _tracefs_instance_file_open()_ function opens trace _file_ from given _instance_ and returns
+The *tracefs_instance_file_open()* function opens trace _file_ from given _instance_ and returns
 a file descriptor to it. The file access _mode_ can be specified, see *open*(3) for more details.
 If -1 is passed as _mode_, default O_RDWR is used.
 
-The _tracefs_instance_file_write()_ function writes a string _str_ in a _file_ from
+The *tracefs_instance_file_write()* function writes a string _str_ in a _file_ from
 the given _instance_, without the terminating NULL character. When opening the file, this function
 tries to truncates the size of the file to zero, which clears all previously existing settings.
 
-The _tracefs_instance_file_append()_ function writes a string _str_ in a _file_ from
+The *tracefs_instance_file_append()* function writes a string _str_ in a _file_ from
 the given _instance_, without the terminating NULL character.  This function is similar to
-_tracefs_instance_file_write()_, but the existing content of the is not cleared. Thus the
+*tracefs_instance_file_write()*, but the existing content of the is not cleared. Thus the
 new settings are appended to the existing ones (if any).
 
-The _tracefs_instance_file_clear()_ function tries to truncates the size of the file to zero,
+The *tracefs_instance_file_clear()* function tries to truncates the size of the file to zero,
 which clears all previously existing settings. If the file has content that does not get
 cleared in this way, this will not have any effect.
 
-The _tracefs_instance_file_read()_ function reads the content of a _file_ from
+The *tracefs_instance_file_read()* function reads the content of a _file_ from
 the given _instance_.
 
-The _tracefs_instance_file_read_number()_ function reads the content of a _file_ from
+The *tracefs_instance_file_read_number()* function reads the content of a _file_ from
 the given _instance_ and converts it to a long long integer, which is stored in _res_.
 
 RETURN VALUE
 ------------
-The _tracefs_instance_file_open()_ function returns a file descriptor to the opened file. It must be
+The *tracefs_instance_file_open()* function returns a file descriptor to the opened file. It must be
 closed with *close*(3). In case of an error, -1 is returned.
 
-The _tracefs_instance_file_write()_ function returns the number of written bytes,
+The *tracefs_instance_file_write()* function returns the number of written bytes,
 or -1 in case of an error.
 
-The _tracefs_instance_file_append()_ function returns the number of written bytes,
+The *tracefs_instance_file_append()* function returns the number of written bytes,
 or -1 in case of an error.
 
-The _tracefs_instance_file_clear()_ function returns 0 on success, or -1 in case of an error.
+The *tracefs_instance_file_clear()* function returns 0 on success, or -1 in case of an error.
 
-The _tracefs_instance_file_read()_ function returns a pointer to a NULL terminated
+The *tracefs_instance_file_read()* function returns a pointer to a NULL terminated
 string, read from the file, or NULL in case of an error. The returned string must
 be freed with free().
 
-The _tracefs_instance_file_read_number()_ function returns 0 if a valid integer is read from
+The *tracefs_instance_file_read_number()* function returns 0 if a valid integer is read from
 the file and stored in _res_ or -1 in case of an error.
 
 EXAMPLE

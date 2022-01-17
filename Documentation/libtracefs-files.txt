@@ -22,17 +22,17 @@ DESCRIPTION
 This set of APIs can be used to find the full path of the trace file
 system mount point and trace files in it.
 
-The _tracefs_get_tracing_file()_ function returns the full path of the
+The *tracefs_get_tracing_file()* function returns the full path of the
 file with given _name_ in the trace file system. The function works
 only with files in the tracefs main directory, it is not trace instance
-aware. It is recommended to use _tracefs_instance_get_file()_ and
-_tracefs_instance_get_dir()_ instead. The returned string must be freed
-with _tracefs_put_tracing_file()_.
+aware. It is recommended to use *tracefs_instance_get_file()* and
+*tracefs_instance_get_dir()* instead. The returned string must be freed
+with *tracefs_put_tracing_file()*.
 
-The _tracefs_put_tracing_file()_ function frees trace file name,
-returned by _tracefs_get_tracing_file()_.
+The *tracefs_put_tracing_file()* function frees trace file name,
+returned by *tracefs_get_tracing_file()*.
 
-The _tracefs_tracing_dir()_ function returns the full path to the
+The *tracefs_tracing_dir()* function returns the full path to the
 trace file system. In the first function call, the mount point of the
 tracing file system is located, cached and returned. It will mount it,
 if it is not mounted. On any subsequent call the cached path is returned.
@@ -40,10 +40,10 @@ The return string must _not_ be freed.
 
 RETURN VALUE
 ------------
-The _tracefs_get_tracing_file()_ function returns a string or NULL in case
-of an error. The returned string must be freed with _tracefs_put_tracing_file()_.
+The *tracefs_get_tracing_file()* function returns a string or NULL in case
+of an error. The returned string must be freed with *tracefs_put_tracing_file()*.
 
-The _tracefs_tracing_dir()_ function returns a constant string or NULL
+The *tracefs_tracing_dir()* function returns a constant string or NULL
 in case of an error. The returned string must _not_ be freed.
 
 EXAMPLE

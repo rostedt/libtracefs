@@ -25,21 +25,21 @@ See Documentation/trace/ftrace.rst from the Linux kernel tree for more informati
 data from user space in the trace buffer. All these APIs have _instance_ as a first argument. If
 NULL is passed as _instance_, the top trace instance is used.
 
-The _tracefs_binary_init()_ function initializes the library for writing into the trace buffer of
+The *tracefs_binary_init()* function initializes the library for writing into the trace buffer of
 the selected _instance_. It is not mandatory to call this API before writing data, the
-_tracefs_binary_write()_ will call it automatically, if the library is not yet initialized.
-But calling _tracefs_binary_init()_ in advance will speed up the writing.
+*tracefs_binary_write()* will call it automatically, if the library is not yet initialized.
+But calling *tracefs_binary_init()* in advance will speed up the writing.
 
-The _tracefs_binary_write()_ function writes a binary data in the trace buffer of the selected
+The *tracefs_binary_write()* function writes a binary data in the trace buffer of the selected
 _instance_. The _data_ points to the data with length _len_, that is going to be written in
 the trace buffer.
 
-The _tracefs_binary_close()_ function closes the resources, used by the library for writing in
+The *tracefs_binary_close()* function closes the resources, used by the library for writing in
 the trace buffer of the selected instance.
 
 RETURN VALUE
 ------------
-The _tracefs_binary_init()_, and _tracefs_binary_write()_ functions return 0 if the operation is
+The *tracefs_binary_init()*, and *tracefs_binary_write()* functions return 0 if the operation is
 successful, or -1 in case of an error.
 
 EXAMPLE

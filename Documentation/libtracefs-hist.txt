@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_hist_alloc, tracefs_hist_free, tracefs_hist_add_key, tracefs_hist_add_value, tracefs_hist_add_name, tracefs_hist_start,
-tracefs_hist_destory, tracefs_hist_add_sort_key, tracefs_hist_set_sort_key, tracefs_hist_sort_key_direction
+tracefs_hist_destroy, tracefs_hist_add_sort_key, tracefs_hist_set_sort_key, tracefs_hist_sort_key_direction
 tracefs_hist_echo_cmd, tracefs_hist_get_name, tracefs_hist_get_event, tracefs_hist_get_system - Create, update and describe event histograms
 
 SYNOPSIS
@@ -13,68 +13,68 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-enum tracefs_hist_key_type {
-	TRACEFS_HIST_KEY_NORMAL = 0,
-	TRACEFS_HIST_KEY_HEX,
-	TRACEFS_HIST_KEY_SYM,
-	TRACEFS_HIST_KEY_SYM_OFFSET,
-	TRACEFS_HIST_KEY_SYSCALL,
-	TRACEFS_HIST_KEY_EXECNAME,
-	TRACEFS_HIST_KEY_LOG,
-	TRACEFS_HIST_KEY_USECS,
-	TRACEFS_HIST_KEY_MAX
+enum *tracefs_hist_key_type* {
+	*TRACEFS_HIST_KEY_NORMAL* = 0,
+	*TRACEFS_HIST_KEY_HEX*,
+	*TRACEFS_HIST_KEY_SYM*,
+	*TRACEFS_HIST_KEY_SYM_OFFSET*,
+	*TRACEFS_HIST_KEY_SYSCALL*,
+	*TRACEFS_HIST_KEY_EXECNAME*,
+	*TRACEFS_HIST_KEY_LOG*,
+	*TRACEFS_HIST_KEY_USECS*,
+	*TRACEFS_HIST_KEY_MAX*
 };
 
-struct tracefs_hist_axis {
-	const char *key;
-	enum tracefs_hist_key_type type;
+struct *tracefs_hist_axis* {
+	const char pass:[*]_key_;
+	enum tracefs_hist_key_type _type_;
 };
 
-struct tracefs_hist pass:[*]tracefs_hist_alloc(struct tracefs_tep pass:[*] tep,
-			const char pass:[*]system, const char pass:[*]event,
-			const char pass:[*]key, enum tracefs_hist_key_type type);
-struct tracefs_hist pass:[*]tracefs_hist_alloc_2d(struct tracefs_tep pass:[*] tep,
-			const char pass:[*]system, const char pass:[*]event,
-			const char pass:[*]key1, enum tracefs_hist_key_type type1,
-			const char pass:[*]key2, enum tracefs_hist_key_type type2));
-struct tracefs_hist pass:[*]tracefs_hist_alloc_nd(struct tracefs_tep pass:[*] tep,
-			const char pass:[*]system, const char pass:[*]event,
-			struct tracefs_hist_axis pass:[*]axes);
-void tracefs_hist_free(struct tracefs_hist pass:[*]hist);
+struct tracefs_hist pass:[*]*tracefs_hist_alloc*(struct tracefs_tep pass:[*] _tep_,
+			const char pass:[*]_system_, const char pass:[*]_event_,
+			const char pass:[*]_key_, enum tracefs_hist_key_type _type_);
+struct tracefs_hist pass:[*]*tracefs_hist_alloc_2d*(struct tracefs_tep pass:[*] _tep_,
+			const char pass:[*]_system_, const char pass:[*]_event_,
+			const char pass:[*]_key1_, enum tracefs_hist_key_type _type1_,
+			const char pass:[*]_key2_, enum tracefs_hist_key_type _type2_));
+struct tracefs_hist pass:[*]*tracefs_hist_alloc_nd*(struct tracefs_tep pass:[*] _tep_,
+			const char pass:[*]_system_, const char pass:[*]_event_,
+			struct tracefs_hist_axis pass:[*]_axes_);
+void *tracefs_hist_free*(struct tracefs_hist pass:[*]_hist_);
 
-int tracefs_hist_add_key(struct tracefs_hist pass:[*]hist, const char pass:[*]key,
-			 enum tracefs_hist_key_type type);
-int tracefs_hist_add_value(struct tracefs_hist pass:[*]hist, const char pass:[*]value);
-int tracefs_hist_add_sort_key(struct tracefs_hist pass:[*]hist,
-			      const char pass:[*]sort_key);
+int *tracefs_hist_add_key*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_key_,
+			 enum tracefs_hist_key_type _type_);
+int *tracefs_hist_add_value*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_value_);
+int *tracefs_hist_add_sort_key*(struct tracefs_hist pass:[*]_hist_,
+			      const char pass:[*]_sort_key_);
 
-int tracefs_hist_set_sort_key(struct tracefs_hist pass:[*]hist,
-			      const char pass:[*]sort_key, ...);
-int tracefs_hist_sort_key_direction(struct tracefs_hist pass:[*]hist,
-				    const char pass:[*]sort_key,
-				    enum tracefs_hist_sort_direction dir);
+int *tracefs_hist_set_sort_key*(struct tracefs_hist pass:[*]_hist_,
+			      const char pass:[*]_sort_key_, _..._);
+int *tracefs_hist_sort_key_direction*(struct tracefs_hist pass:[*]_hist_,
+				    const char pass:[*]_sort_key_,
+				    enum tracefs_hist_sort_direction _dir_);
 
-int tracefs_hist_add_name(struct tracefs_hist pass:[*]hist, const char pass:[*]name);
+int *tracefs_hist_add_name*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_name_);
 
-int tracefs_hist_append_filter(struct tracefs_hist pass:[*]hist,
-			       enum tracefs_filter type,
-			       const char pass:[*]field,
-			       enum tracefs_compare compare,
-			       const char pass:[*]val);
+int *tracefs_hist_append_filter*(struct tracefs_hist pass:[*]_hist_,
+			       enum tracefs_filter _type_,
+			       const char pass:[*]_field_,
+			       enum tracefs_compare _compare_,
+			       const char pass:[*]_val_);
 
-int tracefs_hist_echo_cmd(struct trace_seq pass:[*]s, struct tracefs_instance pass:[*]instance,
-			  struct tracefs_hist pass:[*]hist,
-			  enum tracefs_hist_command command);
+int *tracefs_hist_echo_cmd*(struct trace_seq pass:[*]_s_, struct tracefs_instance pass:[*]_instance_,
+			  struct tracefs_hist pass:[*]_hist_,
+			  enum tracefs_hist_command _command_);
 
-int tracefs_hist_command(struct tracefs_instance pass:[*]instance,
-			 struct tracefs_hist pass:[*]hist,
-			 enum tracefs_hist_command command);
+int *tracefs_hist_command*(struct tracefs_instance pass:[*]_instance_,
+			 struct tracefs_hist pass:[*]_hist_,
+			 enum tracefs_hist_command _command_);
 
-const char *tracefs_hist_get_name(struct tracefs_hist pass:[*]hist);
+const char pass:[*]*tracefs_hist_get_name*(struct tracefs_hist pass:[*]_hist_);
 
-const char *tracefs_hist_get_event(struct tracefs_hist pass:[*]hist);
+const char pass:[*]*tracefs_hist_get_event*(struct tracefs_hist pass:[*]_hist_);
 
-const char *tracefs_hist_get_system(struct tracefs_hist pass:[*]hist);
+const char pass:[*]*tracefs_hist_get_system*(struct tracefs_hist pass:[*]_hist_);
 
 --
 
@@ -108,7 +108,7 @@ histogram and returns the address of it. This descriptor must be freed by *trace
 The _tep_ is a trace event handle (see *tracefs_local_events*(3)), that holds the
 _system_ and _event_ that the histogram will be attached to. The _system_ is the
 system or group of the event. The _event_ is the event to attach the histogram to.
-The _axes_ is an array of _key_ / _type_ pairs, defining the dimentions of the histogram.
+The _axes_ is an array of _key_ / _type_ pairs, defining the dimensions of the histogram.
 
 *tracefs_hist_free*() frees the _tracefs_hist_ descriptor. Note, it does not stop
 or disable the running histogram if it was started. *tracefs_hist_destroy*() needs
@@ -119,23 +119,23 @@ The key passed to *tracefs_hist_alloc_nd*() is the primary key of the histogram.
 The first time this function is called, it will add a secondary key (or two dimensional
 histogram). If this function is called again on the same histogram, it will add
 a _tertiary_ key (or three dimensional histogram). The _hist_ parameter is the
-histrogram descriptor to add the _key_ to. The _type_ is the type of key to add
+histogram descriptor to add the _key_ to. The _type_ is the type of key to add
 (See KEY TYPES below).
 
 *tracefs_hist_add_value*() will add a value to record. By default, the value is
 simply the "hitcount" of the number of times a instance of the histogram's
 key was hit. The _hist_ is the histogram descriptor to add the value to.
-The _value_ is a field in the histogram to add to when an instane of the
+The _value_ is a field in the histogram to add to when an instance of the
 key is hit.
 
 *tracefs_hist_add_sort_key*() will add a key to sort on. The _hist_ is the
-histrogram descriptor to add the sort key to. The _sort_key_ is a string
+histogram descriptor to add the sort key to. The _sort_key_ is a string
 that must match either an already defined key of the histogram, or an already
 defined value. If _hist_  already has sorting keys (previously added) the new
 _sort_key_ will have lower priority(be secondary or so on) when sorting.
 
 *tracefs_hist_set_sort_key*() will reset the list of key to sort on. The _hist_ is
-the histrogram descriptor to reset the sort key to. The _sort_key_ is a string
+the histogram descriptor to reset the sort key to. The _sort_key_ is a string
 that must match either an already defined key of the histogram, or an already
 defined value. Multiple sort keys may be added to denote a secondary, sort order
 and so on, but all sort keys must match an existing key or value, or be
@@ -155,7 +155,7 @@ is the histogram to name, and the _name_ is the name to give it.
 
 *tracefs_hist_append_filter*() creates a filter or appends to it for the
 histogram  event. Depending on _type_, it will build a string of tokens for
-parenthesis or logic statemens, or it may add a comparison of _field_
+parenthesis or logic statements, or it may add a comparison of _field_
 to _val_ based on _compare_.
 
 If _type_ is:
@@ -167,7 +167,7 @@ If _type_ is:
 *TRACEFS_FILTER_CLOSE_PAREN* -  Append ")" to the filter
 
 _field_, _compare_, and _val_ are ignored unless _type_ is equal to
-*TRACEFS_FILTER_COMPARE*, then _compare will be used for the following:
+*TRACEFS_FILTER_COMPARE*, then _compare_ will be used for the following:
 
 *TRACEFS_COMPARE_EQ* - _field_ == _val_
 
@@ -213,15 +213,15 @@ KEY TYPES
 *tracefs_hist_alloc_nd*() and *tracefs_hist_add_key*() both add a key and requires
 that key to have a type. The types may be:
 
- *TRACEFS_HIST_KEY_NORMAL* or zero (0) which is to not modify the type.
+*TRACEFS_HIST_KEY_NORMAL* or zero (0) which is to not modify the type.
 
- *TRACEFS_HIST_KEY_HEX* to display the key in hex.
+*TRACEFS_HIST_KEY_HEX* to display the key in hex.
 
- *TRACEFS_HIST_KEY_SYM* to display the key as a kernel symbol (if found). If
+*TRACEFS_HIST_KEY_SYM* to display the key as a kernel symbol (if found). If
 the key is an address, this is useful as it will display the function names instead
 of just a number.
 
- *TRACEFS_HIST_KEY_SYM_OFFSET* similar to *TRACEFS_HIST_KEY_SYM* but will also include
+*TRACEFS_HIST_KEY_SYM_OFFSET* similar to *TRACEFS_HIST_KEY_SYM* but will also include
 the offset of the function to match the exact address.
 
 *TRACEFS_HIST_KEY_SYSCALL* If the key is a system call "id" (the number passed from user
@@ -236,6 +236,8 @@ instead of showing the number, show the name of the running task.
 *TRACEFS_HIST_KEY_USECS* for use with "common_timestamp" or TRACEFS_HIST_TIMESTAMP,
 in which case it will show the timestamp in microseconds instead of nanoseconds.
 
+RETURN VALUE
+------------
 *tracefs_hist_get_name*() returns the name of the histogram or NULL on error.
 The returned string belongs to the histogram object and is freed with the histogram
 by *tracefs_hist_free*().
@@ -248,9 +250,6 @@ by *tracefs_hist_free*().
 The returned string belongs to the histogram object and is freed with the histogram
 by *tracefs_hist_free*().
 
-
-RETURN VALUE
-------------
 *tracefs_hist_alloc_nd*() returns an allocated histogram descriptor which must
 be freed by *tracefs_hist_free*() or NULL on error.
 

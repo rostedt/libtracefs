@@ -14,24 +14,24 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_synth_create(struct tracefs_synth pass:[*]synth);
-int tracefs_synth_destroy(struct tracefs_synth pass:[*]synth);
-int tracefs_synth_echo_cmd(struct trace_seq pass:[*]seq, struct tracefs_synth pass:[*]synth);
-bool tracefs_synth_complete(struct tracefs_synth pass:[*]synth);
-struct tracefs_hist pass:[*]tracefs_synth_get_start_hist(struct tracefs_synth pass:[*]synth);
+int *tracefs_synth_create*(struct tracefs_synth pass:[*]_synth_);
+int *tracefs_synth_destroy*(struct tracefs_synth pass:[*]_synth_);
+int *tracefs_synth_echo_cmd*(struct trace_seq pass:[*]_seq_, struct tracefs_synth pass:[*]_synth_);
+bool *tracefs_synth_complete*(struct tracefs_synth pass:[*]_synth_);
+struct tracefs_hist pass:[*]*tracefs_synth_get_start_hist*(struct tracefs_synth pass:[*]_synth_);
 
-int tracefs_synth_trace(struct tracefs_synth pass:[*]synth,
-			enum tracefs_synth_handler type, const char pass:[*]var);
-int tracefs_synth_snapshot(struct tracefs_synth pass:[*]synth,
-			   enum tracefs_synth_handler type, const char pass:[*]var);
-int tracefs_synth_save(struct tracefs_synth pass:[*]synth,
-		       enum tracefs_synth_handler type, const char pass:[*]var,
-		       char pass:[**]save_fields);
-const char *tracefs_synth_get_name(struct tracefs_synth pass:[*]synth);
-int tracefs_synth_raw_fmt(struct trace_seq pass:[*]seq, struct tracefs_synth pass:[*]synth);
-const char *tracefs_synth_show_event(struct tracefs_synth pass:[*]synth);
-const char *tracefs_synth_show_start_hist(struct tracefs_synth pass:[*]synth);
-const char *tracefs_synth_show_end_hist(struct tracefs_synth pass:[*]synth);
+int *tracefs_synth_trace*(struct tracefs_synth pass:[*]_synth_,
+			enum tracefs_synth_handler _type_, const char pass:[*]_var_);
+int *tracefs_synth_snapshot*(struct tracefs_synth pass:[*]_synth_,
+			   enum tracefs_synth_handler _type_, const char pass:[*]_var_);
+int *tracefs_synth_save*(struct tracefs_synth pass:[*]_synth_,
+		       enum tracefs_synth_handler _type_, const char pass:[*]_var_,
+		       char pass:[**]_save_fields_);
+const char pass:[*]*tracefs_synth_get_name*(struct tracefs_synth pass:[*]_synth_);
+int *tracefs_synth_raw_fmt*(struct trace_seq pass:[*]_seq_, struct tracefs_synth pass:[*]_synth_);
+const char pass:[*]*tracefs_synth_show_event*(struct tracefs_synth pass:[*]_synth_);
+const char pass:[*]*tracefs_synth_show_start_hist*(struct tracefs_synth pass:[*]_synth_);
+const char pass:[*]*tracefs_synth_show_end_hist*(struct tracefs_synth pass:[*]_synth_);
 
 --
 
@@ -51,7 +51,7 @@ This event is triggered when a new task is scheduled on the CPU. By setting
 the "common_pid" of both events as the matching fields, the time between the
 two events is considered the wake up latency of that process. Use *TRACEFS_TIMESTAMP*
 as a field for both events to calculate the delta in nanoseconds, or use
-*TRACEFS_TIMESTAMP_USECS" as the compare fields for both events to calculate the
+*TRACEFS_TIMESTAMP_USECS* as the compare fields for both events to calculate the
 delta in microseconds. This is used as the example below.
 
 *tracefs_synth_create*() creates the synthetic event in the system. The synthetic events apply
@@ -70,11 +70,14 @@ a starting and ending event.
 *tracefs_synth_get_start_hist*() returns a struct tracefs_hist descriptor describing
 the histogram used to create the synthetic event.
 
+[verse]
+--
 enum tracefs_synth_handler {
-	TRACEFS_SYNTH_HANDLE_MATCH,
-	TRACEFS_SYNTH_HANDLE_MAX,
-	TRACEFS_SYNTH_HANDLE_CHANGE,
+	*TRACEFS_SYNTH_HANDLE_MATCH*,
+	*TRACEFS_SYNTH_HANDLE_MAX*,
+	*TRACEFS_SYNTH_HANDLE_CHANGE*,
 };
+--
 
 *tracefs_synth_trace*() Instead of doing just a trace on matching of the start and
 end events, do the _type_ handler where *TRACEFS_SYNTH_HANDLE_MAX* will do a trace
@@ -83,17 +86,17 @@ when the given variable _var_ hits a new max for the matching keys. Or
 the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
 *tracefs_synth_snapshot*() When the given variable _var_ is either a new max if
-_handler_ is TRACEFS_SYNTH_HANDLE_MAX_ or simpy changed if TRACEFS_SYNTH_HANDLE_CHANGE_
+_handler_ is *TRACEFS_SYNTH_HANDLE_MAX* or simply changed if *TRACEFS_SYNTH_HANDLE_CHANGE*
 then take a "snapshot" of the buffer. The snapshot moves the normal "trace" buffer
 into a "snapshot" buffer, that can be accessed via the "snapshot" file in the
 top level tracefs directory, or one of the instances.  _var_ changes. _var_ must be one of
 the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
 *tracefs_synth_save*() When the given variable _var_ is either a new max if
-_handler_ is TRACEFS_SYNTH_HANDLE_MAX_ or simpy changed if TRACEFS_SYNTH_HANDLE_CHANGE_
-then saven the given _save_fields_ list. The fields will be stored in the histogram
+_handler_ is *TRACEFS_SYNTH_HANDLE_MAX* or simpy changed if *TRACEFS_SYNTH_HANDLE_CHANGE*
+then save the given _save_fields_ list. The fields will be stored in the histogram
 "hist" file of the event that can be retrieved with *tracefs_event_file_read*(3).
-_var_ changes. _var_ must be one of the _name_ elements used in *tracefs_synth_add_end_field*(3).
+_var_ must be one of the _name_ elements used in *tracefs_synth_add_end_field*(3).
 
 *tracefs_synth_get_name*() returns the name of the synthetic event or NULL on error.
 The returned string belongs to the synth event object and is freed with the event

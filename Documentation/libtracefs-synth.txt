@@ -13,41 +13,41 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-struct tracefs_synth pass:[*]tracefs_synth_alloc(struct tep_handle pass:[*]tep,
-					 const char pass:[*]name,
-					 const char pass:[*]start_system,
-					 const char pass:[*]start_event,
-					 const char pass:[*]end_system,
-					 const char pass:[*]end_event,
-					 const char pass:[*]start_match_field,
-					 const char pass:[*]end_match_field,
-					 const char pass:[*]match_name);
-int tracefs_synth_add_match_field(struct tracefs_synth pass:[*]synth,
-				  const char pass:[*]start_match_field,
-				  const char pass:[*]end_match_field,
-				  const char pass:[*]name);
-int tracefs_synth_add_compare_field(struct tracefs_synth pass:[*]synth,
-				    const char pass:[*]start_compare_field,
-				    const char pass:[*]end_compare_field,
-				    enum tracefs_synth_calc calc,
-				    const char pass:[*]name);
-int tracefs_synth_add_start_field(struct tracefs_synth pass:[*]synth,
-				  const char pass:[*]start_field,
-				  const char pass:[*]name);
-int tracefs_synth_add_end_field(struct tracefs_synth pass:[*]synth,
-				const char pass:[*]end_field,
-				const char pass:[*]name);
-int tracefs_synth_append_start_filter(struct tracefs_synth pass:[*]synth,
-				      struct tracefs_filter type,
-				      const char pass:[*]field,
-				      enum tracefs_synth_compare compare,
-				      const char pass:[*]val);
-int tracefs_synth_append_end_filter(struct tracefs_synth pass:[*]synth,
-				    struct tracefs_filter type,
-				    const char pass:[*]field,
-				    enum tracefs_synth_compare compare,
-				    const char pass:[*]val);
--void tracefs_synth_free(struct tracefs_synth pass:[*]synth);
+struct tracefs_synth pass:[*]*tracefs_synth_alloc*(struct tep_handle pass:[*]_tep_,
+					 const char pass:[*]_name_,
+					 const char pass:[*]_start_system_,
+					 const char pass:[*]_start_event_,
+					 const char pass:[*]_end_system_,
+					 const char pass:[*]_end_event_,
+					 const char pass:[*]_start_match_field_,
+					 const char pass:[*]_end_match_field_,
+					 const char pass:[*]_match_name_);
+int *tracefs_synth_add_match_field*(struct tracefs_synth pass:[*]_synth_,
+				  const char pass:[*]_start_match_field_,
+				  const char pass:[*]_end_match_field_,
+				  const char pass:[*]_name_);
+int *tracefs_synth_add_compare_field*(struct tracefs_synth pass:[*]_synth_,
+				    const char pass:[*]_start_compare_field_,
+				    const char pass:[*]_end_compare_field_,
+				    enum tracefs_synth_calc _calc_,
+				    const char pass:[*]_name_);
+int *tracefs_synth_add_start_field*(struct tracefs_synth pass:[*]_synth_,
+				  const char pass:[*]_start_field_,
+				  const char pass:[*]_name_);
+int *tracefs_synth_add_end_field*(struct tracefs_synth pass:[*]_synth_,
+				const char pass:[*]_end_field_,
+				const char pass:[*]_name_);
+int *tracefs_synth_append_start_filter*(struct tracefs_synth pass:[*]_synth_,
+				      struct tracefs_filter _type_,
+				      const char pass:[*]_field_,
+				      enum tracefs_synth_compare _compare_,
+				      const char pass:[*]_val_);
+int *tracefs_synth_append_end_filter*(struct tracefs_synth pass:[*]_synth_,
+				    struct tracefs_filter _type_,
+				    const char pass:[*]_field_,
+				    enum tracefs_synth_compare _compare_,
+				    const char pass:[*]_val_);
+void *tracefs_synth_free*(struct tracefs_synth pass:[*]_synth_);
 --
 
 DESCRIPTION
@@ -74,7 +74,7 @@ It does not create the synthetic event, but supplies the minimal information
 to do so. See *tracefs_synth_create*(3) for how to create the synthetic
 event in the system. It requires a _tep_ handler that can be created by
 *tracefs_local_events*(3) for more information. The _name_ holds the name
-of the synthetic event that will be created. The _start_system is the name
+of the synthetic event that will be created. The _start_system_ is the name
 of the system for the starting event. It may be NULL and the first event
 with the name of _start_event_ will be chosen. The _end_system_ is the
 name of the system for theh ending event. It may be NULL and the first event
@@ -88,7 +88,7 @@ not be recorded in the created synthetic event.
 starting event and the ending event. If _name_ is given, then the content
 of the matching field will be saved by this _name_ in the synthetic event.
 The _start_match_field_ is the field of the starting event to mach with the
-ending event's _end_match_field.
+ending event's _end_match_field_.
 
 *tracefs_synth_add_compare_field*() is used to compare the _start_compare_field_
 of the starting event with the _end_compare_field_ of the ending event. The _name_
@@ -100,17 +100,17 @@ can be one of:
 *TRACEFS_SYNTH_DELTA_END* - calculate the difference between the content in
  the _end_compare_field_ from the content of the _start_compare_field_.
 
- _name_ = _end_compare_field_ - _start_compare_field_
+_name_ = _end_compare_field_ - _start_compare_field_
 
 *TRACEFS_SYNTH_DELTA_START* - calculate the difference between the content in
  the _start_compare_field_ from the content of the _end_compare_field_.
 
- _name_ = _start_compare_field_ - _end_compare_field_
+_name_ = _start_compare_field_ - _end_compare_field_
 
 *TRACEFS_SYNTH_ADD* - Add the content of the _start_compare_field_ to the
   content of the _end_compare_field_.
 
- _name_ = _start_compare_field_ + _end_compare_field_
+_name_ = _start_compare_field_ + _end_compare_field_
 
 *tracefs_synth_add_start_field*() - Records the _start_field_ of the starting
 event as _name_ in the synthetic event. If _name_ is NULL, then the name used
@@ -122,7 +122,7 @@ will be the same as _end_field_.
 
 *tracefs_synth_append_start_filter*() creates a filter or appends to it for the
 starting event. Depending on _type_, it will build a string of tokens for
-parenthesis or logic statemens, or it may add a comparison of _field_
+parenthesis or logic statements, or it may add a comparison of _field_
 to _val_ based on _compare_.
 
 If _type_ is:
@@ -161,7 +161,7 @@ filters on the ending event.
 RETURN VALUE
 ------------
 *tracefs_synth_alloc*() returns an allocated struct tracefs_synth descriptor
-on sucess or NULL on error.
+on success or NULL on error.
 
 All other functions that return an integer returns zero on success or -1
 on error.

@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_sql - Create a synthetitc event via an SQL statement
+tracefs_sql - Create a synthetic event via an SQL statement
 
 SYNOPSIS
 --------
@@ -11,8 +11,8 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-struct tracefs_synth *tracefs_sql(struct tep_handle pass:[*]tep, const char pass:[*]name,
-				  const char pass:[*]sql_buffer, char pass:[**]err);
+struct tracefs_synth pass:[*]*tracefs_sql*(struct tep_handle pass:[*]_tep_, const char pass:[*]_name_,
+					const char pass:[*]_sql_buffer_, char pass:[**]_err_);
 --
 
 DESCRIPTION
@@ -35,7 +35,7 @@ be created from two different events.
 For simple SQL queries to make a histogram instead of a synthetic event, see
 HISTOGRAMS below.
 
-*tracefs_sql*() takes in a *tep* handler (See _tep_local_events_(3)) that is used to
+*tracefs_sql*() takes in a _tep_ handler (See _tep_local_events_(3)) that is used to
 verify the events within the _sql_buffer_ expression. The _name_ is the name of the
 synthetic event to create. If _err_ points to an address of a string, it will be filled
 with a detailed message on any type of parsing error, including fields that do not belong

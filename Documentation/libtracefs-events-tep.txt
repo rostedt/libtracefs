@@ -23,13 +23,13 @@ DESCRIPTION
 -----------
 Functions for initializing a tep handler with trace events from the local system.
 
-The _tracefs_local_events()_ function allocates a new _tep_ handler and
+The *tracefs_local_events()* function allocates a new _tep_ handler and
 initializes it with events from all trace systems, located in the given
 _tracing_dir_ directory. This could be NULL or the location of the tracefs
 mount point for the trace systems of the local machine, or it may be a path
 to a copy of the tracefs directory from another machine.
 
-The _tracefs_local_events_system()_ function allocates a new _tep_ handler
+The *tracefs_local_events_system()* function allocates a new _tep_ handler
 and initializes it with events from specified trace systems _sys_names_,
 located in the given _tracing_dir_ directory. This could be NULL or the
 location of the tracefs mount point for the trace systems of the local
@@ -38,7 +38,7 @@ machine. The _sys_names_ argument is an array of trace system names, that
 will be used for _tep_ handler initialization. The last element in that
 array must be a NULL pointer.
 
-The _tracefs_fill_local_events()_ function initializes already allocated _tep_
+The *tracefs_fill_local_events()* function initializes already allocated _tep_
 handler with events from all trace systems, located in the given _tracing_dir_
 directory. This could be NULL or the location of the tracefs mount point
 for the trace systems of the local machine, or it may be a path to a copy
@@ -51,20 +51,20 @@ The above functions will also load the mappings between pids and the process
 command line names. In some cases the _tep_ handle is created with one
 of the above before tracing begins. As the mappings get updated during the
 trace, there may be a need to read the mappings again after the trace.
-The _tracefs_load_cmdlines()_ does just that. The _tracing_dir_ is
-the director of the mount point to load from, or NULL to use the
+The *tracefs_load_cmdlines()* does just that. The _tracing_dir_ is
+the directory of the mount point to load from, or NULL to use the
 mount point of the tracefs file system.
 
 RETURN VALUE
 ------------
-The _tracefs_local_events()_ and _tracefs_local_events_system()_ functions
+The *tracefs_local_events()* and *tracefs_local_events_system()* functions
 return pointer to allocated and initialized _tep_ handler, or NULL in
-case of an error. The returned _tep_ handler must be freed with _tep_free(3)_.
+case of an error. The returned _tep_ handler must be freed with *tep_free(3)*.
 
-The _tracefs_fill_local_events()_ function returns -1 in case of an error or
+The *tracefs_fill_local_events()* function returns -1 in case of an error or
 0 otherwise.
 
-The _tracefs_load_cmdlines()_ function returns -1 in case of an error, or
+The *tracefs_load_cmdlines()* function returns -1 in case of an error, or
 0 otherwise.
 
 EXAMPLE

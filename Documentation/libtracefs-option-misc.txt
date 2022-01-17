@@ -21,22 +21,22 @@ DESCRIPTION
 -----------
 This set of APIs can be used to enable and disable ftrace options and to get the name of an option.
 
-The _tracefs_option_enable()_ function enables the option with _id_ in the given _instance_. If
+The *tracefs_option_enable()* function enables the option with _id_ in the given _instance_. If
 _instance_ is NULL, the option is enabled in the top trace instance.
 
-The _tracefs_option_disable()_ function disables the option with _id_ in the given _instance_. If
+The *tracefs_option_disable()* function disables the option with _id_ in the given _instance_. If
 _instance_ is NULL, the option is disabled in the top trace instance.
 
-The _tracefs_option_name()_ function returns a string, representing the option with _id_. The string
+The *tracefs_option_name()* function returns a string, representing the option with _id_. The string
 must *not* be freed.
 
 
 RETURN VALUE
 ------------
-The _tracefs_option_enable()_ and _tracefs_option_disable()_ functions return 0 if the state of the
+The *tracefs_option_enable()* and *tracefs_option_disable()* functions return 0 if the state of the
 option is set successfully, or -1 in case of an error.
 
-The _tracefs_option_name()_ function returns string with option name, or "unknown" in case of an
+The *tracefs_option_name()* function returns string with option name, or "unknown" in case of an
 error. The returned string must *not* be freed.
 
 EXAMPLE

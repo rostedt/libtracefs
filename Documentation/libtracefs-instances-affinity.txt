@@ -12,9 +12,9 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_instance_set_affinity(struct tracefs_instace pass:[*]_instance_, const char pass:[*]_cpu_str_);
-int tracefs_instance_set_affinity_set(struct tracefs_instace pass:[*]_instance_, cpu_set_t pass:[*]_set_, size_t _set_size_);
-int tracefs_instance_set_affinity_raw(struct tracefs_instace pass:[*]_instance_, const char pass:[*]_mask_);
+int *tracefs_instance_set_affinity*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_cpu_str_);
+int *tracefs_instance_set_affinity_set*(struct tracefs_instance pass:[*]_instance_, cpu_set_t pass:[*]_set_, size_t _set_size_);
+int *tracefs_instance_set_affinity_raw*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_mask_);
 
 --
 
@@ -24,9 +24,9 @@ These functions set the CPU affinity that limits what CPUs will have tracing ena
 for a given instance defined by the _instance_ parameter. If _instance_ is NULL, then
 the top level instance is affected.
 
-The _tracefs_instance_set_affinity()_ function takes a string _cpu_str_ that is a
+The *tracefs_instance_set_affinity()* function takes a string _cpu_str_ that is a
 list of CPUs to set the affinity for. If _cpu_str_ is NULL, then all the CPUs in
-the system will be set. The format of _cpu_str_ is a comma deliminated string of
+the system will be set. The format of _cpu_str_ is a comma delimited string of
 decimal numbers with no spaces. A range may be specified by a hyphen.
 
 For example: "1,4,6-8"
@@ -34,12 +34,12 @@ For example: "1,4,6-8"
 The numbers do not need to be in order except for ranges, where the second number
 must be equal to or greater than the first.
 
-The _tracefs_instance_set_affinity_set()_ function takes a CPU set defined by
+The *tracefs_instance_set_affinity_set()* function takes a CPU set defined by
 *CPU_SET(3)*. The size of the set defined by _set_size_ is the size in bytes of
 _set_. If _set_ is NULL then all the CPUs on the system will be set, and _set_size_
 is ignored.
 
-The _tracefs_instance_set_affinity_raw()_ function takes a string that holds
+The *tracefs_instance_set_affinity_raw()* function takes a string that holds
 a hexidecimal bitmask, where each 32 bits is separated by a comma. For a
 machine with more that 32 CPUs, to set CPUS 1-10 and CPU 40:
 

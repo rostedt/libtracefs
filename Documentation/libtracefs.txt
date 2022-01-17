@@ -63,7 +63,7 @@ Trace helper functions:
 	int *tracefs_trace_is_on*(struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_trace_on*(struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_trace_off*(struct tracefs_instance pass:[*]_instance_);
-	int _tracefs_trace_on_get_fd_(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_trace_on_get_fd*(struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_trace_on_fd*(int _fd_);
 	int *tracefs_trace_off_fd*(int _fd_);
 

@@ -12,12 +12,12 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_filter_string_append(struct tep_event pass:[*]event, char pass:[**] filter,
-				 struct tracefs_filter type, const char pass:[*]field,
-				 enum tracefs_synth_compare compare, const char pass:[*]val);
-int tracefs_filter_string_verify(struct tep_event pass:[*]event, const char pass:[*]filter, char pass:[**]err);
-int tracefs_event_filter_apply(struct tracefs_instance pass:[*]instance, struct tep_event pass:[*]event, const char pass:[*]filter);
-int tracefs_event_filter_clear(struct tracefs_instance pass:[*]instance, struct tep_event pass:[*]event);
+int *tracefs_filter_string_append*(struct tep_event pass:[*]_event_, char pass:[**]_filter_,
+				 struct tracefs_filter _type_, const char pass:[*]_field_,
+				 enum tracefs_synth_compare _compare_, const char pass:[*]_val_);
+int *tracefs_filter_string_verify*(struct tep_event pass:[*]_event_, const char pass:[*]_filter_, char pass:[**]_err_);
+int *tracefs_event_filter_apply*(struct tracefs_instance pass:[*]_instance_, struct tep_event pass:[*]_event_, const char pass:[*]_filter_);
+int *tracefs_event_filter_clear*(struct tracefs_instance pass:[*]_instance_, struct tep_event pass:[*]_event_);
 
 --
 

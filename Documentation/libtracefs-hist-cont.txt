@@ -11,34 +11,34 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int tracefs_hist_start(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
-int tracefs_hist_destory(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
-int tracefs_hist_pause(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
-int tracefs_hist_continue(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
-int tracefs_hist_reset(struct tracefs_instance pass:[*]instance, struct tracefs_hist pass:[*]hist);
+int *tracefs_hist_start*(struct tracefs_instance pass:[*]_instance_, struct tracefs_hist pass:[*]_hist_);
+int *tracefs_hist_destroy*(struct tracefs_instance pass:[*]_instance_, struct tracefs_hist pass:[*]_hist_);
+int *tracefs_hist_pause*(struct tracefs_instance pass:[*]_instance_, struct tracefs_hist pass:[*]_hist_);
+int *tracefs_hist_continue*(struct tracefs_instance pass:[*]_instance_, struct tracefs_hist pass:[*]_hist_);
+int *tracefs_hist_reset*(struct tracefs_instance pass:[*]_instance_, struct tracefs_hist pass:[*]_hist_);
 
 --
 
 DESCRIPTION
 -----------
 
-*tracefs_hist_start* is called to actually start the histogram _hist_.
+*tracefs_hist_start()* is called to actually start the histogram _hist_.
 The _instance_ is the instance to start the histogram in, NULL if it
 should start at the top level.
 
-*tracefs_hist_pause* is called to pause the histogram _hist_.
+*tracefs_hist_pause()* is called to pause the histogram _hist_.
 The _instance_ is the instance to pause the histogram in, NULL if it
 is in the top level.
 
-*tracefs_hist_continue* is called to continue a paused histogram _hist_.
+*tracefs_hist_continue()* is called to continue a paused histogram _hist_.
 The _instance_ is the instance to continue the histogram, NULL if it
 is in the top level.
 
-*tracefs_hist_reset* is called to clear / reset the histogram _hist_.
+*tracefs_hist_reset()* is called to clear / reset the histogram _hist_.
 The _instance_ is the instance to clear the histogram, NULL if it
 is in the top level.
 
-*tracefs_hist_destory* is called to delete the histogram where it will no longer
+*tracefs_hist_destroy()* is called to delete the histogram where it will no longer
 exist.  The _instance_ is the instance to delete the histogram from, NULL if it
 is in the top level.
 

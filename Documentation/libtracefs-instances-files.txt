@@ -26,26 +26,26 @@ Each of these APIs take an _instance_ argument, that can be NULL to act
 on the top level instance. Otherwise, it acts on an instance created with
 *tracefs_insance_create*(3)
 
-The _tracefs_file_exists()_ function checks if a file with _name_ exists in _instance_.
+The *tracefs_file_exists()* function checks if a file with _name_ exists in _instance_.
 
-The _tracefs_dir_exists()_ function checks if a directory with _name_ exists in _instance_.
+The *tracefs_dir_exists()* function checks if a directory with _name_ exists in _instance_.
 
-The _tracefs_instance_get_file()_ function returns the full path of the file
+The *tracefs_instance_get_file()* function returns the full path of the file
 with given _name_ in _instance_. Note, it does not check if the file exists in
 the instance.
 
-The _tracefs_instance_get_dir()_ function  returns the full path of the directory
+The *tracefs_instance_get_dir()* function  returns the full path of the directory
 with given _name_ in _instance_. Note, it does not check if the directory exists
 in the instance.
 
 RETURN VALUE
 ------------
-The _tracefs_file_exists()_ and  _tracefs_dir_exists()_ functions return true if the
+The *tracefs_file_exists()* and *tracefs_dir_exists()* functions return true if the
 file / directory exist in the given instance or false if it does not exist.
 
-The _tracefs_instance_get_file()_ and _tracefs_instance_get_dir()_ functions return
+The *tracefs_instance_get_file()* and *tracefs_instance_get_dir()* functions return
 a string or NULL in case of an error. The returned string must be freed with
-_tracefs_put_tracing_file()_.
+*tracefs_put_tracing_file()*.
 
 EXAMPLE
 -------

@@ -15,7 +15,7 @@ SYNOPSIS
 int *tracefs_trace_is_on*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_trace_on*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_trace_off*(struct tracefs_instance pass:[*]_instance_);
-int _tracefs_trace_on_get_fd_(struct tracefs_instance pass:[*]_instance_);
+int *tracefs_trace_on_get_fd*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_trace_on_fd*(int _fd_);
 int *tracefs_trace_off_fd*(int _fd_);
 --
@@ -25,31 +25,31 @@ DESCRIPTION
 This set of functions can be used to check, enable or disable writing to the ring buffer in
 the given trace instance. The tracing is enabled when writing to the ring buffer is enabled.
 
-The _tracefs_trace_is_on()_ function checks if tracing is enabled for the given _instance_. If
+The *tracefs_trace_is_on()* function checks if tracing is enabled for the given _instance_. If
 _instance_ is NULL, the top instance is used.
 
-The _tracefs_trace_on()_ and _tracefs_trace_off()_ functions set the tracing in the _instance_
+The *tracefs_trace_on()* and *tracefs_trace_off()* functions set the tracing in the _instance_
 to enable or disable state. If _instance_ is NULL, the top instance is used.
 
-The _tracefs_trace_on_get_fd()_ function returns a file deascriptor to the "tracing_on" file from
+The *tracefs_trace_on_get_fd()* function returns a file descriptor to the "tracing_on" file from
 the given _instance_. If _instance_ is NULL, the top trace instance is used. The returned descriptor
 can be used for fast enabling or disabling the tracing of the instance.
 
-The _tracefs_trace_on_fd()_ and _tracefs_trace_off_fd()_ functions set the tracing state to enable
+The *tracefs_trace_on_fd()* and *tracefs_trace_off_fd()* functions set the tracing state to enable
 or disable using the given _fd_. This file descriptor must be opened for writing with
 *tracefs_trace_on_get_fd*(3) of the desired trace instance. These functions are faster than
 *tracefs_trace_on* and *tracefs_trace_off*.
 
 RETURN VALUE
 ------------
-The _tracefs_trace_is_on()_ function returns 0 if tracing is disable, 1 if it is enabled or
+The *tracefs_trace_is_on()* function returns 0 if tracing is disable, 1 if it is enabled or
 -1 in case of an error.
 
-The _tracefs_trace_on_get_fd()_ function returns a file descriptor to "tracing_on"
+The *tracefs_trace_on_get_fd()* function returns a file descriptor to "tracing_on"
 file for reading and writing, which must be closed wuth close(). In case of an error -1 is returned.
 
-The _tracefs_trace_on()_, _tracefs_trace_off()_, _tracefs_trace_on_fd()_ and
-_tracefs_trace_off_fd()_ functions return -1 in case of an error or 0 otherwise.
+The *tracefs_trace_on()*, *tracefs_trace_off()*, *tracefs_trace_on_fd()* and
+*tracefs_trace_off_fd()* functions return -1 in case of an error or 0 otherwise.
 
 EXAMPLE
 -------

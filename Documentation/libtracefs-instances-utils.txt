@@ -24,33 +24,33 @@ DESCRIPTION
 -----------
 Helper functions for working with trace instances.
 
-The _tracefs_instance_get_name()_ function returns the name of the given _instance_.
+The *tracefs_instance_get_name()* function returns the name of the given _instance_.
 Note that the top instance has no name, the function returns NULL for it.
 
-The _tracefs_instance_get_trace_dir()_ function returns the tracing directory, where
+The *tracefs_instance_get_trace_dir()* function returns the tracing directory, where
 the given _instance_ is configured.
 
-The _tracefs_instances_walk()_ function walks through all configured tracing
+The *tracefs_instances_walk()* function walks through all configured tracing
 instances in the system and calls _callback_ for each one of them. The _context_
 argument is passed to the _callback_, together with the instance name. If the
 _callback_ returns non-zero, the iteration stops. Note, the _callback_ is not
 called for the top top instance.
 
-The _tracefs_instance_exists()_ function checks if an instance with the given
+The *tracefs_instance_exists()* function checks if an instance with the given
 _name_ exists in the system.
 
 RETURN VALUE
 ------------
-The _tracefs_instance_get_name()_ returns a string or NULL in case of the top
+The *tracefs_instance_get_name()* returns a string or NULL in case of the top
 instance. The returned string must _not_ be freed.
 
-The _tracefs_instance_get_trace_dir()_ returns a string or NULL in case of an error.
+The *tracefs_instance_get_trace_dir()* returns a string or NULL in case of an error.
 The returned string must _not_ be freed.
 
-The _tracefs_instances_walk()_ function returns 0, if all instances were iterated, 1
+The *tracefs_instances_walk()* function returns 0, if all instances were iterated, 1
 if the iteration was stopped by the _callback_, or -1 in case of an error.
 
-The _tracefs_instance_exists()_ returns true if an instance with the given name
+The *tracefs_instance_exists()* returns true if an instance with the given _name_
 exists in the system or false otherwise.
 
 EXAMPLE

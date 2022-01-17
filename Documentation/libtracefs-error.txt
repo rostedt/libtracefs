@@ -13,7 +13,7 @@ SYNOPSIS
 *#include <tracefs.h>*
 
 char pass:[*]*tracefs_error_last*(struct tracefs_instance pass:[*]_instance_);
-char pass:[*]*tracefs_error_last*(struct tracefs_instance pass:[*]_instance_);
+char pass:[*]*tracefs_error_all*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_error_clear*(struct tracefs_instance pass:[*]_instance_);
 --
 

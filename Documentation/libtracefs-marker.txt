@@ -26,23 +26,23 @@ See Documentation/trace/ftrace.rst from the Linux kernel tree for more informati
 data from user space in the trace buffer. All these APIs have _instance_ as a first argument. If
 NULL is passed as _instance_, the top trace instance is used.
 
-The _tracefs_print_init()_ function initializes the library for writing into the trace buffer of
+The *tracefs_print_init()* function initializes the library for writing into the trace buffer of
 the selected _instance_. It is not mandatory to call this API before writing strings, any of
 the printf APIs will call it automatically, if the library is not yet initialized. But calling
-_tracefs_print_init()_ in advance will speed up the writing.
+*tracefs_print_init()* in advance will speed up the writing.
 
-The _tracefs_printf()_ function writes a formatted string in the trace buffer of the selected
+The *tracefs_printf()* function writes a formatted string in the trace buffer of the selected
 _instance_. The _fmt_ argument is a string in printf format, followed by variable arguments _..._.
 
-The _tracefs_vprintf()_ function writes a formatted string in the trace buffer of the selected
+The *tracefs_vprintf()* function writes a formatted string in the trace buffer of the selected
 _instance_. The _fmt_ argument is a string in printf format, followed by list _ap_ of arguments.
 
-The _tracefs_print_close()_ function closes the resources, used by the library for writing in
+The *tracefs_print_close()* function closes the resources, used by the library for writing in
 the trace buffer of the selected instance.
 
 RETURN VALUE
 ------------
-The _tracefs_print_init()_, _tracefs_printf()_, and _tracefs_vprintf()_ functions return 0 if
+The *tracefs_print_init()*, *tracefs_printf()*, and *tracefs_vprintf()* functions return 0 if
 the operation is successful, or -1 in case of an error.
 
 EXAMPLE

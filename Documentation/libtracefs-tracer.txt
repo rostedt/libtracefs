@@ -20,7 +20,7 @@ DESCRIPTION
 -----------
 *tracefs_tracer_set* enables a tracer in the given instance, defined by the
 _instance_ parameter. If _instance_ is NULL, then the top level instance is
-changed. If _tracer_ is set to _TRACFES_TRACER_CUSTOM_ then a const char pass[*]
+changed. If _tracer_ is set to *TRACFES_TRACER_CUSTOM* then a _name_
 string must be passed in as the third parameter, and that is written into the
 instance to enable the tracer with that name. This is useful for newer or
 custom kernels that contain tracers that are not yet identified by the
@@ -38,7 +38,7 @@ The currently defined enums that are accepted are:
 
 *TRACEFS_TRACER_NOP* :
 This is the idle tracer, which does nothing and is used to clear any
-active tarcer.
+active tracer.
 
 *TRACEFS_TRACER_FUNCTION* :
 Enables most functions in the kernel to be traced.
