@@ -327,6 +327,20 @@ _tracefs_hist_start(3)_,
 _tracefs_hist_destory(3)_,
 _tracefs_hist_add_sort_key(3)_,
 _tracefs_hist_sort_key_direction(3)_
+_tracefs_synth_create(3)_
+_tracefs_synth_destroy(3)_
+_tracefs_synth_complete(3)_
+_tracefs_synth_trace(3)_
+_tracefs_synth_snapshot(3)_
+_tracefs_synth_save(3)_
+_tracefs_synth_echo_cmd(3)_
+_tracefs_synth_get_start_hist(3)_
+_tracefs_synth_get_name(3)_
+_tracefs_synth_raw_fmt(3)_
+_tracefs_synth_show_event(3)_
+_tracefs_synth_show_start_hist(3)_
+_tracefs_synth_show_end_hist(3)_
+_tracefs_synth_get_event(3)_
 
 AUTHOR
 ------

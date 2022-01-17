@@ -3,9 +3,9 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_synth_create, tracefs_synth_destroy, tracefs_synth_complete,
-tracefs_synth_trace, tracefs_synth_snapshot, tracefs_synth_save
-- Creation of synthetic events
+tracefs_synth_echo_cmd, tracefs_synth_get_start_hist, tracefs_synth_get_name,
+tracefs_synth_raw_fmt, tracefs_synth_show_event, tracefs_synth_show_start_hist, tracefs_synth_show_end_hist,
+tracefs_synth_get_event - Retrieve data of synthetic events.
 
 SYNOPSIS
 --------
@@ -13,17 +13,16 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-int *tracefs_synth_create*(struct tracefs_synth pass:[*]_synth_);
-int *tracefs_synth_destroy*(struct tracefs_synth pass:[*]_synth_);
-bool *tracefs_synth_complete*(struct tracefs_synth pass:[*]_synth_);
+int *tracefs_synth_echo_cmd*(struct trace_seq pass:[*]_seq_, struct tracefs_synth pass:[*]_synth_);
+struct tracefs_hist pass:[*]*tracefs_synth_get_start_hist*(struct tracefs_synth pass:[*]_synth_);
 
-int *tracefs_synth_trace*(struct tracefs_synth pass:[*]_synth_,
-			enum tracefs_synth_handler _type_, const char pass:[*]_var_);
-int *tracefs_synth_snapshot*(struct tracefs_synth pass:[*]_synth_,
-			   enum tracefs_synth_handler _type_, const char pass:[*]_var_);
-int *tracefs_synth_save*(struct tracefs_synth pass:[*]_synth_,
-		       enum tracefs_synth_handler _type_, const char pass:[*]_var_,
-		       char pass:[**]_save_fields_);
+const char pass:[*]*tracefs_synth_get_name*(struct tracefs_synth pass:[*]_synth_);
+int *tracefs_synth_raw_fmt*(struct trace_seq pass:[*]_seq_, struct tracefs_synth pass:[*]_synth_);
+const char pass:[*]*tracefs_synth_show_event*(struct tracefs_synth pass:[*]_synth_);
+const char pass:[*]*tracefs_synth_show_start_hist*(struct tracefs_synth pass:[*]_synth_);
+const char pass:[*]*tracefs_synth_show_end_hist*(struct tracefs_synth pass:[*]_synth_);
+struct tep_event pass:[*]*tracefs_synth_get_event*(struct tep_handle pass:[*]_tep_, struct tracefs_synth pass:[*]_synth_);
+
 --
 
 DESCRIPTION
@@ -45,38 +44,58 @@ as a field for both events to calculate the delta in nanoseconds, or use
 *TRACEFS_TIMESTAMP_USECS* as the compare fields for both events to calculate the
 delta in microseconds. This is used as the example below.
 
-*tracefs_synth_create*() creates the synthetic event in the system. The synthetic events apply
-across all instances. A synthetic event must be created with *tracefs_synth_alloc*(3) before
-it can be created.
+See *tracefs_synth_alloc*(3) for allocation of synthetic events, and
+*tracefs_synth_create*() for creating the synthetic event on the system.
 
-*tracefs_synth_destroy*() destroys the synthetic event. It will attempt to stop the running of it in
-its instance (top by default), but if its running in another instance this may fail as busy.
+*tracefs_synth_echo_cmd*() acts like *tracefs_synth_create*(), but instead of creating
+the synthetic event in the system, it will write the echo commands to manually create
+it in the _seq_ given.
 
-*tracefs_synth_complete*() returns true if the synthetic event _synth_ has both
-a starting and ending event.
+*tracefs_synth_get_start_hist*() returns a struct tracefs_hist descriptor describing
+the histogram used to create the synthetic event.
 
-*tracefs_synth_trace*() Instead of doing just a trace on matching of the start and
-end events, do the _type_ handler where *TRACEFS_SYNTH_HANDLE_MAX* will do a trace
-when the given variable _var_ hits a new max for the matching keys. Or
-*TRACEFS_SYNTH_HANDLE_CHANGE* for when the _var_ changes. _var_ must be one of
-the _name_ elements used in *tracefs_synth_add_end_field*(3).
+[verse]
+--
+enum tracefs_synth_handler {
+	*TRACEFS_SYNTH_HANDLE_MATCH*,
+	*TRACEFS_SYNTH_HANDLE_MAX*,
+	*TRACEFS_SYNTH_HANDLE_CHANGE*,
+};
+--
 
-*tracefs_synth_snapshot*() When the given variable _var_ is either a new max if
-_handler_ is *TRACEFS_SYNTH_HANDLE_MAX* or simply changed if *TRACEFS_SYNTH_HANDLE_CHANGE*
-then take a "snapshot" of the buffer. The snapshot moves the normal "trace" buffer
-into a "snapshot" buffer, that can be accessed via the "snapshot" file in the
-top level tracefs directory, or one of the instances.  _var_ changes. _var_ must be one of
-the _name_ elements used in *tracefs_synth_add_end_field*(3).
+*tracefs_synth_get_name*() returns the name of the synthetic event or NULL on error.
+The returned string belongs to the synth event object and is freed with the event
+by *tracefs_synth_free*().
 
-*tracefs_synth_save*() When the given variable _var_ is either a new max if
-_handler_ is *TRACEFS_SYNTH_HANDLE_MAX* or simpy changed if *TRACEFS_SYNTH_HANDLE_CHANGE*
-then save the given _save_fields_ list. The fields will be stored in the histogram
-"hist" file of the event that can be retrieved with *tracefs_event_file_read*(3).
-_var_ must be one of the _name_ elements used in *tracefs_synth_add_end_field*(3).
+*tracefs_synth_raw_fmt*() writes the raw format strings (dynamic event and histograms) of
+the synthetic event in the _seq_ given.
+
+*tracefs_synth_show_event*() returns the format of the dynamic event used by the synthetic
+event or NULL on error. The returned string belongs to the synth event object and is freed
+with the event by *tracefs_synth_free*().
+
+*tracefs_synth_show_start_hist*() returns the format of the start histogram used by the
+synthetic event or NULL on error. The returned string belongs to the synth event object
+and is freed with the event by *tracefs_synth_free*().
+
+*tracefs_synth_show_end_hist*() returns the format of the end histogram used by the
+synthetic event or NULL on error. The returned string belongs to the synth event object
+and is freed with the event by *tracefs_synth_free*().
+
+The *tracefs_synth_get_event*() function returns a tep event, describing the given synthetic
+event. The API detects any newly created or removed dynamic events. The returned pointer to
+tep event is controlled by @tep and must not be freed.
 
 RETURN VALUE
 ------------
-All functions return zero on success or -1 on error.
+*tracefs_synth_get_name*(), *tracefs_synth_show_event*(), *tracefs_synth_show_start_hist*()
+and *tracefs_synth_show_end_hist*()  return a string owned by the synth event object.
+
+The *tracefs_synth_get_event*() function returns a pointer to a tep event or NULL in case of an
+error or if the requested synthetic event is missing. The returned pointer to tep event is
+controlled by @tep and must not be freed.
+
+All other functions return zero on success or -1 on error.
 
 ERRORS
 ------
@@ -246,14 +265,12 @@ _tracefs_synth_add_end_field(3)_
 _tracefs_synth_append_start_filter(3)_
 _tracefs_synth_append_end_filter(3)_
 _tracefs_synth_free(3)_
-_tracefs_synth_echo_cmd(3)_
-_tracefs_synth_get_start_hist(3)_
-_tracefs_synth_get_name(3)_
-_tracefs_synth_raw_fmt(3)_
-_tracefs_synth_show_event(3)_
-_tracefs_synth_show_start_hist(3)_
-_tracefs_synth_show_end_hist(3)_
-_tracefs_synth_get_event(3)_
+_tracefs_synth_create(3)_
+_tracefs_synth_destroy(3)_
+_tracefs_synth_complete(3)_
+_tracefs_synth_trace(3)_
+_tracefs_synth_snapshot(3)_
+_tracefs_synth_save(3)_
 
 AUTHOR
 ------
