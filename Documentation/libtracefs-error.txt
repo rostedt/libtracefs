@@ -108,9 +108,9 @@ FILES
 
 SEE ALSO
 --------
-_libtracefs(3)_,
-_libtraceevent(3)_,
-_trace-cmd(1)_
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
 
 AUTHOR
 ------

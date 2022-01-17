@@ -35,7 +35,7 @@ The numbers do not need to be in order except for ranges, where the second numbe
 must be equal to or greater than the first.
 
 The *tracefs_instance_set_affinity_set()* function takes a CPU set defined by
-*CPU_SET(3)*. The size of the set defined by _set_size_ is the size in bytes of
+*CPU_SET*(3). The size of the set defined by _set_size_ is the size in bytes of
 _set_. If _set_ is NULL then all the CPUs on the system will be set, and _set_size_
 is ignored.
 
@@ -140,9 +140,9 @@ FILES
 
 SEE ALSO
 --------
-_libtracefs(3)_,
-_libtraceevent(3)_,
-_trace-cmd(1)_
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
 
 AUTHOR
 ------

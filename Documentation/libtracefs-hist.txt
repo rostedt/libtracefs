@@ -459,12 +459,12 @@ FILES
 
 SEE ALSO
 --------
-_libtracefs(3)_,
-_libtraceevent(3)_,
-_trace-cmd(1)_,
-_tracefs_hist_pause(3)_,
-_tracefs_hist_continue(3)_,
-_tracefs_hist_reset(3)_
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1),
+*tracefs_hist_pause*(3),
+*tracefs_hist_continue*(3),
+*tracefs_hist_reset*(3)
 
 AUTHOR
 ------

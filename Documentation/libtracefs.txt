@@ -237,8 +237,8 @@ FILES
 
 SEE ALSO
 --------
-_libtraceevent(3)_
-_trace-cmd(1)_
+*libtraceevent*(3),
+*trace-cmd*(1)
 
 AUTHOR
 ------

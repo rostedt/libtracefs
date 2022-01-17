@@ -59,7 +59,7 @@ RETURN VALUE
 ------------
 The *tracefs_local_events()* and *tracefs_local_events_system()* functions
 return pointer to allocated and initialized _tep_ handler, or NULL in
-case of an error. The returned _tep_ handler must be freed with *tep_free(3)*.
+case of an error. The returned _tep_ handler must be freed with *tep_free*(3).
 
 The *tracefs_fill_local_events()* function returns -1 in case of an error or
 0 otherwise.
@@ -119,9 +119,9 @@ FILES
 
 SEE ALSO
 --------
-_libtracefs(3)_,
-_libtraceevent(3)_,
-_trace-cmd(1)_
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
 
 AUTHOR
 ------
