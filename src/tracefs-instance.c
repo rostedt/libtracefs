@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <ctype.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -973,4 +974,195 @@ int tracefs_instance_set_affinity(struct tracefs_instance *instance,
 	free(cpus);
 	CPU_FREE(set);
 	return ret;
+}
+
+/**
+ * tracefs_instance_get_affinity_raw - read the affinity instance file
+ * @instance: The instance to get affinity of (NULL for top level)
+ *
+ * Reads the affinity file for @instance (or the top level if @instance
+ * is NULL) and returns it. The returned string must be freed with free().
+ *
+ * Returns the affinity mask on success, and must be freed with free()
+ *   or NULL on error.
+ */
+char *tracefs_instance_get_affinity_raw(struct tracefs_instance *instance)
+{
+	return tracefs_instance_file_read(instance, "tracing_cpumask", NULL);
+}
+
+static inline int update_cpu_set(int cpus, int cpu_set, int cpu,
+				 cpu_set_t *set, size_t set_size)
+{
+	int bit = 1 << cpu;
+
+	if (!(cpus & bit))
+		return 0;
+
+	CPU_SET_S(cpu_set + cpu, set_size, set);
+	return 1;
+}
+
+/**
+ * tracefs_instance_get_affinity_set - Retrieve the cpuset of an instance affinity
+ * @instance: The instance to get affinity of (NULL for top level)
+ * @set: A CPU set to put the affinity into.
+ * @set_size: The size in bytes of @set (use CPU_ALLOC_SIZE() to get this value)
+ *
+ * Reads the affinity of a given instance and updates the CPU set by the
+ * instance.
+ *
+ * Returns the number of CPUS that are set, or -1 on error.
+ */
+int tracefs_instance_get_affinity_set(struct tracefs_instance *instance,
+				      cpu_set_t *set, size_t set_size)
+{
+	char *affinity;
+	int cpu_set;
+	int cpus;
+	int cnt = 0;
+	int ch;
+	int i;
+
+	if (!set || !set_size) {
+		errno = -EINVAL;
+		return -1;
+	}
+
+	affinity = tracefs_instance_get_affinity_raw(instance);
+	if (!affinity)
+		return -1;
+
+	/*
+	 * The returned affinity should be a comma delimited
+	 * hex string. Work backwards setting the values.
+	 */
+	cpu_set = 0;
+	i = strlen(affinity);
+	for (i--; i >= 0; i--) {
+		ch = affinity[i];
+		if (isalnum(ch)) {
+			ch = tolower(ch);
+			if (isdigit(ch))
+				cpus = ch - '0';
+			else
+				cpus = ch - 'a' + 10;
+
+			cnt += update_cpu_set(cpus, cpu_set, 0, set, set_size);
+			cnt += update_cpu_set(cpus, cpu_set, 1, set, set_size);
+			cnt += update_cpu_set(cpus, cpu_set, 2, set, set_size);
+			cnt += update_cpu_set(cpus, cpu_set, 3, set, set_size);
+			/* Next nibble */
+			cpu_set += 4;
+		}
+	}
+
+	free(affinity);
+
+	return cnt;
+}
+
+static inline int update_cpu(int cpus, int cpu_set, int cpu, int s, char **set)
+{
+	char *list;
+	int bit = 1 << cpu;
+	int ret;
+
+	if (*set == (char *)-1)
+		return s;
+
+	if (cpus & bit) {
+		/* If the previous CPU is set just return s */
+		if (s >= 0)
+			return s;
+		/* Otherwise, return this cpu */
+		return cpu_set + cpu;
+	}
+
+	/* If the last CPU wasn't set, just return s */
+	if (s < 0)
+		return s;
+
+	/* Update the string */
+	if (s == cpu_set + cpu - 1) {
+		ret = asprintf(&list, "%s%s%d",
+			       *set ? *set : "", *set ? "," : "", s);
+	} else {
+		ret = asprintf(&list, "%s%s%d-%d",
+			       *set ? *set : "", *set ? "," : "",
+			       s, cpu_set + cpu - 1);
+	}
+	free(*set);
+	/* Force *set to be a failure */
+	if (ret < 0)
+		*set = (char *)-1;
+	else
+		*set = list;
+	return -1;
+}
+
+/**
+ * tracefs_instance_get_affinity - Retrieve a string of CPUs for instance affinity
+ * @instance: The instance to get affinity of (NULL for top level)
+ *
+ * Reads the affinity of a given instance and returns a CPU count of the
+ * instance. For example, if it reads "eb" it will return:
+ *      "0-1,3,5-7"
+ *
+ * If no CPUs are set, an empty string is returned "\0", and it too needs
+ * to be freed.
+ *
+ * Returns an allocate string containing the CPU affinity in "human readable"
+ *  format which needs to be freed with free(), or NULL on error.
+ */
+char *tracefs_instance_get_affinity(struct tracefs_instance *instance)
+{
+	char *affinity;
+	char *set = NULL;
+	int cpu_set;
+	int cpus;
+	int ch;
+	int s = -1;
+	int i;
+
+	affinity = tracefs_instance_get_affinity_raw(instance);
+	if (!affinity)
+		return NULL;
+
+	/*
+	 * The returned affinity should be a comma delimited
+	 * hex string. Work backwards setting the values.
+	 */
+	cpu_set = 0;
+	i = strlen(affinity);
+	for (i--; i >= 0; i--) {
+		ch = affinity[i];
+		if (isalnum(ch)) {
+			ch = tolower(ch);
+			if (isdigit(ch))
+				cpus = ch - '0';
+			else
+				cpus = ch - 'a' + 10;
+			s = update_cpu(cpus, cpu_set, 0, s, &set);
+			s = update_cpu(cpus, cpu_set, 1, s, &set);
+			s = update_cpu(cpus, cpu_set, 2, s, &set);
+			s = update_cpu(cpus, cpu_set, 3, s, &set);
+
+			if (set == (char *)-1) {
+				set = NULL;
+				goto out;
+			}
+			/* Next nibble */
+			cpu_set += 4;
+		}
+	}
+	/* Clean up in case the last CPU is set */
+	s = update_cpu(0, cpu_set, 0, s, &set);
+
+	if (!set)
+		set = strdup("");
+ out:
+	free(affinity);
+
+	return set;
 }

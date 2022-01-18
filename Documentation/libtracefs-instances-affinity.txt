@@ -3,8 +3,9 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_instance_set_affinity, tracefs_instance_set_affinity_set, tracefs_set_affinity_raw -
-Sets the affinity for an instance or top level for what CPUs enable tracing.
+tracefs_instance_set_affinity, tracefs_instance_set_affinity_set, tracefs_set_affinity_raw,
+tracefs_instance_get_affinity, tracefs_instance_get_affinity_set, tracefs_get_affinity_raw,
+Sets or retrieves the affinity for an instance or top level for what CPUs enable tracing.
 
 SYNOPSIS
 --------
@@ -16,11 +17,14 @@ int *tracefs_instance_set_affinity*(struct tracefs_instance pass:[*]_instance_, 
 int *tracefs_instance_set_affinity_set*(struct tracefs_instance pass:[*]_instance_, cpu_set_t pass:[*]_set_, size_t _set_size_);
 int *tracefs_instance_set_affinity_raw*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_mask_);
 
+char pass:[*]*tracefs_instance_get_affinity*(struct tracefs_instance pass:[*]_instance_);
+int *tracefs_instance_get_affinity_set*(struct tracefs_instance pass:[*]_instance_, cpu_set_t pass:[*]_set_, size_t _set_size_);
+char pass:[*]*tracefs_instance_get_affinity_raw*(struct tracefs_instance pass:[*]_instance_);
 --
 
 DESCRIPTION
 -----------
-These functions set the CPU affinity that limits what CPUs will have tracing enabled
+These functions set or retrieves the CPU affinity that limits what CPUs will have tracing enabled
 for a given instance defined by the _instance_ parameter. If _instance_ is NULL, then
 the top level instance is affected.
 
@@ -47,9 +51,32 @@ machine with more that 32 CPUs, to set CPUS 1-10 and CPU 40:
 
 Where the above is a hex representation of bits 1-10 and bit 40 being set.
 
+The *tracefs_instance_get_affinity()* will retrieve the affinity in a human readable
+form.
+
+For example: "1,4,6-8"
+
+The string returned must be freed with *free*(3).
+
+The *tracefs_instance_get_affinity_set()* will set all the bits in the passed in
+cpu set (from *CPU_SET*(3)). Note it will not clear any bits that are already set
+in the set but the CPUs are not. If only the bits for the CPUs that are enabled
+should be set, a CPU_ZERO_S() should be performed on the set before calling this
+function.
+
+The *tracefs_instance_get_affinity_raw()* will simply read the instance tracing_cpumask
+and return that string. The returned string must be freed with *free*(3).
+
 RETURN VALUE
 ------------
-All of these functions return 0 on success and -1 on error.
+All the set functions return 0 on success and -1 on error.
+
+The functinos *tracefs_instance_get_affinity()* and *tracefs_instance_get_affinity_raw()*
+returns an allocated string that must be freed with *free*(3), or NULL on error.
+
+The function *tracefs_instance_get_affinity_set()* returns the number of CPUs that
+were found set, or -1 on error.
+
 
 ERRORS
 ------
@@ -87,6 +114,10 @@ int main (int argc, char **argv)
 	int cpu1;
 	int cpu2;
 	int i;
+
+	c = tracefs_instance_get_affinity(NULL);
+	printf("The affinity was %s\n", c);
+	free(c);
 
 	if (argc < 2) {
 		tracefs_instance_set_affinity(NULL, NULL);
