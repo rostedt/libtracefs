@@ -24,7 +24,7 @@ char pass:[*]*tracefs_instance_get_affinity_raw*(struct tracefs_instance pass:[*
 
 DESCRIPTION
 -----------
-These functions set or retrieves the CPU affinity that limits what CPUs will have tracing enabled
+These functions set or retrieve the CPU affinity that limits what CPUs will have tracing enabled
 for a given instance defined by the _instance_ parameter. If _instance_ is NULL, then
 the top level instance is affected.
 
@@ -71,7 +71,7 @@ RETURN VALUE
 ------------
 All the set functions return 0 on success and -1 on error.
 
-The functinos *tracefs_instance_get_affinity()* and *tracefs_instance_get_affinity_raw()*
+The functions *tracefs_instance_get_affinity()* and *tracefs_instance_get_affinity_raw()*
 returns an allocated string that must be freed with *free*(3), or NULL on error.
 
 The function *tracefs_instance_get_affinity_set()* returns the number of CPUs that
