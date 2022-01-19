@@ -1000,7 +1000,16 @@ static inline int update_cpu_set(int cpus, int cpu_set, int cpu,
 		return 0;
 
 	CPU_SET_S(cpu_set + cpu, set_size, set);
-	return 1;
+
+	/*
+	 * It is possible that the passed in set_size is not big enough
+	 * to hold the cpu we just set. If that's the case, do not report
+	 * it as being set.
+	 *
+	 * The CPU_ISSET_S() should return false if the CPU given to it
+	 * is bigger than the set itself.
+	 */
+	return CPU_ISSET_S(cpu_set + cpu, set_size, set) ? 1 : 0;
 }
 
 /**
