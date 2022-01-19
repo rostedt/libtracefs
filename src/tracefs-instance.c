@@ -1112,7 +1112,7 @@ static inline int update_cpu(int cpus, int cpu_set, int cpu, int s, char **set)
  * If no CPUs are set, an empty string is returned "\0", and it too needs
  * to be freed.
  *
- * Returns an allocate string containing the CPU affinity in "human readable"
+ * Returns an allocated string containing the CPU affinity in "human readable"
  *  format which needs to be freed with free(), or NULL on error.
  */
 char *tracefs_instance_get_affinity(struct tracefs_instance *instance)
