@@ -1237,7 +1237,7 @@ void tracefs_trace_pipe_stop(struct tracefs_instance *instance)
 int tracefs_filter_functions(const char *filter, const char *module, char ***list)
 {
 	struct func_filter func_filter;
-	struct func_list *func_list, *f;
+	struct func_list *func_list = NULL, *f;
 	char **funcs = NULL;
 	int ret;
 
