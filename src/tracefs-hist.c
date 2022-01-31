@@ -2155,8 +2155,10 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 	if (!path)
 		goto out_free;
 
-	trace_seq_printf(seq, "echo '%s%s %s' > %s/%s\n",
-			 synth->dyn_event->prefix, synth->dyn_event->event,
+	trace_seq_printf(seq, "echo '%s%s%s %s' > %s/%s\n",
+			 synth->dyn_event->prefix,
+			 strlen(synth->dyn_event->prefix) ? ":" : "",
+			 synth->dyn_event->event,
 			 synth->dyn_event->format, path, synth->dyn_event->trace_file);
 
 	tracefs_put_tracing_file(path);
