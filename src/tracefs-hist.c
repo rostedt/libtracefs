@@ -674,6 +674,7 @@ struct action {
  * @end_filters: The fields in the end event to record
  * @start_parens: Current parenthesis level for start event
  * @end_parens: Current parenthesis level for end event
+ * @new_format: onmatch().trace(synth_event,..) or onmatch().synth_event(...)
  */
 struct tracefs_synth {
 	struct tracefs_instance *instance;
@@ -702,6 +703,7 @@ struct tracefs_synth {
 	int			*start_type;
 	char			arg_name[16];
 	int			arg_cnt;
+	bool			new_format;
 };
 
  /*
@@ -949,6 +951,26 @@ static int alloc_synthetic_event(struct tracefs_synth *synth)
 	return synth->dyn_event ? 0 : -1;
 }
 
+/*
+ * See if it is onmatch().trace(synth_event,...) or
+ *   onmatch().synth_event(...)
+ */
+static bool has_new_format()
+{
+	char *readme;
+	char *p;
+	int size;
+
+	readme = tracefs_instance_file_read(NULL, "README", &size);
+	if (!readme)
+		return false;
+
+	p = strstr(readme, "trace(<synthetic_event>,param list)");
+	free(readme);
+
+	return p != NULL;
+}
+
 /**
  * tracefs_synth_alloc - create a new tracefs_synth instance
  * @tep: The tep handle that holds the events to work on
@@ -1036,6 +1058,8 @@ struct tracefs_synth *tracefs_synth_alloc(struct tep_handle *tep,
 		tracefs_synth_free(synth);
 		synth = NULL;
 	}
+
+	synth->new_format = has_new_format();
 
 	return synth;
 }
@@ -1730,13 +1754,21 @@ static char *create_trace(char *hist, struct tracefs_synth *synth)
 	char *name;
 	int i;
 
-	hist = append_string(hist, NULL, ".trace(");
-	hist = append_string(hist, NULL, synth->name);
+	if (synth->new_format) {
+		hist = append_string(hist, NULL, ".trace(");
+		hist = append_string(hist, NULL, synth->name);
+		hist = append_string(hist, NULL, ",");
+	} else {
+		hist = append_string(hist, NULL, ".");
+		hist = append_string(hist, NULL, synth->name);
+		hist = append_string(hist, NULL, "(");
+	}
 
 	for (i = 0; synth->synthetic_args && synth->synthetic_args[i]; i++) {
 		name = synth->synthetic_args[i];
 
-		hist = append_string(hist, NULL, ",");
+		if (i)
+			hist = append_string(hist, NULL, ",");
 		hist = append_string(hist, NULL, name);
 	}
 
