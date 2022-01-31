@@ -841,6 +841,15 @@ static char *add_synth_field(const struct tep_format_field *field,
 		return append_string(str, NULL, "];");
 	}
 
+	/* Synthetic events understand pid_t, gfp_t and bool */
+	if (strcmp(field->type, "pid_t") == 0 ||
+	    strcmp(field->type, "gfp_t") == 0 ||
+	    strcmp(field->type, "bool") == 0) {
+		str = strdup(field->type);
+		str = append_string(str, " ", name);
+		return append_string(str, NULL, ";");
+	}
+
 	sign = field->flags & TEP_FIELD_IS_SIGNED;
 
 	switch (field->size) {
