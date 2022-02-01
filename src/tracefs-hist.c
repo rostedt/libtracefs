@@ -2196,7 +2196,7 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 	if (!path)
 		goto out_free;
 
-	trace_seq_printf(seq, "echo '%s%s%s %s' > %s/%s\n",
+	trace_seq_printf(seq, "echo '%s%s%s %s' >> %s/%s\n",
 			 synth->dyn_event->prefix,
 			 strlen(synth->dyn_event->prefix) ? ":" : "",
 			 synth->dyn_event->event,
@@ -2211,7 +2211,7 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 	if (!hist)
 		goto out_free;
 
-	trace_seq_printf(seq, "echo '%s' > %s/events/%s/%s/trigger\n",
+	trace_seq_printf(seq, "echo '%s' >> %s/events/%s/%s/trigger\n",
 			 hist, path, synth->start_event->system,
 			 synth->start_event->name);
 	free(hist);
@@ -2221,7 +2221,7 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 	if (!hist)
 		goto out_free;
 
-	trace_seq_printf(seq, "echo '%s' > %s/events/%s/%s/trigger\n",
+	trace_seq_printf(seq, "echo '%s' >> %s/events/%s/%s/trigger\n",
 			 hist, path, synth->end_event->system,
 			 synth->end_event->name);
 
