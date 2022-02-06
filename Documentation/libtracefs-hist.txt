@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_hist_alloc, tracefs_hist_free, tracefs_hist_add_key, tracefs_hist_add_value,
-tracefs_hist_add_name, tracefs_hist_start, tracefs_hist_destroy - Create and destroy event histograms
+tracefs_hist_alloc, tracefs_hist_alloc_2d, tracefs_hist_alloc_nd, tracefs_hist_free,
+tracefs_hist_add_key, tracefs_hist_add_value - Create and destroy event histograms
 
 SYNOPSIS
 --------

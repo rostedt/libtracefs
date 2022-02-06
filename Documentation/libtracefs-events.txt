@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_event_systems, tracefs_system_events, tracefs_iterate_raw_events -
-Work with trace systems and events.
+tracefs_event_systems, tracefs_system_events, tracefs_event_enable,
+tracefs_event_disable,  tracefs_iterate_raw_events - Work with trace systems and events.
 
 SYNOPSIS
 --------

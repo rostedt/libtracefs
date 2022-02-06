@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_hist_add_sort_key, tracefs_hist_set_sort_key, tracefs_hist_sort_key_direction,
-tracefs_hist_append_filter, tracefs_hist_echo_cmd, tracefs_hist_command,
+tracefs_hist_add_name, tracefs_hist_append_filter, tracefs_hist_echo_cmd, tracefs_hist_command,
 tracefs_hist_get_name, tracefs_hist_get_event, tracefs_hist_get_system - Update and describe an event histogram
 
 SYNOPSIS

@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_filter_string_append, tracefs_filter_string_verify, tracefs_event_filter_apply tracefs_event_filter_clear -
+tracefs_filter_string_append, tracefs_filter_string_verify, tracefs_event_filter_apply, tracefs_event_filter_clear -
 Add, verify and apply event filters
 
 SYNOPSIS

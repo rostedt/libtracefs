@@ -4,8 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_dynevent_create, tracefs_dynevent_destroy, tracefs_dynevent_destroy_all,
-tracefs_dynevent_free, tracefs_dynevent_list_free, tracefs_dynevent_get_all, tracefs_dynevent_info,
-tracefs_dynevent_get_event - Create, destroy, free and get dynamic events.
+tracefs_dynevent_free, tracefs_dynevent_list_free, tracefs_dynevent_get, tracefs_dynevent_get_all,
+tracefs_dynevent_info, tracefs_dynevent_get_event - Create, destroy, free and get dynamic events.
 
 SYNOPSIS
 --------

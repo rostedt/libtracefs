@@ -3,7 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_hist_pause, tracefs_hist_continue, tracefs_hist_reset - Pause, continue, or clear an existing histogram
+tracefs_hist_start, tracefs_hist_destroy, tracefs_hist_pause,
+tracefs_hist_continue, tracefs_hist_reset - Pause, continue, or clear an existing histogram
 
 SYNOPSIS
 --------
