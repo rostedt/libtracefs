@@ -260,6 +260,8 @@ enum tracefs_dynevent_type {
 	TRACEFS_DYNEVENT_MAX		= 1 << 6,
 };
 
+#define TRACEFS_DYNEVENT_ALL		0xFFFFFFFF
+
 int tracefs_dynevent_create(struct tracefs_dynevent *devent);
 int tracefs_dynevent_destroy(struct tracefs_dynevent *devent, bool force);
 int tracefs_dynevent_destroy_all(unsigned int types, bool force);
