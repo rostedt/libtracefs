@@ -134,7 +134,7 @@ __hidden void sql_parse_error(struct sqlhist_bison *sb, const char *text,
 
 	trace_seq_init(&s);
 	if (!s.buffer) {
-		fprintf(stderr, "Error allocating internal buffer\n");
+		tracefs_warning("Error allocating internal buffer\n");
 		return;
 	}
 
@@ -1097,7 +1097,7 @@ static int build_filter(struct tep_handle *tep, struct sqlhist_bison *sb,
 	case FILTER_BIN_AND:	cmp = TRACEFS_COMPARE_AND; break;
 	case FILTER_STR_CMP:	cmp = TRACEFS_COMPARE_RE; break;
 	default:
-		fprintf(stderr, "Error invalid filter type '%d'", filter->type);
+		tracefs_warning("Error invalid filter type '%d'", filter->type);
 		return ERANGE;
 	}
 
