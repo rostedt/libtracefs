@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_instance_create, tracefs_instance_destroy, tracefs_instance_alloc, tracefs_instance_free,
-tracefs_instance_is_new - Manage trace instances.
+tracefs_instance_is_new, tracefs_instances - Manage trace instances.
 
 SYNOPSIS
 --------
@@ -17,6 +17,7 @@ int *tracefs_instance_destroy*(struct tracefs_instance pass:[*]_instance_);
 struct tracefs_instance pass:[*]*tracefs_instance_alloc*(const char pass:[*]_tracing_dir_, const char pass:[*]_name_);
 void *tracefs_instance_free*(struct tracefs_instance pass:[*]_instance_);
 bool *tracefs_instance_is_new*(struct tracefs_instance pass:[*]_instance_);
+char pass:[**]*tracefs_instances*(const char pass:[*]_regex_);
 
 --
 
@@ -53,6 +54,12 @@ The *tracefs_instance_is_new()* function checks if the given _instance_ is
 newly created by *tracefs_instance_create()*, or it has been in the system
 before that.
 
+The *tracefs_instances*() function returns a list of instances that exist in
+the system that match the regular expression _regex_. If _regex_ is NULL, then
+it will match all instances that exist. The returned list must be freed with
+*tracefs_list_free*(3). Note, if no instances are found an empty list is returned
+and that too needs to be free with *tracefs_list_free*(3).
+
 RETURN VALUE
 ------------
 The *tracefs_instance_create()* and *tracefs_instance_alloc()* functions return a pointer to
@@ -67,6 +74,11 @@ The *tracefs_instance_is_new()* function returns true if the
 trace instance in the system, or false if the trace instance already
 existed in the system when _instance_ was allocated by
 *tracefs_instance_create()* or *tracefs_instance_alloc()*.
+
+The *tracefs_instances()* returns a list of instance names that exist on the system.
+The list must be freed with *tracefs_list_free*(3). An empty list is returned if
+no instance exists that matches _regex_, and this needs to be freed with
+*tracefs_list_free*(3) as well. NULL is returned on error.
 
 EXAMPLE
 -------
