@@ -3,9 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_function_filter - Function to limit kernel functions that are traced
-tracefs_function_notrace - Function to filter kernel functions that not to be traced
-tracefs_filter_functions - Function to list the functions that are available for filtering
+tracefs_function_filter, tracefs_function_notrace, tracefs_filter_functions
+- Functions to modify the the function trace filters
 
 SYNOPSIS
 --------
