@@ -1538,7 +1538,7 @@ static void free_sql_table(struct sql_table *table)
 		return;
 
 	while ((expr = table->exprs)) {
-		table->exprs = expr->next;
+		table->exprs = expr->free_list;
 		free(expr);
 	}
 

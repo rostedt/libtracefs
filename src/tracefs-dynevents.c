@@ -120,7 +120,7 @@ static int dyn_generic_parse(struct dyn_events_desc *desc, const char *group,
 	struct tracefs_dynevent *dyn;
 	char *word;
 	char *format = NULL;
-	char *address;
+	char *address = NULL;
 	char *system;
 	char *prefix;
 	char *event;
@@ -582,6 +582,7 @@ tracefs_dynevent_get_all(unsigned int types, const char *system)
 			all += count;
 			/* Add a NULL pointer at the end */
 			all_events[all] = NULL;
+			free(events);
 		}
 	}
 

@@ -430,6 +430,8 @@ static void test_synth_compare(struct test_synth *synth, struct tracefs_dynevent
 		if (synth[i].match_name) {
 			CU_TEST(strstr(format, synth[i].match_name) != NULL);
 		}
+		free(event);
+		free(format);
 	}
 	CU_TEST(devents[i] == NULL);
 }

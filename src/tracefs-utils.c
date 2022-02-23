@@ -183,18 +183,16 @@ const char *tracefs_tracing_dir(void)
  */
 char *tracefs_get_tracing_file(const char *name)
 {
-	static const char *tracing;
+	const char *tracing;
 	char *file;
 	int ret;
 
 	if (!name)
 		return NULL;
 
-	if (!tracing) {
-		tracing = trace_find_tracing_dir();
-		if (!tracing)
-			return NULL;
-	}
+	tracing = tracefs_tracing_dir();
+	if (!tracing)
+		return NULL;
 
 	ret = asprintf(&file, "%s/%s", tracing, name);
 	if (ret < 0)

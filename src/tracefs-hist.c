@@ -745,12 +745,14 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 	free(synth->end_hist);
 	tracefs_list_free(synth->synthetic_fields);
 	tracefs_list_free(synth->synthetic_args);
+	tracefs_list_free(synth->start_selection);
 	tracefs_list_free(synth->start_keys);
 	tracefs_list_free(synth->end_keys);
 	tracefs_list_free(synth->start_vars);
 	tracefs_list_free(synth->end_vars);
 	free(synth->start_filter);
 	free(synth->end_filter);
+	free(synth->start_type);
 
 	tep_unref(synth->tep);
 
