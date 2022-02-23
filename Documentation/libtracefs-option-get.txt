@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_options_get_supported, tracefs_option_is_supported,
-tracefs_options_get_enabled, tracefs_option_is_enabled, tracefs_option_mask_is_set
+tracefs_options_get_supported, tracefs_option_is_supported, tracefs_options_get_enabled,
+tracefs_option_is_enabled, tracefs_option_mask_is_set, tracefs_option_id
 - Get and check ftrace options.
 
 SYNOPSIS
@@ -18,6 +18,7 @@ bool *tracefs_option_is_supported*(struct tracefs_instance pass:[*]_instance_, e
 const struct tracefs_options_mask pass:[*]*tracefs_options_get_enabled*(struct tracefs_instance pass:[*]_instance_);
 bool *tracefs_option_is_enabled*(struct tracefs_instance pass:[*]_instance_, enum tracefs_option_id _id_);
 bool *tracefs_option_mask_is_set*(const struct tracefs_options_mask *options, enum tracefs_option_id id);
+enum tracefs_option_id *tracefs_option_id*(const char pass:[*]_name_);
 --
 
 DESCRIPTION
@@ -43,6 +44,9 @@ given _instance_. If _instance_ is NULL, the top trace instance is used.
 The *tracefs_option_mask_is_set()* function checks if the bit, corresponding to the option with _id_ is
 set in the _options_ bitmask returned from *tracefs_option_get_enabled()* and *tracefs_option_is_supported()*.
 
+The *tracefs_option_id()* converts an option _name_ into its corresponding id, if it is found.
+This allows to find the option _id_ to use in the other functions if only the _name_ is known.
+
 RETURN VALUE
 ------------
 The *tracefs_options_get_supported()* and *tracefs_options_get_enabled()* functions, on success,
@@ -55,6 +59,9 @@ option in supported / enabled, or false otherwise.
 
 The *tracefs_option_mask_is_set()* returns true if the corresponding option is set in the mask
 or false otherwise.
+
+The *tracefs_option_id()* returns the corresponding id defined by *tracefs_options*(3) from
+the given _name_. If the _name_ can not be found, then TRACEFS_OPTION_INVALID is returned.
 
 EXAMPLE
 -------

@@ -97,6 +97,7 @@ Trace options:
 	int *tracefs_option_enable*(struct tracefs_instance pass:[*]_instance_, enum tracefs_option_id _id_);
 	int *tracefs_option_disable*(struct tracefs_instance pass:[*]_instance_, enum tracefs_option_id _id_);
 	const char pass:[*]*tracefs_option_name*(enum tracefs_option_id _id_);
+	enum tracefs_option_id *tracefs_option_id*(const char pass:[*]_name_);
 
 Ftrace tracers:
 	char pass:[*]pass:[*]*tracefs_tracers*(const char pass:[*]_tracing_dir_);
