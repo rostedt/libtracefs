@@ -57,6 +57,17 @@ Trace events:
 	struct tep_handle pass:[*]*tracefs_local_events_system*(const char pass:[*]_tracing_dir_, const char pass:[*] const pass:[*]_sys_names_);
 	int *tracefs_fill_local_events*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_, int pass:[*]_parsing_failures_);
 	int *tracefs_load_cmdlines*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_);
+	char pass:[*]*tracefs_event_get_file*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
+			     const char pass:[*]_file_);
+	char pass:[*]*tracefs_event_file_read*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
+			      const char pass:[*]_file_, int pass:[*]_psize_);
+	int *tracefs_event_file_write*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
+			     const char pass:[*]_file_, const char pass:[*]_str_);
+	int *tracefs_event_file_append*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
+			      const char pass:[*]_file_, const char pass:[*]_str_);
+	int *tracefs_event_file_clear*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
+			     const char pass:[*]_file_);
+	bool *tracefs_event_file_exists*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
 
 Event filters:
 	int *tracefs_filter_string_append*(struct tep_event pass:[*]_event_, char pass:[**]_filter_,
