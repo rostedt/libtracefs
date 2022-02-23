@@ -71,6 +71,7 @@ struct tracefs_options_mask *
 enabled_opts_mask(struct tracefs_instance *instance);
 
 char **trace_list_create_empty(void);
+int trace_list_pop(char **list);
 
 char *append_string(char *str, const char *delim, const char *add);
 int trace_test_state(int state);

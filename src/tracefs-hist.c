@@ -1096,14 +1096,14 @@ static int add_synth_fields(struct tracefs_synth *synth,
 
 	ret = asprintf(&str, "$%s", name);
 	if (ret < 0) {
-		tracefs_list_pop(synth->synthetic_fields);
+		trace_list_pop(synth->synthetic_fields);
 		return -1;
 	}
 
 	list = tracefs_list_add(synth->synthetic_args, str);
 	free(str);
 	if (!list) {
-		tracefs_list_pop(synth->synthetic_fields);
+		trace_list_pop(synth->synthetic_fields);
 		return -1;
 	}
 
@@ -1156,7 +1156,7 @@ int tracefs_synth_add_match_field(struct tracefs_synth *synth,
 
 	list = tracefs_list_add(synth->end_keys, end_match_field);
 	if (!list) {
-		tracefs_list_pop(synth->start_keys);
+		trace_list_pop(synth->start_keys);
 		return -1;
 	}
 	synth->end_keys = list;
@@ -1176,8 +1176,8 @@ int tracefs_synth_add_match_field(struct tracefs_synth *synth,
 	return 0;
 
  pop_lists:
-	tracefs_list_pop(synth->start_keys);
-	tracefs_list_pop(synth->end_keys);
+	trace_list_pop(synth->start_keys);
+	trace_list_pop(synth->end_keys);
 	return -1;
 }
 

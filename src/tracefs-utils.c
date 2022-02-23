@@ -448,14 +448,14 @@ char **tracefs_list_add(char **list, const char *string)
 	return list;
 }
 
-/**
- * tracefs_list_pop - Removes the last string added
+/*
+ * trace_list_pop - Removes the last string added
  * @list: The list to remove the last event from
  *
  * Returns 0 on success, -1 on error.
  * Returns 1 if the list is empty or NULL.
  */
-int tracefs_list_pop(char **list)
+__hidden int trace_list_pop(char **list)
 {
 	unsigned long size;
 
