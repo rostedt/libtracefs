@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_event_systems, tracefs_system_events, tracefs_event_enable,
-tracefs_event_disable,  tracefs_iterate_raw_events - Work with trace systems and events.
+tracefs_event_systems, tracefs_system_events, tracefs_event_enable, tracefs_event_disable,
+tracefs_iterate_raw_events, tracefs_iterate_stop - Work with trace systems and events.
 
 SYNOPSIS
 --------
@@ -22,6 +22,7 @@ int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs
 				 cpu_set_t pass:[*]_cpus_, int _cpu_size_,
 				 int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]),
 				 void pass:[*]_callback_context_);
+void *tracefs_iterate_stop*(struct tracefs_instance pass:[*]_instance_);
 
 --
 
@@ -75,6 +76,10 @@ record is; The record representing the event; The CPU that the event
 occurred on; and a pointer to user specified _callback_context_. If the _callback_
 returns non-zero, the iteration stops.
 
+Use *tracefs_iterate_stop()* to force a executing *tracefs_iterate_raw_events()*
+to halt. This can be called from either a callback that is called by
+the iterator (even though a return of non-zero will stop it), or from another
+thread.
 
 RETURN VALUE
 ------------
