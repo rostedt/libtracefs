@@ -36,3 +36,14 @@ for man in ${MAIN}-*.txt; do
 		fi
 	done
 done
+
+sed -ne 's/^[a-z].*[ \*]\([a-z_][a-z_]*\)(.*/\1/p' -e 's/^\([a-z_][a-z_]*\)(.*/\1/p' ../include/tracefs.h | while read f; do
+	if ! grep -q '\*'${f}'\*' $MAIN_FILE; then
+		if [ "$last" == "" ]; then
+			echo
+			echo "Missing functions from $MAIN_FILE that are in tracefs.h"
+			last=$f
+		fi
+		echo "   ${f}"
+	fi
+done
