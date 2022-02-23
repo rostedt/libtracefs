@@ -15,9 +15,15 @@ cd $1
 MAIN=libtracefs
 MAIN_FILE=${MAIN}.txt
 
+# Ignore man pages that do not contain functions
+IGNORE="libtracefs-options.txt"
+
 for man in ${MAIN}-*.txt; do
 
 	sed -ne '/^NAME/,/^SYNOP/{/^[a-z]/{s/, *$//;s/,/\n/g;s/ //g;s/-.*$/-/;/-/{s/-//p;q};p}}' $man | while read a; do
+		if [ "${IGNORE/$man/}" != "${IGNORE}" ]; then
+			continue
+		fi
 		if ! grep -q '\*'${a}'\*' $MAIN_FILE; then
 			if [ "$last" == "" ]; then
 				echo
