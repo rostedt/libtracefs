@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_instance_set_affinity, tracefs_instance_set_affinity_set, tracefs_set_affinity_raw,
-tracefs_instance_get_affinity, tracefs_instance_get_affinity_set, tracefs_get_affinity_raw
+tracefs_instance_set_affinity, tracefs_instance_set_affinity_set, tracefs_instance_set_affinity_raw,
+tracefs_instance_get_affinity, tracefs_instance_get_affinity_set, tracefs_instance_get_affinity_raw
 - Sets or retrieves the affinity for an instance or top level for what CPUs enable tracing.
 
 SYNOPSIS
