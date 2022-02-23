@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_tracers, tracefs_get_clock, tracefs_list_free -
-Helper functions for working with trace file system.
+tracefs_tracers, tracefs_get_clock, tracefs_list_free, tracefs_list_add,
+tracefs_list_size - Helper functions for working with trace file system.
 
 SYNOPSIS
 --------
@@ -15,6 +15,8 @@ SYNOPSIS
 char pass:[*]pass:[*]*tracefs_tracers*(const char pass:[*]_tracing_dir_);
 char pass:[*]*tracefs_get_clock*(struct tracefs_instance pass:[*]_instance_);
 void *tracefs_list_free*(char pass:[*]pass:[*]_list_);
+char pass:[**]*tracefs_list_add*(char **_list_, const char *_string_);
+int *tracefs_list_size*(char pass:[**]_list_);
 --
 
 DESCRIPTION
@@ -36,6 +38,18 @@ The *tracefs_list_free()* function frees an array of strings, returned by
 *tracefs_event_systems()*, *tracefs_system_events()* and *tracefs_tracers()*
 APIs.
 
+The *tracefs_list_add()* function adds _string_ to the string _list_. If
+_list_ is NULL, then a new list is created with the first element a copy
+of _string_, and the second element will be a NULL pointer.  If _list_ is
+not NULL, then it is reallocated to include a new element and a NULL terminator,
+and the new allocated array is returned. The list passed in should be ignored,
+as it wil be freed if a new one was allocated.
+
+The *tracefs_list_size()* is a fast way to find out the number of elements
+in a string array that is to be freed with *tracefs_list_free()*. Note, this
+depends on meta data that is created for these lists and will not work on
+normal string arrays like argv.
+
 RETURN VALUE
 ------------
 The *tracefs_tracers()* returns array of strings. The last element in that
@@ -44,6 +58,16 @@ In case of an error, NULL is returned.
 
 The *tracefs_get_clock()* returns string, that must be freed with free(), or NULL
 in case of an error.
+
+The *tracefs_list_add()* returns an allocated string array that must be freed
+with *tracefs_list_free()* on success or NULL on error. If NULL is returned,
+then the passed in _list_ is untouched. Thus, *tracefs_list_add()* should be
+treated similarly to *realloc*(3).
+
+The *tracefs_list_size()* returns the number of strings in the _list_. The
+passed in list must be one that is to be freed with *tracefs_list_free()*
+as the list has meta data that is used to determine the size and this does
+not work on any normal string array like argv.
 
 EXAMPLE
 -------

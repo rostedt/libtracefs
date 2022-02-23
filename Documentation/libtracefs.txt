@@ -72,6 +72,8 @@ Function filters:
 
 Trace helper functions:
 	void *tracefs_list_free*(char pass:[*]pass:[*]_list_);
+	char pass:[**]*tracefs_list_add*(char **_list_, const char *_string_);
+	int *tracefs_list_size*(char pass:[**]_list_);
 	char pass:[*]*tracefs_get_clock*(struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_trace_is_on*(struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_trace_on*(struct tracefs_instance pass:[*]_instance_);
