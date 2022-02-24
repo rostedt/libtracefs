@@ -433,7 +433,7 @@ static void test_synth_compare(struct test_synth *synth, struct tracefs_dynevent
 		free(event);
 		free(format);
 	}
-	CU_TEST(devents[i] == NULL);
+	CU_TEST(devents == NULL || devents[i] == NULL);
 }
 
 static void test_instance_synthetic(struct tracefs_instance *instance)
