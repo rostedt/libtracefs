@@ -436,7 +436,7 @@ static void test_synth_compare(struct test_synth *synth, struct tracefs_dynevent
 	CU_TEST(devents[i] == NULL);
 }
 
-static void test_instance_syntetic(struct tracefs_instance *instance)
+static void test_instance_synthetic(struct tracefs_instance *instance)
 {
 	struct test_synth sevents[] = {
 		{"synth_1", "sched", "sched_waking", "sched", "sched_switch", "pid", "next_pid", "pid_match"},
@@ -496,7 +496,7 @@ static void test_instance_syntetic(struct tracefs_instance *instance)
 
 static void test_synthetic(void)
 {
-	test_instance_syntetic(test_instance);
+	test_instance_synthetic(test_instance);
 }
 
 static void test_trace_file(void)
@@ -1706,6 +1706,6 @@ void test_tracefs_lib(void)
 	CU_add_test(suite, "ftrace marker",
 		    test_ftrace_marker);
 	CU_add_test(suite, "kprobes", test_kprobes);
-	CU_add_test(suite, "syntetic events", test_synthetic);
+	CU_add_test(suite, "synthetic events", test_synthetic);
 	CU_add_test(suite, "eprobes", test_eprobes);
 }
