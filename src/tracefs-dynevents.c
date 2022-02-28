@@ -704,24 +704,9 @@ __hidden int dynevent_get_count(unsigned int types, const char *system)
 	return all;
 }
 
-/**
- * tracefs_dynevent_info - return details of a dynamic event
- * @dynevent: A dynamic event context, describing given dynamic event.
- * @group: return, group in which the dynamic event is configured
- * @event: return, name of the dynamic event
- * @prefix: return, prefix string of the dynamic event
- * @addr: return, the function and offset (or address) of the dynamic event
- * @format: return, the format string of the dynamic event
- *
- * Returns the type of the dynamic event, or TRACEFS_DYNEVENT_UNKNOWN in case of an error.
- * Any of the @group, @event, @prefix, @addr and @format parameters are optional.
- * If a valid pointer is passed, in case of success - a string is allocated and returned.
- * These strings must be freed with free().
- */
-
-enum tracefs_dynevent_type
-tracefs_dynevent_info(struct tracefs_dynevent *dynevent, char **system,
-		      char **event, char **prefix, char **addr, char **format)
+static enum tracefs_dynevent_type
+dynevent_info(struct tracefs_dynevent *dynevent, char **system,
+	      char **event, char **prefix, char **addr, char **format)
 {
 	char **lv[] = { system, event, prefix, addr, format };
 	char **rv[] = { &dynevent->system, &dynevent->event, &dynevent->prefix,
@@ -752,6 +737,30 @@ error:
 	}
 
 	return TRACEFS_DYNEVENT_UNKNOWN;
+}
+
+/**
+ * tracefs_dynevent_info - return details of a dynamic event
+ * @dynevent: A dynamic event context, describing given dynamic event.
+ * @group: return, group in which the dynamic event is configured
+ * @event: return, name of the dynamic event
+ * @prefix: return, prefix string of the dynamic event
+ * @addr: return, the function and offset (or address) of the dynamic event
+ * @format: return, the format string of the dynamic event
+ *
+ * Returns the type of the dynamic event, or TRACEFS_DYNEVENT_UNKNOWN in case of an error.
+ * Any of the @group, @event, @prefix, @addr and @format parameters are optional.
+ * If a valid pointer is passed, in case of success - a string is allocated and returned.
+ * These strings must be freed with free().
+ */
+enum tracefs_dynevent_type
+tracefs_dynevent_info(struct tracefs_dynevent *dynevent, char **system,
+		      char **event, char **prefix, char **addr, char **format)
+{
+	if (!dynevent)
+		return TRACEFS_DYNEVENT_UNKNOWN;
+
+	return dynevent_info(dynevent, system, event, prefix, addr, format);
 }
 
 /**
