@@ -873,6 +873,79 @@ static void test_eprobes(void)
 	test_eprobes_instance(test_instance);
 }
 
+#define FOFFSET 1000ll
+static void test_uprobes_instance(struct tracefs_instance *instance)
+{
+	struct probe_test utests[] = {
+		{ TRACEFS_DYNEVENT_UPROBE, "p", "utest", "utest_u", NULL, "arg1=$stack2" },
+		{ TRACEFS_DYNEVENT_URETPROBE, "r", "utest", "utest_r", NULL, "arg1=$retval" },
+	};
+	int count = sizeof(utests) / sizeof((utests)[0]);
+	struct tracefs_dynevent **duprobes;
+	struct tracefs_dynevent **duvents;
+	char self[PATH_MAX] = { 0 };
+	struct tep_handle *tep;
+	char *target = NULL;
+	int i;
+
+	tep = tep_alloc();
+	CU_TEST(tep != NULL);
+
+	duprobes = calloc(count + 1, sizeof(*duvents));
+	CU_TEST(duprobes != NULL);
+	CU_TEST(readlink("/proc/self/exe", self, sizeof(self)) > 0);
+	CU_TEST(asprintf(&target, "%s:0x%0*llx", self, (int)(sizeof(void *) * 2), FOFFSET) > 0);
+
+	for (i = 0; i < count; i++)
+		utests[i].address = target;
+
+	/* Invalid parameters */
+	CU_TEST(tracefs_uprobe_alloc(NULL, NULL, self, 0, NULL) == NULL);
+	CU_TEST(tracefs_uprobe_alloc(NULL, "test", NULL, 0, NULL) == NULL);
+	CU_TEST(tracefs_uretprobe_alloc(NULL, NULL, self, 0, NULL) == NULL);
+	CU_TEST(tracefs_uretprobe_alloc(NULL, "test", NULL, 0, NULL) == NULL);
+
+	for (i = 0; i < count; i++) {
+		if (utests[i].type == TRACEFS_DYNEVENT_UPROBE)
+			duprobes[i] = tracefs_uprobe_alloc(utests[i].system, utests[i].event,
+							   self, FOFFSET, utests[i].format);
+		else
+			duprobes[i] = tracefs_uretprobe_alloc(utests[i].system, utests[i].event,
+							      self, FOFFSET, utests[i].format);
+		CU_TEST(duprobes[i] != NULL);
+	}
+	duprobes[i] = NULL;
+
+	get_dynevents_check(TRACEFS_DYNEVENT_UPROBE | TRACEFS_DYNEVENT_URETPROBE, 0);
+	CU_TEST(check_probes(utests, count, duprobes, false, instance, tep));
+
+	for (i = 0; i < count; i++) {
+		CU_TEST(tracefs_dynevent_create(duprobes[i]) == 0);
+	}
+
+	duvents = get_dynevents_check(TRACEFS_DYNEVENT_UPROBE | TRACEFS_DYNEVENT_URETPROBE, count);
+	CU_TEST(check_probes(utests, count, duvents, true, instance, tep));
+	tracefs_dynevent_list_free(duvents);
+
+	for (i = 0; i < count; i++) {
+		CU_TEST(tracefs_dynevent_destroy(duprobes[i], false) == 0);
+	}
+	get_dynevents_check(TRACEFS_DYNEVENT_UPROBE | TRACEFS_DYNEVENT_URETPROBE, 0);
+	CU_TEST(check_probes(utests, count, duprobes, false, instance, tep));
+
+	for (i = 0; i < count; i++)
+		tracefs_dynevent_free(duprobes[i]);
+
+	free(duprobes);
+	free(target);
+	tep_free(tep);
+}
+
+static void test_uprobes(void)
+{
+	test_uprobes_instance(test_instance);
+}
+
 static void test_instance_file(void)
 {
 	struct tracefs_instance *instance = NULL;
@@ -1708,4 +1781,5 @@ void test_tracefs_lib(void)
 	CU_add_test(suite, "kprobes", test_kprobes);
 	CU_add_test(suite, "synthetic events", test_synthetic);
 	CU_add_test(suite, "eprobes", test_eprobes);
+	CU_add_test(suite, "uprobes", test_uprobes);
 }
