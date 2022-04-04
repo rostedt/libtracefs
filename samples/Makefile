@@ -11,6 +11,7 @@ EXAMPLES :=
 EXAMPLES += dynevents
 EXAMPLES += kprobes
 EXAMPLES += eprobes
+EXAMPLES += uprobes
 EXAMPLES += synth
 EXAMPLES += error
 EXAMPLES += filter
