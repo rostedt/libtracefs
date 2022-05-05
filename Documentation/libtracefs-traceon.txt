@@ -62,7 +62,7 @@ EXAMPLE
 	ret = tracefs_trace_is_on(NULL);
 	if (ret == 0) {
 		/* Tracing is disabled in the top instance */
-	} else if (ret == 1) {"
+	} else if (ret == 1) {
 		/* Tracing is enabled in the top instance */
 	} else {
 		/* Error getting tracing state of the top instance */
