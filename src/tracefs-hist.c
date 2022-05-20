@@ -2194,7 +2194,7 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 		new_event = true;
 	}
 
-	path = trace_find_tracing_dir();
+	path = trace_find_tracing_dir(false);
 	if (!path)
 		goto out_free;
 

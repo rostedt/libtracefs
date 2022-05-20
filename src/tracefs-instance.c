@@ -334,7 +334,7 @@ char *tracefs_instance_get_dir(struct tracefs_instance *instance)
 	int ret;
 
 	if (!instance) /* Top instance of default system trace directory */
-		return trace_find_tracing_dir();
+		return trace_find_tracing_dir(false);
 
 	if (!instance->name)
 		return strdup(instance->trace_dir);

@@ -86,11 +86,12 @@ static int mount_debugfs(void)
 
 /**
  * trace_find_tracing_dir - Find tracing directory
+ * @debugfs: Boolean to just return the debugfs directory
  *
  * Returns string containing the full path to the system's tracing directory.
  * The string must be freed by free()
  */
-__hidden char *trace_find_tracing_dir(void)
+__hidden char *trace_find_tracing_dir(bool debugfs)
 {
 	char *debug_str = NULL;
 	char fspath[PATH_MAX+1];
@@ -109,9 +110,11 @@ __hidden char *trace_find_tracing_dir(void)
 		      STR(PATH_MAX)
 		      "s %99s %*s %*d %*d\n",
 		      fspath, type) == 2) {
-		if (strcmp(type, "tracefs") == 0)
+		if (!debugfs && strcmp(type, "tracefs") == 0)
 			break;
 		if (!debug_str && strcmp(type, "debugfs") == 0) {
+			if (debugfs)
+				break;
 			debug_str = strdup(fspath);
 			if (!debug_str) {
 				fclose(fp);
@@ -121,7 +124,13 @@ __hidden char *trace_find_tracing_dir(void)
 	}
 	fclose(fp);
 
-	if (strcmp(type, "tracefs") != 0) {
+	if (debugfs) {
+		if (strcmp(type, "debugfs") != 0) {
+			if (mount_debugfs() < 0)
+				return NULL;
+			strcpy(fspath, DEBUGFS_PATH);
+		}
+	} else if (strcmp(type, "tracefs") != 0) {
 		if (mount_tracefs() < 0) {
 			if (debug_str) {
 				strncpy(fspath, debug_str, PATH_MAX);
@@ -168,8 +177,26 @@ const char *tracefs_tracing_dir(void)
 	if (tracing_dir)
 		return tracing_dir;
 
-	tracing_dir = trace_find_tracing_dir();
+	tracing_dir = trace_find_tracing_dir(false);
 	return tracing_dir;
+}
+
+/**
+ * tracefs_debug_dir - Get debugfs directory path
+ *
+ * Returns string containing the full path to the system's debugfs directory.
+ *
+ * The returned string must *not* be freed.
+ */
+const char *tracefs_debug_dir(void)
+{
+	static const char *debug_dir;
+
+	if (debug_dir)
+		return debug_dir;
+
+	debug_dir = trace_find_tracing_dir(true);
+	return debug_dir;
 }
 
 /**

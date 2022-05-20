@@ -50,7 +50,7 @@ void tracefs_warning(const char *fmt, ...);
 
 int str_read_file(const char *file, char **buffer, bool warn);
 char *trace_append_file(const char *dir, const char *name);
-char *trace_find_tracing_dir(void);
+char *trace_find_tracing_dir(bool debugfs);
 
 #ifndef ACCESSPERMS
 #define ACCESSPERMS (S_IRWXU|S_IRWXG|S_IRWXO) /* 0777 */
