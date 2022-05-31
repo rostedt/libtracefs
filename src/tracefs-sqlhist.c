@@ -286,6 +286,8 @@ static struct expr *find_field(struct sqlhist_bison *sb,
 		if (!strcmp(field->raw, raw)) {
 			if (label && !field->label)
 				field->label = label;
+			if (label && strcmp(label, field->label) != 0)
+				continue;
 			return expr;
 		}
 
