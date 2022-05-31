@@ -195,7 +195,7 @@ That is:
 
 [source,c]
 --
-  select CAST(common_pid AS comm, CAST(id AS syscall) FROM sys_enter
+  select CAST(common_pid AS comm), CAST(id AS syscall) FROM sys_enter
 --
 
 Which produces:
