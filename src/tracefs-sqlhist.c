@@ -253,6 +253,7 @@ __hidden int add_selection(struct sqlhist_bison *sb, void *select,
 
 	switch (expr->type) {
 	case EXPR_FIELD:
+		expr->field.label = name;
 		break;
 	case EXPR_COMPARE:
 		expr->compare.name = name;
