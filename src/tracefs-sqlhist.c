@@ -174,7 +174,7 @@ static void parse_error(struct sqlhist_bison *sb, const char *text,
 	va_end(ap);
 }
 
-static inline unsigned int quick_hash(const char *str)
+__hidden unsigned int quick_hash(const char *str)
 {
 	unsigned int val = 0;
 	int len = strlen(str);

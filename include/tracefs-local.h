@@ -15,6 +15,8 @@
 #define BUILD_BUG_ON(cond)			\
 	do { if (!(1/!(cond))) { } } while (0)
 
+#define HASH_BITS 10
+
 struct tracefs_options_mask {
 	unsigned long long	mask;
 };
@@ -119,5 +121,7 @@ int trace_rescan_events(struct tep_handle *tep,
 			const char *tracing_dir, const char *system);
 struct tep_event *get_tep_event(struct tep_handle *tep,
 				const char *system, const char *name);
+
+unsigned int quick_hash(const char *str);
 
 #endif /* _TRACE_FS_LOCAL_H */

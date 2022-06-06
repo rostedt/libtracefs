@@ -4,8 +4,9 @@
 #include <stdarg.h>
 #include <tracefs.h>
 
+#include <tracefs-local.h>
+
 struct str_hash;
-#define HASH_BITS 10
 
 struct sql_table;
 

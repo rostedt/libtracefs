@@ -654,6 +654,12 @@ struct action {
 	char				*save;
 };
 
+struct name_hash {
+	struct name_hash	*next;
+	char			*name;
+	char			*hash;
+};
+
 /*
  * @name: name of the synthetic event
  * @start_system: system of the starting event
@@ -684,6 +690,7 @@ struct tracefs_synth {
 	struct action		*actions;
 	struct action		**next_action;
 	struct tracefs_dynevent	*dyn_event;
+	struct name_hash	*name_hash[1 << HASH_BITS];
 	char			*start_hist;
 	char			*end_hist;
 	char			*name;
@@ -724,6 +731,21 @@ static void action_free(struct action *action)
 	free(action);
 }
 
+static void free_name_hash(struct name_hash **hash)
+{
+	struct name_hash *item;
+	int i;
+
+	for (i = 0; i < 1 << HASH_BITS; i++) {
+		while ((item = hash[i])) {
+			hash[i] = item->next;
+			free(item->name);
+			free(item->hash);
+			free(item);
+		}
+	}
+}
+
 /**
  * tracefs_synth_free - free the resources alloced to a synth
  * @synth: The tracefs_synth descriptor
@@ -750,6 +772,7 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 	tracefs_list_free(synth->end_keys);
 	tracefs_list_free(synth->start_vars);
 	tracefs_list_free(synth->end_vars);
+	free_name_hash(synth->name_hash);
 	free(synth->start_filter);
 	free(synth->end_filter);
 	free(synth->start_type);
@@ -1096,7 +1119,7 @@ static int add_synth_fields(struct tracefs_synth *synth,
 		return -1;
 	synth->synthetic_fields = list;
 
-	ret = asprintf(&str, "$%s", name);
+	ret = asprintf(&str, "$%s", var ? : name);
 	if (ret < 0) {
 		trace_list_pop(synth->synthetic_fields);
 		return -1;
@@ -1196,7 +1219,7 @@ static unsigned int make_rand(void)
 	return((unsigned)(seed/65536) % 32768);
 }
 
-static char *new_arg(struct tracefs_synth *synth)
+static char *new_name(struct tracefs_synth *synth, const char *name)
 {
 	int cnt = synth->arg_cnt + 1;
 	char *arg;
@@ -1205,14 +1228,63 @@ static char *new_arg(struct tracefs_synth *synth)
 	/* Create a unique argument name */
 	if (!synth->arg_name[0]) {
 		/* make_rand() returns at most 32768 (total 13 bytes in use) */
-		sprintf(synth->arg_name, "__arg_%u_", make_rand());
+		sprintf(synth->arg_name, "%u", make_rand());
 	}
-	ret = asprintf(&arg, "%s%d", synth->arg_name, cnt);
+	ret = asprintf(&arg, "__%s_%s_%d", name, synth->arg_name, cnt);
 	if (ret < 0)
 		return NULL;
 
 	synth->arg_cnt = cnt;
 	return arg;
+}
+
+static struct name_hash *find_name(struct tracefs_synth *synth, const char *name)
+{
+	unsigned int key = quick_hash(name);
+	struct name_hash *hash = synth->name_hash[key];
+
+	for (; hash; hash = hash->next) {
+		if (!strcmp(hash->name, name))
+			return hash;
+	}
+	return NULL;
+}
+
+static const char *hash_name(struct tracefs_synth *synth, const char *name)
+{
+	struct name_hash *hash;
+	int key;
+
+	hash = find_name(synth, name);
+	if (hash)
+		return hash->hash;
+
+	hash = malloc(sizeof(*hash));
+	if (!hash)
+		return name;
+
+	hash->hash = new_name(synth, name);
+	if (!hash->hash) {
+		free(hash);
+		return name;
+	}
+
+	key = quick_hash(name);
+	hash->next = synth->name_hash[key];
+	synth->name_hash[key] = hash;
+
+	hash->name = strdup(name);
+	if (!hash->name) {
+		free(hash->hash);
+		free(hash);
+		return name;
+	}
+	return hash->hash;
+}
+
+static char *new_arg(struct tracefs_synth *synth)
+{
+	return new_name(synth, "arg");
 }
 
 /**
@@ -1245,6 +1317,7 @@ int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
 				    const char *name)
 {
 	const struct tep_format_field *start_field;
+	const char *hname;
 	char *start_arg;
 	char *compare;
 	int ret;
@@ -1296,11 +1369,12 @@ int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
 	if (ret < 0)
 		return -1;
 
-	ret = add_var(&synth->end_vars, name, compare, false);
+	hname = hash_name(synth, name);
+	ret = add_var(&synth->end_vars, hname, compare, false);
 	if (ret < 0)
 		goto out_free;
 
-	ret = add_synth_fields(synth, start_field, name, NULL);
+	ret = add_synth_fields(synth, start_field, name, hname);
 	if (ret < 0)
 		goto out_free;
 
@@ -1316,6 +1390,7 @@ __hidden int synth_add_start_field(struct tracefs_synth *synth,
 				   enum tracefs_hist_key_type type)
 {
 	const struct tep_format_field *field;
+	const char *var;
 	char *start_arg;
 	char **tmp;
 	int *types;
@@ -1330,6 +1405,8 @@ __hidden int synth_add_start_field(struct tracefs_synth *synth,
 	if (!name)
 		name = start_field;
 
+	var = hash_name(synth, name);
+
 	if (!trace_verify_event_field(synth->start_event, start_field, &field))
 		return -1;
 
@@ -1341,11 +1418,11 @@ __hidden int synth_add_start_field(struct tracefs_synth *synth,
 	if (ret)
 		goto out_free;
 
-	ret = add_var(&synth->end_vars, name, start_arg, true);
+	ret = add_var(&synth->end_vars, var, start_arg, true);
 	if (ret)
 		goto out_free;
 
-	ret = add_synth_fields(synth, field, name, NULL);
+	ret = add_synth_fields(synth, field, name, var);
 	if (ret)
 		goto out_free;
 
@@ -1417,6 +1494,7 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 				const char *name)
 {
 	const struct tep_format_field *field;
+	const char *hname = NULL;
 	char *tmp_var = NULL;
 	int ret;
 
@@ -1425,17 +1503,24 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 		return -1;
 	}
 
+	if (name) {
+		if (strncmp(name, "__arg", 5) != 0)
+			hname = hash_name(synth, name);
+		else
+			hname = name;
+	}
+
 	if (!name)
 		tmp_var = new_arg(synth);
 
 	if (!trace_verify_event_field(synth->end_event, end_field, &field))
 		return -1;
 
-	ret = add_var(&synth->end_vars, name ? : tmp_var, end_field, false);
+	ret = add_var(&synth->end_vars, name ? hname : tmp_var, end_field, false);
 	if (ret)
 		goto out;
 
-	ret = add_synth_fields(synth, field, name, tmp_var);
+	ret = add_synth_fields(synth, field, name, hname ? : tmp_var);
 	free(tmp_var);
  out:
 	return ret;
