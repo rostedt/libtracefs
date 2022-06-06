@@ -904,20 +904,21 @@ static int verify_filter_error(struct sqlhist_bison *sb, struct expr *expr,
 }
 
 static int do_verify_filter(struct sqlhist_bison *sb, struct filter *filter,
-			    const char **system, const char **event)
+			    const char **system, const char **event,
+			    enum field_type *ftype)
 {
 	int ret;
 
 	if (filter->type == FILTER_OR ||
 	    filter->type == FILTER_AND) {
-		ret = do_verify_filter(sb, &filter->lval->filter, system, event);
+		ret = do_verify_filter(sb, &filter->lval->filter, system, event, ftype);
 		if (ret)
 			return ret;
-		return do_verify_filter(sb, &filter->rval->filter, system, event);
+		return do_verify_filter(sb, &filter->rval->filter, system, event, ftype);
 	}
 	if (filter->type == FILTER_GROUP ||
 	    filter->type == FILTER_NOT_GROUP) {
-		return do_verify_filter(sb, &filter->lval->filter, system, event);
+		return do_verify_filter(sb, &filter->lval->filter, system, event, ftype);
 	}
 
 	/*
@@ -927,6 +928,7 @@ static int do_verify_filter(struct sqlhist_bison *sb, struct filter *filter,
 	if (!*system && !*event) {
 		*system = filter->lval->field.system;
 		*event = filter->lval->field.event_name;
+		*ftype = filter->lval->field.ftype;
 		return 0;
 	}
 
@@ -938,7 +940,8 @@ static int do_verify_filter(struct sqlhist_bison *sb, struct filter *filter,
 }
 
 static int verify_filter(struct sqlhist_bison *sb, struct filter *filter,
-			 const char **system, const char **event)
+			 const char **system, const char **event,
+			 enum field_type *ftype)
 {
 	int ret;
 
@@ -949,17 +952,17 @@ static int verify_filter(struct sqlhist_bison *sb, struct filter *filter,
 	case FILTER_NOT_GROUP:
 		break;
 	default:
-		return do_verify_filter(sb, filter, system, event);
+		return do_verify_filter(sb, filter, system, event, ftype);
 	}
 
-	ret = do_verify_filter(sb, &filter->lval->filter, system, event);
+	ret = do_verify_filter(sb, &filter->lval->filter, system, event, ftype);
 	if (ret)
 		return ret;
 
 	switch (filter->type) {
 	case FILTER_OR:
 	case FILTER_AND:
-		return do_verify_filter(sb, &filter->rval->filter, system, event);
+		return do_verify_filter(sb, &filter->rval->filter, system, event, ftype);
 	default:
 		return 0;
 	}
@@ -1516,16 +1519,18 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 	for (expr = table->where; expr; expr = expr->next) {
 		const char *filter_system = NULL;
 		const char *filter_event = NULL;
+		enum field_type ftype = FIELD_NONE;
 		bool *started;
 		bool start;
 
 		ret = verify_filter(table->sb, &expr->filter, &filter_system,
-				    &filter_event);
+				    &filter_event, &ftype);
 		if (ret < 0)
 			goto free;
 
 		start = filter_system == start_system &&
-			filter_event == start_event;
+			filter_event == start_event &&
+			ftype != FIELD_TO;
 
 		if (start)
 			started = &started_start;
