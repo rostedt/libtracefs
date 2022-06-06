@@ -407,8 +407,13 @@ static int do_sql(const char *instance_name,
 			}
 		}
 		tracefs_synth_echo_cmd(&seq, synth);
-		if (execute)
-			tracefs_synth_create(synth);
+		if (execute) {
+			ret = tracefs_synth_create(synth);
+			if (ret < 0) {
+				fprintf(stderr, "%s\n", tracefs_error_last(NULL));
+				exit(-1);
+			}
+		}
 	} else {
 		struct tracefs_instance *instance = NULL;
 		struct tracefs_hist *hist;
@@ -430,8 +435,13 @@ static int do_sql(const char *instance_name,
 			}
 		}
 		tracefs_hist_echo_cmd(&seq, instance, hist, 0);
-		if (execute)
-			tracefs_hist_start(instance, hist);
+		if (execute) {
+			ret = tracefs_hist_start(instance, hist);
+			if (ret < 0) {
+				fprintf(stderr, "%s\n", tracefs_error_last(instance));
+				exit(-1);
+			}
+		}
 	}
 
 	tracefs_synth_free(synth);
