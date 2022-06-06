@@ -30,6 +30,12 @@ enum alias_type {
 	ALIAS_FIELD,
 };
 
+enum field_type {
+	FIELD_NONE,
+	FIELD_FROM,
+	FIELD_TO,
+};
+
 #define for_each_field(expr, field, table) \
 	for (expr = (table)->fields; expr; expr = (field)->next)
 
@@ -42,6 +48,7 @@ struct field {
 	const char		*label;
 	const char		*field;
 	const char		*type;
+	enum field_type		ftype;
 };
 
 struct filter {
@@ -583,6 +590,7 @@ static int update_vars(struct tep_handle *tep,
 {
 	struct sqlhist_bison *sb = table->sb;
 	struct field *event_field = &expr->field;
+	enum field_type ftype = FIELD_NONE;
 	struct tep_event *event;
 	struct field *field;
 	const char *label;
@@ -591,6 +599,11 @@ static int update_vars(struct tep_handle *tep,
 	const char *system;
 	const char *p;
 	int label_len = 0, event_len, system_len;
+
+	if (expr == table->to)
+		ftype = FIELD_TO;
+	else if (expr == table->from)
+		ftype = FIELD_FROM;
 
 	p = strchr(raw, '.');
 	if (p) {
@@ -673,6 +686,7 @@ static int update_vars(struct tep_handle *tep,
 		field->event_name = event_name;
 		field->event = event;
 		field->field = raw + len + 1;
+		field->ftype = ftype;
 
 		if (!strcmp(field->field, "TIMESTAMP"))
 			field->field = store_str(sb, TRACEFS_TIMESTAMP);
@@ -1452,7 +1466,8 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 		if (expr->type == EXPR_FIELD) {
 			ret = -1;
 			field = &expr->field;
-			if (field->system == start_system &&
+			if (field->ftype != FIELD_TO &&
+			    field->system == start_system &&
 			    field->event_name == start_event) {
 				int type;
 				type = verify_field_type(tep, table->sb, expr);
