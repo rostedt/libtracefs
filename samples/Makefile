@@ -67,3 +67,5 @@ $(bdir)/%.o: $(bdir)/%.c
 
 clean:
 	$(Q)$(call do_clean,$(sdir)/* $(bdir)/sqlhist.c $(bdir)/sqlhist.o)
+
+.PHONY: sqlhist
