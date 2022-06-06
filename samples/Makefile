@@ -46,7 +46,7 @@ sqlhist: $(sdir)/sqlhist
 $(TARGETS): $(sdir)
 
 # sqlhist is unique and stands on its own
-$(sdir)/sqlhist: $(bdir)/sqlhist.c
+$(sdir)/sqlhist: $(bdir)/sqlhist.c $(LIBTRACEFS_STATIC)
 	$(call do_sample_build,$@,$<)
 
 $(sdir)/%: $(bdir)/%.o
