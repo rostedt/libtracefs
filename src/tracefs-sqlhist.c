@@ -109,7 +109,7 @@ struct sql_table {
 	struct expr		**next_selection;
 };
 
-__hidden int my_yyinput(void *extra, char *buf, int max)
+__internal int my_yyinput(void *extra, char *buf, int max)
 {
 	struct sqlhist_bison *sb = extra;
 
@@ -127,8 +127,8 @@ __hidden int my_yyinput(void *extra, char *buf, int max)
 	return max;
 }
 
-__hidden void sql_parse_error(struct sqlhist_bison *sb, const char *text,
-			      const char *fmt, va_list ap)
+__internal void sql_parse_error(struct sqlhist_bison *sb, const char *text,
+			        const char *fmt, va_list ap)
 {
 	const char *buffer = sb->buffer;
 	struct trace_seq s;
@@ -229,7 +229,7 @@ static char **add_hash(struct sqlhist_bison *sb, const char *str)
 	return &hash->str;
 }
 
-__hidden char *store_str(struct sqlhist_bison *sb, const char *str)
+__internal char *store_str(struct sqlhist_bison *sb, const char *str)
 {
 	char **pstr = add_hash(sb, str);
 
@@ -242,8 +242,8 @@ __hidden char *store_str(struct sqlhist_bison *sb, const char *str)
 	return *pstr;
 }
 
-__hidden void *add_cast(struct sqlhist_bison *sb,
-			void *data, const char *type)
+__internal void *add_cast(struct sqlhist_bison *sb,
+			  void *data, const char *type)
 {
 	struct expr *expr = data;
 	struct field *field = &expr->field;
@@ -252,8 +252,8 @@ __hidden void *add_cast(struct sqlhist_bison *sb,
 	return expr;
 }
 
-__hidden int add_selection(struct sqlhist_bison *sb, void *select,
-			   const char *name)
+__internal int add_selection(struct sqlhist_bison *sb, void *select,
+			     const char *name)
 {
 	struct sql_table *table = sb->table;
 	struct expr *expr = select;
@@ -368,8 +368,8 @@ static void *create_expr(struct sqlhist_bison *sb,
 #define create_number(var, expr)			\
 	__create_expr(var, long, NUMBER, expr)
 
-__hidden void *add_field(struct sqlhist_bison *sb,
-			 const char *field_name, const char *label)
+__internal void *add_field(struct sqlhist_bison *sb,
+			   const char *field_name, const char *label)
 {
 	struct sql_table *table = sb->table;
 	struct expr *expr;
@@ -390,8 +390,8 @@ __hidden void *add_field(struct sqlhist_bison *sb,
 	return expr;
 }
 
-__hidden void *add_filter(struct sqlhist_bison *sb,
-			  void *A, void *B, enum filter_type op)
+__internal void *add_filter(struct sqlhist_bison *sb,
+			    void *A, void *B, enum filter_type op)
 {
 	struct filter *filter;
 	struct expr *expr;
@@ -406,7 +406,7 @@ __hidden void *add_filter(struct sqlhist_bison *sb,
 	return expr;
 }
 
-__hidden int add_match(struct sqlhist_bison *sb, void *A, void *B)
+__internal int add_match(struct sqlhist_bison *sb, void *A, void *B)
 {
 	struct sql_table *table = sb->table;
 	struct match *match;
@@ -423,8 +423,9 @@ __hidden int add_match(struct sqlhist_bison *sb, void *A, void *B)
 
 	return 0;
 }
-__hidden void *add_compare(struct sqlhist_bison *sb,
-			   void *A, void *B, enum compare_type type)
+
+__internal void *add_compare(struct sqlhist_bison *sb,
+			     void *A, void *B, enum compare_type type)
 {
 	struct compare *compare;
 	struct expr *expr;
@@ -439,7 +440,7 @@ __hidden void *add_compare(struct sqlhist_bison *sb,
 	return expr;
 }
 
-__hidden int add_where(struct sqlhist_bison *sb, void *item)
+__internal int add_where(struct sqlhist_bison *sb, void *item)
 {
 	struct expr *expr = item;
 	struct sql_table *table = sb->table;
@@ -456,7 +457,7 @@ __hidden int add_where(struct sqlhist_bison *sb, void *item)
 	return 0;
 }
 
-__hidden int add_from(struct sqlhist_bison *sb, void *item)
+__internal int add_from(struct sqlhist_bison *sb, void *item)
 {
 	struct expr *expr = item;
 
@@ -468,7 +469,7 @@ __hidden int add_from(struct sqlhist_bison *sb, void *item)
 	return 0;
 }
 
-__hidden int add_to(struct sqlhist_bison *sb, void *item)
+__internal int add_to(struct sqlhist_bison *sb, void *item)
 {
 	struct expr *expr = item;
 
@@ -480,7 +481,7 @@ __hidden int add_to(struct sqlhist_bison *sb, void *item)
 	return 0;
 }
 
-__hidden void *add_string(struct sqlhist_bison *sb, const char *str)
+__internal void *add_string(struct sqlhist_bison *sb, const char *str)
 {
 	struct expr *expr;
 	const char **str_p;
@@ -490,7 +491,7 @@ __hidden void *add_string(struct sqlhist_bison *sb, const char *str)
 	return expr;
 }
 
-__hidden void *add_number(struct sqlhist_bison *sb, long val)
+__internal void *add_number(struct sqlhist_bison *sb, long val)
 {
 	struct expr *expr;
 	long *num;
@@ -500,7 +501,7 @@ __hidden void *add_number(struct sqlhist_bison *sb, long val)
 	return expr;
 }
 
-__hidden int table_start(struct sqlhist_bison *sb)
+__internal int table_start(struct sqlhist_bison *sb)
 {
 	struct sql_table *table;
 

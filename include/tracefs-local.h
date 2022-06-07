@@ -7,6 +7,7 @@
 #define _TRACE_FS_LOCAL_H
 
 #define __hidden __attribute__((visibility ("hidden")))
+#define __internal __attribute__((visibility ("internal")))
 #define __weak __attribute__((weak))
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
