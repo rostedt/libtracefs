@@ -388,3 +388,7 @@ clean:
 	  $(BUILD_PREFIX))
 
 .PHONY: clean
+
+# libtracefs.a and libtracefs.so would concurrently enter the same directory -
+# a recipe for collisions.
+.NOTPARALLEL:
