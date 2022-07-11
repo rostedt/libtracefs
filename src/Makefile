@@ -21,7 +21,6 @@ OBJS += sqlhist.tab.o
 OBJS += tracefs-sqlhist.o
 
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
-DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
 
 $(LIBTRACEFS_STATIC): $(OBJS)
 	$(Q)$(call do_build_static_lib)
@@ -48,24 +47,14 @@ sqlhist-lex.c: sqlhist.l sqlhist.tab.c
 $(bdir)/%.o: %.c
 	$(Q)$(call do_fpic_compile)
 
-$(DEPS): $(bdir)/.%.d: %.c
-	$(Q)$(CC) -M -MT $(bdir)/$*.o $(CPPFLAGS) $(CFLAGS) $< > $@
-
-$(OBJS): $(bdir)/%.o : $(bdir)/.%.d
-
 tracefs-sqlhist.o: sqlhist.tab.h
 
 $(OBJS): | $(bdir)
-$(DEPS): | $(bdir)
 
 clean:
 	$(Q)$(call do_clean,$(OBJS) .*.d)
 
-dep_includes := $(wildcard $(DEPS))
-
-ifneq ($(dep_includes),)
-  include $(dep_includes)
-endif
+-include .*.d
 
 $(bdir)/tracefs-sqlhist.o tracefs-sqlhist.o: sqlhist.tab.h
 

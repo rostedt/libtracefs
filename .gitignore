@@ -11,5 +11,5 @@ build_prefix
 build_uninstall
 tfs_version.h
 *.o
-*.d
+.*.d
 sqlhist

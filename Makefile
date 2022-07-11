@@ -330,7 +330,6 @@ OBJS += tracefs-instance.o
 OBJS += tracefs-events.o
 
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
-DEPS := $(OBJS:$(bdir)/%.o=$(bdir)/.%.d)
 
 all: $(DEFAULT_TARGET)
 
