@@ -423,7 +423,8 @@ int tracefs_filter_string_append(struct tep_event *event, char **filter,
 		free(*filter);
 		*filter = str;
 	}
-	return 0;
+
+	return ret;
 }
 
 static int error_msg(char **err, char *str,
