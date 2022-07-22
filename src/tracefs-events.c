@@ -969,6 +969,9 @@ struct tep_handle *tracefs_local_events_system(const char *tracing_dir,
 		tep = NULL;
 	}
 
+	/* Set the long size for this tep handle */
+	tep_set_long_size(tep, tep_get_header_page_size(tep));
+
 	return tep;
 }
 
