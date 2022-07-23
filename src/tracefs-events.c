@@ -945,6 +945,40 @@ out:
 	return ret;
 }
 
+static void set_tep_cpus(const char *tracing_dir, struct tep_handle *tep)
+{
+	struct stat st;
+	char path[PATH_MAX];
+	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int max_cpu = 0;
+	int ret;
+	int i;
+
+	if (!tracing_dir)
+		tracing_dir = tracefs_tracing_dir();
+
+	/*
+	 * Paranoid: in case sysconf() above does not work.
+	 * And we also only care about the number of tracing
+	 * buffers that exist. If cpus is 32, but the top half
+	 * is offline, there may only be 16 tracing buffers.
+	 * That's what we want to know.
+	 */
+	for (i = 0; !cpus || i < cpus; i++) {
+		snprintf(path, PATH_MAX, "%s/per_cpu/cpu%d", tracing_dir, i);
+		ret = stat(path, &st);
+		if (!ret && S_ISDIR(st.st_mode))
+			max_cpu = i + 1;
+		else if (i >= cpus)
+			break;
+	}
+
+	if (!max_cpu)
+		max_cpu = cpus;
+
+	tep_set_cpus(tep, max_cpu);
+}
+
 /**
  * tracefs_local_events_system - create a tep from the events of the specified subsystem.
  *
@@ -968,6 +1002,8 @@ struct tep_handle *tracefs_local_events_system(const char *tracing_dir,
 		tep_free(tep);
 		tep = NULL;
 	}
+
+	set_tep_cpus(tracing_dir, tep);
 
 	/* Set the long size for this tep handle */
 	tep_set_long_size(tep, tep_get_header_page_size(tep));
