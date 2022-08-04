@@ -46,6 +46,7 @@ static int read_kbuf_record(struct cpu_iterate *cpu)
 	cpu->record.ts = ts;
 	cpu->record.size = kbuffer_event_size(cpu->kbuf);
 	cpu->record.record_size = kbuffer_curr_size(cpu->kbuf);
+	cpu->record.missed_events = kbuffer_missed_events(cpu->kbuf);
 	cpu->record.cpu = cpu->cpu;
 	cpu->record.data = ptr;
 	cpu->record.ref_count = 1;
