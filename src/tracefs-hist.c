@@ -1091,9 +1091,8 @@ struct tracefs_synth *tracefs_synth_alloc(struct tep_handle *tep,
 	if (!synth->name || !synth->start_keys || !synth->end_keys || ret) {
 		tracefs_synth_free(synth);
 		synth = NULL;
-	}
-
-	synth->new_format = has_new_format();
+	} else
+		synth->new_format = has_new_format();
 
 	return synth;
 }
