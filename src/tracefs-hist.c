@@ -2311,11 +2311,6 @@ int tracefs_synth_echo_cmd(struct trace_seq *seq,
 			 hist, path, synth->end_event->system,
 			 synth->end_event->name);
 
-	if (new_event) {
-		tracefs_dynevent_free(synth->dyn_event);
-		synth->dyn_event = NULL;
-	}
-
 	ret = 0;
  out_free:
 	free(hist);
