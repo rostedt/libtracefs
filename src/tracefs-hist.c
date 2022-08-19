@@ -796,6 +796,7 @@ static bool verify_event_fields(struct tep_event *start_event,
 {
 	const struct tep_format_field *start_field;
 	const struct tep_format_field *end_field;
+	int start_flags, end_flags;
 
 	if (!trace_verify_event_field(start_event, start_field_name,
 				      &start_field))
@@ -806,7 +807,11 @@ static bool verify_event_fields(struct tep_event *start_event,
 					      &end_field))
 			return false;
 
-		if (start_field->flags != end_field->flags ||
+		/* A pointer can still match a long */
+		start_flags = start_field->flags & ~TEP_FIELD_IS_POINTER;
+		end_flags = end_field->flags & ~TEP_FIELD_IS_POINTER;
+
+		if (start_flags != end_flags ||
 		    start_field->size != end_field->size) {
 			errno = EBADE;
 			return false;
