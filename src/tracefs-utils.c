@@ -29,6 +29,7 @@
 #define STR(x) _STR(x)
 
 static int log_level = TEP_LOG_CRITICAL;
+static char *custom_tracing_dir;
 
 /**
  * tracefs_set_loglevel - set log level of the library
@@ -165,6 +166,32 @@ __hidden char *trace_find_tracing_dir(bool debugfs)
 }
 
 /**
+ * tracefs_set_tracing_dir - Set location of the tracing directory
+ * @tracing_dir: full path to the system's tracing directory mount point.
+ *
+ * Set the location to the system's tracing directory. This API should be used
+ * to set a custom location of the tracing directory. There is no need to call
+ * it if the location is standard, in that case the library will auto detect it.
+ *
+ * Returns 0 on success, -1 otherwise.
+ */
+int tracefs_set_tracing_dir(char *tracing_dir)
+{
+	if (custom_tracing_dir) {
+		free(custom_tracing_dir);
+		custom_tracing_dir = NULL;
+	}
+
+	if (tracing_dir) {
+		custom_tracing_dir = strdup(tracing_dir);
+		if (!custom_tracing_dir)
+			return -1;
+	}
+
+	return 0;
+}
+
+/**
  * tracefs_tracing_dir - Get tracing directory
  *
  * Returns string containing the full path to the system's tracing directory.
@@ -173,6 +200,9 @@ __hidden char *trace_find_tracing_dir(bool debugfs)
 const char *tracefs_tracing_dir(void)
 {
 	static const char *tracing_dir;
+
+	if (custom_tracing_dir)
+		return custom_tracing_dir;
 
 	if (tracing_dir)
 		return tracing_dir;

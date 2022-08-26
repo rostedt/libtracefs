@@ -11,6 +11,7 @@
 #include <time.h>
 #include <dirent.h>
 #include <ftw.h>
+#include <libgen.h>
 
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
@@ -1701,8 +1702,11 @@ void del_trace_dir(char *dir)
 
 static void test_custom_trace_dir(void)
 {
+	char *tdir = "/tmp/custom_tracefs";
 	struct tracefs_instance *instance;
 	char *dname = copy_trace_dir();
+	const char *trace_dir;
+	char *tfile;
 
 	instance = tracefs_instance_alloc(dname, NULL);
 	CU_TEST(instance != NULL);
@@ -1717,6 +1721,22 @@ static void test_custom_trace_dir(void)
 	tracefs_instance_free(instance);
 	del_trace_dir(dname);
 	free(dname);
+
+	trace_dir = tracefs_tracing_dir();
+	CU_TEST(trace_dir != NULL);
+	CU_TEST(tracefs_set_tracing_dir(tdir) == 0);
+	CU_TEST(strcmp(tdir, tracefs_tracing_dir()) == 0);
+	tfile = tracefs_get_tracing_file("trace");
+	CU_TEST(tfile != NULL);
+	CU_TEST(strcmp(tdir, dirname(tfile)) == 0);
+	free(tfile);
+
+	CU_TEST(tracefs_set_tracing_dir(NULL) == 0);
+	CU_TEST(strcmp(trace_dir, tracefs_tracing_dir()) == 0);
+	tfile = tracefs_get_tracing_file("trace");
+	CU_TEST(tfile != NULL);
+	CU_TEST(strcmp(trace_dir, dirname(tfile)) == 0);
+	free(tfile);
 }
 
 static int test_suite_destroy(void)
