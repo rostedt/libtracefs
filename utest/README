@@ -13,3 +13,6 @@ using a precompiled distro package:
 	libcunit1
 	libcunit1-doc
 	libcunit1-dev
+
+ openSUSE and SLE:
+	cunit-devel
