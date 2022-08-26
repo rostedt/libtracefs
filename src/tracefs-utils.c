@@ -544,3 +544,31 @@ int tracefs_list_size(char **list)
 	list--;
 	return (int)*(unsigned long *)list;
 }
+
+/**
+ * tracefs_tracer_available - test if a tracer is available
+ * @tracing_dir: The directory that contains the tracing directory
+ * @tracer: The name of the tracer
+ *
+ * Return true if the tracer is available
+ */
+bool tracefs_tracer_available(const char *tracing_dir, const char *tracer)
+{
+	bool ret = false;
+	char **tracers = NULL;
+	int i;
+
+	tracers = tracefs_tracers(tracing_dir);
+	if (!tracers)
+		return false;
+
+	for (i = 0; tracers[i]; i++) {
+		if (strcmp(tracer, tracers[i]) == 0) {
+			ret = true;
+			break;
+		}
+	}
+
+	tracefs_list_free(tracers);
+	return ret;
+}

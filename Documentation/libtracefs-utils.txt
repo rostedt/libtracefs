@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_tracers, tracefs_get_clock, tracefs_list_free, tracefs_list_add,
-tracefs_list_size - Helper functions for working with trace file system.
+tracefs_tracers, tracefs_tracer_available, tracefs_get_clock, tracefs_list_free,
+tracefs_list_add, tracefs_list_size - Helper functions for working with trace file system.
 
 SYNOPSIS
 --------
@@ -13,6 +13,7 @@ SYNOPSIS
 *#include <tracefs.h>*
 
 char pass:[*]pass:[*]*tracefs_tracers*(const char pass:[*]_tracing_dir_);
+bool *tracefs_tracer_available*(const char pass:[*]_tracing_dir_, const char pass:[*]_tracer_);
 char pass:[*]*tracefs_get_clock*(struct tracefs_instance pass:[*]_instance_);
 void *tracefs_list_free*(char pass:[*]pass:[*]_list_);
 char pass:[**]*tracefs_list_add*(char **_list_, const char *_string_);
@@ -29,6 +30,9 @@ directory. This could be NULL or the location of the tracefs mount point
 for the trace systems of the local machine, or it may be a path to a copy
 of the tracefs directory from another machine. The last entry in the array
 as a NULL pointer. The array must be freed with *tracefs_list_free()* API.
+
+The *tracefs_tracer_available()* returns true if the _tracer_ is available
+in the given _tracing_dir_director_, and false otherwise.
 
 The *tracefs_get_clock()* function returns name of the current trace clock,
 used in the given _instance_. If _instance_ is NULL, the clock of the main
@@ -55,6 +59,9 @@ RETURN VALUE
 The *tracefs_tracers()* returns array of strings. The last element in that
 array is a NULL pointer. The array must be freed with *tracefs_list_free()* API.
 In case of an error, NULL is returned.
+
+The *tracefs_tracer_available()* returns true if the _tracer_ is available,
+and false otherwise.
 
 The *tracefs_get_clock()* returns string, that must be freed with free(), or NULL
 in case of an error.

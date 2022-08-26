@@ -1405,6 +1405,9 @@ static void test_instance_tracers(struct tracefs_instance *instance)
 	tracers = tracefs_tracers(tdir);
 	CU_TEST(tracers != NULL);
 
+	for (i = 0; tracers[i]; i++)
+		CU_TEST(tracefs_tracer_available(tdir, tracers[i]));
+
 	tfile = tracefs_instance_file_read(NULL, ALL_TRACERS, NULL);
 
 	tracer = strtok(tfile, " ");
