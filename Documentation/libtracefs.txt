@@ -147,11 +147,15 @@ Dynamic event generic APIs:
 Even probes (eprobes):
 	struct tracefs_dynevent pass:[*] *tracefs_eprobe_alloc*(const char pass:[*]_system_, const char pass:[*]_event_, const char pass:[*]_target_system_, const char pass:[*]_target_event_, const char pass:[*]_fetchargs_);
 
-Kprobes and Kretprobes:
+Uprobes, Kprobes and Kretprobes:
 	struct tracefs_dynevent pass:[*] *tracefs_kprobe_alloc*(const char pass:[*]_system_, const char pass:[*]_event_, const char pass:[*]_addr_, const char pass:[*]_format_);
 	struct tracefs_dynevent pass:[*] *tracefs_kretprobe_alloc*(const char pass:[*]_system_, const char pass:[*]_event_, const char pass:[*]_addr_, const char pass:[*]_format_, unsigned int _max_);
 	int *tracefs_kprobe_raw*(const char pass:[*]_system_, const char pass:[*]_event_, const char pass:[*]_addr_, const char pass:[*]_format_);
 	int *tracefs_kretprobe_raw*(const char pass:[*]_system_, const char pass:[*]_event_, const char pass:[*]_addr_, const char pass:[*]_format_);
+	*tracefs_uprobe_alloc*(const char pass:[*]_system_, const char pass:[*]_event_,
+		     const char pass:[*]_file_, unsigned long long _offset_, const char pass:[*]_fetchargs_)
+	*tracefs_uretprobe_alloc*(const char pass:[*]_system_, const char pass:[*]_event_,
+		     const char pass:[*]_file_, unsigned long long _offset_, const char pass:[*]_fetchargs_);
 
 Synthetic events:
 	struct tracefs_synth pass:[*]*tracefs_sql*(struct tep_handle pass:[*]_tep_, const char pass:[*]_name_,
