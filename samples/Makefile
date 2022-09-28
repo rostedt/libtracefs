@@ -65,6 +65,9 @@ $(EXAMPLES): $(patsubst %,$(sdir)/%,$(TARGETS))
 $(bdir)/%.o: $(bdir)/%.c
 	$(call do_sample_obj,$@,$^)
 
+$(bdir)/XX.o: $(bdir)/hist.c
+	$(CC) -g -Wall $(CFLAGS) -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
+
 clean:
 	$(Q)$(call do_clean,$(sdir)/* $(bdir)/sqlhist.c $(bdir)/sqlhist.o)
 

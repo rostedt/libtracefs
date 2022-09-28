@@ -98,7 +98,7 @@ struct tracefs_synth *synth_init_from(struct tep_handle *tep,
 int synth_add_start_field(struct tracefs_synth *synth,
 			  const char *start_field,
 			  const char *name,
-			  enum tracefs_hist_key_type type);
+			  enum tracefs_hist_key_type type, int cnt);
 
 /* Internal interface for ftrace dynamic events */
 

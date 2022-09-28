@@ -280,25 +280,11 @@ tracefs_hist_alloc_2d(struct tep_handle *tep,
 	return tracefs_hist_alloc_nd(tep, system, event_name, axis);
 }
 
-/**
- * tracefs_hist_alloc_nd - Initialize N-dimensional histogram
- * @tep: The tep handle that has the @system and @event.
- * @system: The system the histogram event is in
- * @event: The event that the histogram will be attached to
- * @axes: An array of histogram axes, terminated by a {NULL, 0} entry
- *
- * Will initialize a histogram descriptor that will be attached to
- * the @system/@event. This only initializes the descriptor with the given
- * @axes keys as primaries. This only initializes the descriptor, it does
- * not start the histogram in the kernel.
- *
- * Returns an initialized histogram on success.
- * NULL on failure.
- */
-struct tracefs_hist *
-tracefs_hist_alloc_nd(struct tep_handle *tep,
-		      const char *system, const char *event_name,
-		      struct tracefs_hist_axis *axes)
+static struct tracefs_hist *
+hist_alloc_nd(struct tep_handle *tep,
+	      const char *system, const char *event_name,
+	      struct tracefs_hist_axis *axes,
+	      struct tracefs_hist_axis_cnt *axes_cnt)
 {
 	struct tep_event *event;
 	struct tracefs_hist *hist;
@@ -326,11 +312,60 @@ tracefs_hist_alloc_nd(struct tep_handle *tep,
 		if (tracefs_hist_add_key(hist, axes->key, axes->type) < 0)
 			goto fail;
 
+	for (; axes_cnt && axes_cnt->key; axes_cnt++)
+		if (tracefs_hist_add_key_cnt(hist, axes_cnt->key, axes_cnt->type, axes_cnt->cnt) < 0)
+			goto fail;
+
 	return hist;
 
  fail:
 	tracefs_hist_free(hist);
 	return NULL;
+}
+/**
+ * tracefs_hist_alloc_nd - Initialize N-dimensional histogram
+ * @tep: The tep handle that has the @system and @event.
+ * @system: The system the histogram event is in
+ * @event: The event that the histogram will be attached to
+ * @axes: An array of histogram axes, terminated by a {NULL, 0} entry
+ *
+ * Will initialize a histogram descriptor that will be attached to
+ * the @system/@event. This only initializes the descriptor with the given
+ * @axes keys as primaries. This only initializes the descriptor, it does
+ * not start the histogram in the kernel.
+ *
+ * Returns an initialized histogram on success.
+ * NULL on failure.
+ */
+struct tracefs_hist *
+tracefs_hist_alloc_nd(struct tep_handle *tep,
+		      const char *system, const char *event_name,
+		      struct tracefs_hist_axis *axes)
+{
+	return hist_alloc_nd(tep, system, event_name, axes, NULL);
+}
+
+/**
+ * tracefs_hist_alloc_nd_cnt - Initialize N-dimensional histogram
+ * @tep: The tep handle that has the @system and @event.
+ * @system: The system the histogram event is in
+ * @event: The event that the histogram will be attached to
+ * @axes: An array of histogram axes, terminated by a {NULL, 0} entry
+ *
+ * Will initialize a histogram descriptor that will be attached to
+ * the @system/@event. This only initializes the descriptor with the given
+ * @axes keys as primaries. This only initializes the descriptor, it does
+ * not start the histogram in the kernel.
+ *
+ * Returns an initialized histogram on success.
+ * NULL on failure.
+ */
+struct tracefs_hist *
+tracefs_hist_alloc_nd_cnt(struct tep_handle *tep,
+			  const char *system, const char *event_name,
+			  struct tracefs_hist_axis_cnt *axes)
+{
+	return hist_alloc_nd(tep, system, event_name, NULL, axes);
 }
 
 /**
@@ -338,13 +373,14 @@ tracefs_hist_alloc_nd(struct tep_handle *tep,
  * @hist: The histogram to add the key to.
  * @key: The name of the key field.
  * @type: The type of the key format.
+ * @cnt: Some types require a counter, for those, this is used
  *
  * This adds a secondary or tertiary key to the histogram.
  *
  * Returns 0 on success, -1 on error.
  */
-int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
-			 enum tracefs_hist_key_type type)
+int tracefs_hist_add_key_cnt(struct tracefs_hist *hist, const char *key,
+			     enum tracefs_hist_key_type type, int cnt)
 {
 	bool use_key = false;
 	char *key_type = NULL;
@@ -377,6 +413,9 @@ int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 	case TRACEFS_HIST_KEY_USECS:
 		ret = asprintf(&key_type, "%s.usecs", key);
 		break;
+	case TRACEFS_HIST_KEY_BUCKETS:
+		ret = asprintf(&key_type, "%s.buckets=%d", key, cnt);
+		break;
 	case TRACEFS_HIST_KEY_MAX:
 		/* error */
 		break;
@@ -393,6 +432,22 @@ int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 	hist->keys = new_list;
 
 	return 0;
+}
+
+/**
+ * tracefs_hist_add_key - add to a key to a histogram
+ * @hist: The histogram to add the key to.
+ * @key: The name of the key field.
+ * @type: The type of the key format.
+ *
+ * This adds a secondary or tertiary key to the histogram.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
+			 enum tracefs_hist_key_type type)
+{
+	return tracefs_hist_add_key_cnt(hist, key, type, 0);
 }
 
 /**
@@ -1391,7 +1446,7 @@ int tracefs_synth_add_compare_field(struct tracefs_synth *synth,
 __hidden int synth_add_start_field(struct tracefs_synth *synth,
 				   const char *start_field,
 				   const char *name,
-				   enum tracefs_hist_key_type type)
+				   enum tracefs_hist_key_type type, int count)
 {
 	const struct tep_format_field *field;
 	const char *var;
@@ -1475,7 +1530,7 @@ int tracefs_synth_add_start_field(struct tracefs_synth *synth,
 				  const char *start_field,
 				  const char *name)
 {
-	return synth_add_start_field(synth, start_field, name, 0);
+	return synth_add_start_field(synth, start_field, name, 0, 0);
 }
 
 /**

@@ -1280,7 +1280,7 @@ static void where_no_to_error(struct sqlhist_bison *sb, struct expr *expr,
 
 static int verify_field_type(struct tep_handle *tep,
 			     struct sqlhist_bison *sb,
-			     struct expr *expr)
+			     struct expr *expr, int *cnt)
 {
 	struct field *field = &expr->field;
 	struct tep_event *event;
@@ -1359,6 +1359,17 @@ static int verify_field_type(struct tep_handle *tep,
 		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
 			goto fail_type;
 		ret = TRACEFS_HIST_KEY_LOG;
+	} else if (!strncmp(type, "buckets", 7)) {
+		if (type[7] != '=' || !isdigit(type[8])) {
+			parse_error(sb, field->raw,
+				    "buckets type must have '=[number]' after it\n");
+			ret = -1;
+			goto out;
+		}
+		*cnt = atoi(&type[8]);
+		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_BUCKETS;
 	} else {
 		parse_error(sb, field->raw,
 			    "Cast of '%s' to unknown type '%s'\n",
@@ -1473,14 +1484,15 @@ static struct tracefs_synth *build_synth(struct tep_handle *tep,
 			    field->system == start_system &&
 			    field->event_name == start_event) {
 				int type;
-				type = verify_field_type(tep, table->sb, expr);
+				int cnt = 0;
+				type = verify_field_type(tep, table->sb, expr, &cnt);
 				if (type < 0)
 					goto free;
 				if (type != HIST_COUNTER_TYPE)
 					non_val = true;
 				ret = synth_add_start_field(synth,
 						field->field, field->label,
-						type);
+						type, cnt);
 			} else if (table->to) {
 				ret = tracefs_synth_add_end_field(synth,
 						field->field, field->label);

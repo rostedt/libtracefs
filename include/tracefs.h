@@ -310,6 +310,7 @@ enum tracefs_hist_key_type {
 	TRACEFS_HIST_KEY_EXECNAME,
 	TRACEFS_HIST_KEY_LOG,
 	TRACEFS_HIST_KEY_USECS,
+	TRACEFS_HIST_KEY_BUCKETS,
 	TRACEFS_HIST_KEY_MAX
 };
 
@@ -372,15 +373,27 @@ struct tracefs_hist_axis {
 	enum tracefs_hist_key_type type;
 };
 
+struct tracefs_hist_axis_cnt {
+	const char *key;
+	enum tracefs_hist_key_type type;
+	int cnt;
+};
+
 struct tracefs_hist *
 tracefs_hist_alloc_nd(struct tep_handle *tep,
 		      const char *system, const char *event_name,
 		      struct tracefs_hist_axis *axes);
+struct tracefs_hist *
+tracefs_hist_alloc_nd_cnt(struct tep_handle *tep,
+			  const char *system, const char *event_name,
+			  struct tracefs_hist_axis_cnt *axes);
 const char *tracefs_hist_get_name(struct tracefs_hist *hist);
 const char *tracefs_hist_get_event(struct tracefs_hist *hist);
 const char *tracefs_hist_get_system(struct tracefs_hist *hist);
 int tracefs_hist_add_key(struct tracefs_hist *hist, const char *key,
 			 enum tracefs_hist_key_type type);
+int tracefs_hist_add_key_cnt(struct tracefs_hist *hist, const char *key,
+			 enum tracefs_hist_key_type type, int cnt);
 int tracefs_hist_add_value(struct tracefs_hist *hist, const char *value);
 int tracefs_hist_add_sort_key(struct tracefs_hist *hist,
 			      const char *sort_key);
