@@ -572,6 +572,9 @@ static int test_field_exists(struct tep_handle *tep,
 		tfield = tep_find_any_field(field->event, field_name);
 	free(field_name);
 
+	if (!tfield && (!strcmp(field->field, "COMM") || !strcmp(field->field, "comm")))
+		tfield = (void *)1L;
+
 	if (tfield)
 		return 0;
 
