@@ -230,9 +230,14 @@ Histograms:
 	struct tracefs_hist pass:[*]*tracefs_hist_alloc_nd*(struct tracefs_tep pass:[*] _tep_,
 				const char pass:[*]_system_, const char pass:[*]_event_,
 				struct tracefs_hist_axis pass:[*]_axes_);
+	struct tracefs_hist pass:[*]*tracefs_hist_alloc_nd_cnt*(struct tep_handle pass:[*]_tep_,
+				  const char pass:[*]_system_, const char pass:[*]_event_name_,
+				  struct tracefs_hist_axis_cnt pass:[*]_axes_);
 	void *tracefs_hist_free*(struct tracefs_hist pass:[*]_hist_);
 	int *tracefs_hist_add_key*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_key_,
 				 enum tracefs_hist_key_type _type_);
+	int *tracefs_hist_add_key_cnt*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_key_,
+				 enum tracefs_hist_key_type _type_, int _cnt_);
 	int *tracefs_hist_add_value*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_value_);
 	int *tracefs_hist_add_sort_key*(struct tracefs_hist pass:[*]_hist_,
 				      const char pass:[*]_sort_key_);

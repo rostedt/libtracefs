@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_hist_alloc, tracefs_hist_alloc_2d, tracefs_hist_alloc_nd, tracefs_hist_free,
+tracefs_hist_alloc, tracefs_hist_alloc_2d, tracefs_hist_alloc_nd, tracefs_hist_alloc_nd_cnt, tracefs_hist_free,
 tracefs_hist_add_key, tracefs_hist_add_key_cnt, tracefs_hist_add_value - Create and destroy event histograms
 
 SYNOPSIS
@@ -39,6 +39,9 @@ struct tracefs_hist pass:[*]*tracefs_hist_alloc_2d*(struct tracefs_tep pass:[*] 
 struct tracefs_hist pass:[*]*tracefs_hist_alloc_nd*(struct tracefs_tep pass:[*] _tep_,
 			const char pass:[*]_system_, const char pass:[*]_event_,
 			struct tracefs_hist_axis pass:[*]_axes_);
+struct tracefs_hist pass:[*]*tracefs_hist_alloc_nd_cnt*(struct tep_handle pass:[*]_tep_,
+			  const char pass:[*]_system_, const char pass:[*]_event_name_,
+			  struct tracefs_hist_axis_cnt pass:[*]_axes_);
 void *tracefs_hist_free*(struct tracefs_hist pass:[*]_hist_);
 
 int *tracefs_hist_add_key*(struct tracefs_hist pass:[*]_hist_, const char pass:[*]_key_,
@@ -79,6 +82,12 @@ The _tep_ is a trace event handle (see *tracefs_local_events*(3)), that holds th
 _system_ and _event_ that the histogram will be attached to. The _system_ is the
 system or group of the event. The _event_ is the event to attach the histogram to.
 The _axes_ is an array of _key_ / _type_ pairs, defining the dimensions of the histogram.
+
+*tracefs_hist_alloc_nd_cnt*() will initialize a histogram descriptor that will be attached to
+the _system_/_event_. This only initializes the descriptor with the given _axes_ keys as primaries.
+This only initializes the descriptor, it does not start the histogram in the kernel.
+The difference between this and *tracefs_hist_alloc_nd()* is that the _axes_ parameter
+is of type *struct tracefs_hist_axis_cnt* and not *struct tracefs_hist_axis*.
 
 *tracefs_hist_free*() frees the _tracefs_hist_ descriptor. Note, it does not stop
 or disable the running histogram if it was started. *tracefs_hist_destroy*() needs
