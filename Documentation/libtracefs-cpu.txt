@@ -4,7 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_cpu_read_size, tracefs_cpu_read, tracefs_cpu_buffered_read, tracefs_cpu_write,
-tracefs_cpu_stop, tracefs_cpu_flush, tracefs_cpu_flush_write - Reading trace_pipe_raw data
+tracefs_cpu_stop, tracefs_cpu_flush, tracefs_cpu_flush_write, tracefs_cpu_pipe
+- Reading trace_pipe_raw data
 
 SYNOPSIS
 --------
@@ -19,6 +20,7 @@ int *tracefs_cpu_write*(struct tracefs_cpu pass:[*]_tcpu_, int _wfd_, bool _nonb
 int *tracefs_cpu_stop*(struct tracefs_cpu pass:[*]_tcpu_);
 int *tracefs_cpu_flush*(struct tracefs_cpu pass:[*]_tcpu_, void pass:[*]_buffer_);
 int *tracefs_cpu_flush_write*(struct tracefs_cpu pass:[*]_tcpu_, int _wfd_);
+int *tracefs_cpu_pipe*(struct tracefs_cpu pass:[*]_tcpu_, int _wfd_, bool _nonblock_);
 --
 
 DESCRIPTION
@@ -65,6 +67,14 @@ trace_pipe_raw into non-blocking mode.
 
 The *tracefs_cpu_flush_write()* same as *trace_cpu_flush()* except it takes a file
 descriptor _wfd_ to flush the data into.
+
+The *tracefs_cpu_pipe()* is similar to *tracefs_cpu_write()* but the _wfd_ file descriptor
+must be a pipe. This call is an optimization of *tracefs_cpu_write()* that uses two calls
+to *splice*(2) in order to connect the trace_pipe_raw file descriptor with the write file
+descriptor. *splice*(2) requires that one of the passed in file descriptors is a pipe.
+If the application wants to pass the data to an existing pipe, there's no reason for
+there to be two *splice*(2) system calls and *tracefs_cpu_pipe()* can simply use a single
+call to _wfd_.
 
 RETURN VALUE
 ------------

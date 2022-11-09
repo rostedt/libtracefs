@@ -280,6 +280,7 @@ Recording of trace_pipe_raw files:
 	int *tracefs_cpu_stop*(struct tracefs_cpu pass:[*]_tcpu_);
 	int *tracefs_cpu_flush*(struct tracefs_cpu pass:[*]_tcpu_, void pass:[*]_buffer_);
 	int *tracefs_cpu_flush_write*(struct tracefs_cpu pass:[*]_tcpu_, int _wfd_);
+	int *tracefs_cpu_pipe*(struct tracefs_cpu pass:[*]_tcpu_, int _wfd_, bool _nonblock_);
 
 --
 
