@@ -87,20 +87,45 @@ static int test_callback(struct tep_event *event, struct tep_record *record,
 	return 0;
 }
 
+static cpu_set_t *cpuset_save;
+static cpu_set_t *cpuset;
+static int cpu_size;
+
+static void save_affinity(void)
+{
+	int cpus;
+
+	cpus = sysconf(_SC_NPROCESSORS_CONF);
+	cpuset_save = CPU_ALLOC(cpus);
+	cpuset = CPU_ALLOC(cpus);
+	CU_TEST(cpuset_save != NULL && cpuset != NULL);
+	CU_TEST(sched_getaffinity(0, cpu_size, cpuset_save) == 0);
+}
+
+static void reset_affinity(void)
+{
+	sched_setaffinity(0, cpu_size, cpuset_save);
+	CPU_FREE(cpuset_save);
+	CPU_FREE(cpuset);
+}
+
+static void set_affinity(int cpu)
+{
+	CPU_ZERO_S(cpu_size, cpuset);
+	CPU_SET_S(cpu, cpu_size, cpuset);
+	CU_TEST(sched_setaffinity(0, cpu_size, cpuset) == 0);
+	sched_yield(); /* Force schedule */
+}
+
 static void test_iter_write(struct tracefs_instance *instance)
 {
-	int cpus = sysconf(_SC_NPROCESSORS_CONF);
-	cpu_set_t *cpuset, *cpusave;
-	int cpu_size;
 	char *path;
 	int i, fd;
+	int cpus;
 	int ret;
-	cpuset = CPU_ALLOC(cpus);
-	cpusave = CPU_ALLOC(cpus);
-	cpu_size = CPU_ALLOC_SIZE(cpus);
-	CPU_ZERO_S(cpu_size, cpuset);
 
-	sched_getaffinity(0, cpu_size, cpusave);
+	cpus = sysconf(_SC_NPROCESSORS_CONF);
+	save_affinity();
 
 	path = tracefs_instance_get_file(instance, "trace_marker");
 	CU_TEST(path != NULL);
@@ -114,17 +139,13 @@ static void test_iter_write(struct tracefs_instance *instance)
 		if (!test_array[i].value)
 			test_array[i].value++;
 		CU_TEST(test_array[i].cpu < cpus);
-		CPU_ZERO_S(cpu_size, cpuset);
-		CPU_SET(test_array[i].cpu, cpuset);
-		sched_setaffinity(0, cpu_size, cpuset);
+		set_affinity(test_array[i].cpu);
 		ret = write(fd, test_array + i, sizeof(struct test_sample));
 		CU_TEST(ret == sizeof(struct test_sample));
 	}
 
-	sched_setaffinity(0, cpu_size, cpusave);
+	reset_affinity();
 	close(fd);
-	CPU_FREE(cpuset);
-	CPU_FREE(cpusave);
 }
 
 
