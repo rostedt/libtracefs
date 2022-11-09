@@ -1,0 +1,78 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_cpu_open, tracefs_cpu_close - Opening trace_pipe_raw data for reading
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+struct tracefs_cpu pass:[*]*tracefs_cpu_open*(struct tracefs_instance pass:[*]_instance_,
+				     int _cpu_, bool _nonblock_);
+void *tracefs_cpu_close*(struct tracefs_cpu pass:[*]_tcpu_);
+--
+
+DESCRIPTION
+-----------
+This set of APIs can be used to open the raw data from the trace_pipe_raw
+files in the tracefs file system in oder to read them with the *tracefs_cpu_read*(3)
+functions.
+
+The *tracefs_cpu_open()* creates a descriptor that can read the tracefs
+trace_pipe_raw file for a given _cpu_ in a given _instance_. If _instance_ is
+NULL than the toplevel trace_pipe_raw file is used.
+
+The *tracefs_cpu_close()* closes all the file descriptors associated to the trace_pipe_raw
+opened by *tracefs_cpu_open()*.
+
+RETURN VALUE
+------------
+The *tracefs_cpu_open()* returns a struct tracefs_cpu descriptor that can be
+used by the other functions or NULL on error.
+
+EXAMPLE
+-------
+See *tracefs_cpu_read*(3) for an example.
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2022 Google, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

@@ -3,9 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_cpu_open, tracefs_cpu_close, tracefs_cpu_read_size, tracefs_cpu_read,
-tracefs_cpu_buffered_read, tracefs_cpu_write, tracefs_cpu_stop, tracefs_cpu_flush,
-tracefs_cpu_flush_write - Reading trace_pipe_raw data
+tracefs_cpu_read_size, tracefs_cpu_read, tracefs_cpu_buffered_read, tracefs_cpu_write,
+tracefs_cpu_stop, tracefs_cpu_flush, tracefs_cpu_flush_write - Reading trace_pipe_raw data
 
 SYNOPSIS
 --------
@@ -13,9 +12,6 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
-struct tracefs_cpu pass:[*]*tracefs_cpu_open*(struct tracefs_instance pass:[*]_instance_,
-				     int _cpu_, bool _nonblock_);
-void *tracefs_cpu_close*(struct tracefs_cpu pass:[*]_tcpu_);
 int *tracefs_cpu_read_size*(struct tracefs_cpu pass:[*]_tcpu_);
 int *tracefs_cpu_read*(struct tracefs_cpu pass:[*]_tcpu_, void pass:[*]_buffer_, bool _nonblock_);
 int *tracefs_cpu_buffered_read*(struct tracefs_cpu pass:[*]_tcpu_, void pass:[*]_buffer_, bool _nonblock_);
@@ -29,13 +25,6 @@ DESCRIPTION
 -----------
 This set of APIs can be used to read the raw data from the trace_pipe_raw
 files in the tracefs file system.
-
-The *tracefs_cpu_open()* creates a descriptor that can read the tracefs
-trace_pipe_raw file for a given _cpu_ in a given _instance_. If _instance_ is
-NULL than the toplevel trace_pipe_raw file is used.
-
-The *tracefs_cpu_close()* closes all the file descriptors associated to the trace_pipe_raw
-opened by *tracefs_cpu_open()*.
 
 The *tracefs_cpu_read_size()* returns the subbuffer size of the trace_pipe_raw. This
 returns the minimum size of the buffer that is passed to the below functions.
@@ -211,6 +200,8 @@ FILES
 
 SEE ALSO
 --------
+*tracefs_cpu_open*(3)
+*tracefs_cpu_close*(3)
 *libtracefs*(3),
 *libtraceevent*(3),
 *trace-cmd*(1)
