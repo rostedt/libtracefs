@@ -609,6 +609,6 @@ int tracefs_cpu_write(struct tracefs_cpu *tcpu, int wfd, bool nonblock);
 int tracefs_cpu_stop(struct tracefs_cpu *tcpu);
 int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer);
 int tracefs_cpu_flush_write(struct tracefs_cpu *tcpu, int wfd);
-
+int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock);
 
 #endif /* _TRACE_FS_H */

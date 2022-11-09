@@ -547,3 +547,33 @@ int tracefs_cpu_write(struct tracefs_cpu *tcpu, int wfd, bool nonblock)
 
 	return tot_write;
 }
+
+/**
+ * tracefs_cpu_pipe - Write the raw trace file into a pipe descriptor
+ * @tcpu: The descriptor representing the raw trace file
+ * @wfd: The write file descriptor to write the data to (must be a pipe)
+ * @nonblock: Hint to not block on the read if there's no data.
+ *
+ * This will splice directly the file descriptor of the trace_pipe_raw
+ * file to the given @wfd, which must be a pipe. This can also be used
+ * if @tcpu was created with tracefs_cpu_create_fd() where the passed
+ * in @fd there was a pipe, then @wfd does not need to be a pipe.
+ *
+ * Returns the number of bytes read or negative on error.
+ */
+int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock)
+{
+	int mode = SPLICE_F_MOVE;
+	int ret;
+
+	ret = wait_on_input(tcpu, nonblock);
+	if (ret <= 0)
+		return ret;
+
+	if (nonblock || tcpu->flags & TC_NONBLOCK)
+		mode |= SPLICE_F_NONBLOCK;
+
+	ret = splice(tcpu->fd, NULL, wfd, NULL,
+		     tcpu->pipe_size, mode);
+	return ret;
+}
