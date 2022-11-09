@@ -19,8 +19,9 @@
 #include "tracefs-local.h"
 
 enum {
-	TC_STOP		= 1 << 0,	/* Stop reading */
-	TC_NONBLOCK	= 1 << 1,	/* read is non blocking */
+	TC_STOP			= 1 << 0,   /* Stop reading */
+	TC_PERM_NONBLOCK	= 1 << 1,   /* read is always non blocking */
+	TC_NONBLOCK		= 1 << 2,   /* read is non blocking */
 };
 
 struct tracefs_cpu {
@@ -59,7 +60,7 @@ tracefs_cpu_alloc_fd(int fd, int subbuf_size, bool nonblock)
 
 	if (nonblock) {
 		mode |= O_NONBLOCK;
-		tcpu->flags |= TC_NONBLOCK;
+		tcpu->flags |= TC_NONBLOCK | TC_PERM_NONBLOCK;
 	}
 
 	tcpu->splice_pipe[0] = -1;
@@ -69,7 +70,7 @@ tracefs_cpu_alloc_fd(int fd, int subbuf_size, bool nonblock)
 
 	tcpu->subbuf_size = subbuf_size;
 
-	if (tcpu->flags & TC_NONBLOCK) {
+	if (tcpu->flags & TC_PERM_NONBLOCK) {
 		tcpu->ctrl_pipe[0] = -1;
 		tcpu->ctrl_pipe[1] = -1;
 	} else {
@@ -210,9 +211,25 @@ static void set_nonblock(struct tracefs_cpu *tcpu)
 {
 	long flags;
 
+	if (tcpu->flags & TC_NONBLOCK)
+		return;
+
 	flags = fcntl(tcpu->fd, F_GETFL);
 	fcntl(tcpu->fd, F_SETFL, flags | O_NONBLOCK);
 	tcpu->flags |= TC_NONBLOCK;
+}
+
+static void unset_nonblock(struct tracefs_cpu *tcpu)
+{
+	long flags;
+
+	if (!(tcpu->flags & TC_NONBLOCK))
+		return;
+
+	flags = fcntl(tcpu->fd, F_GETFL);
+	flags &= ~O_NONBLOCK;
+	fcntl(tcpu->fd, F_SETFL, flags);
+	tcpu->flags &= ~TC_NONBLOCK;
 }
 
 /*
@@ -222,24 +239,24 @@ static void set_nonblock(struct tracefs_cpu *tcpu)
  */
 static int wait_on_input(struct tracefs_cpu *tcpu, bool nonblock)
 {
-	struct timeval tv, *ptv = NULL;
 	fd_set rfds;
 	int ret;
 
-	if (tcpu->flags & TC_NONBLOCK)
+	if (tcpu->flags & TC_PERM_NONBLOCK)
 		return 1;
 
 	if (nonblock) {
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-		ptv = &tv;
+		set_nonblock(tcpu);
+		return 1;
+	} else {
+		unset_nonblock(tcpu);
 	}
 
 	FD_ZERO(&rfds);
 	FD_SET(tcpu->fd, &rfds);
 	FD_SET(tcpu->ctrl_pipe[0], &rfds);
 
-	ret = select(tcpu->nfds, &rfds, NULL, NULL, ptv);
+	ret = select(tcpu->nfds, &rfds, NULL, NULL, NULL);
 
 	/* Let the application decide what to do with signals and such */
 	if (ret < 0)
@@ -251,6 +268,8 @@ static int wait_on_input(struct tracefs_cpu *tcpu, bool nonblock)
 
 		/* Make nonblock as it is now stopped */
 		set_nonblock(tcpu);
+		/* Permanently set unblock */
+		tcpu->flags |= TC_PERM_NONBLOCK;
 	}
 
 	return FD_ISSET(tcpu->fd, &rfds);
@@ -275,8 +294,6 @@ static int wait_on_input(struct tracefs_cpu *tcpu, bool nonblock)
  */
 int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 {
-	bool orig_nonblock = nonblock;
-	long flags = 0;
 	int ret;
 
 	/*
@@ -290,8 +307,9 @@ int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 
 	ret = read(tcpu->fd, buffer, tcpu->subbuf_size);
 
-	if (nonblock != orig_nonblock && !(tcpu->flags & TC_NONBLOCK))
-		fcntl(tcpu->fd, F_SETFL, flags);
+	/* It's OK if there's no data to read */
+	if (ret < 0 && errno == EAGAIN)
+		ret = 0;
 
 	return ret;
 }
@@ -360,7 +378,7 @@ int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonbl
 	if (ret <= 0)
 		return ret;
 
-	if (nonblock || tcpu->flags & TC_NONBLOCK)
+	if (tcpu->flags & TC_NONBLOCK)
 		mode |= SPLICE_F_NONBLOCK;
 
 	ret = init_splice(tcpu);
@@ -414,6 +432,8 @@ int tracefs_cpu_stop(struct tracefs_cpu *tcpu)
 	else
 		ret = 0;
 
+	set_nonblock(tcpu);
+
 	return ret;
 }
 
@@ -436,8 +456,7 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer)
 	int ret;
 
 	/* Make sure that reading is now non blocking */
-	if (!(tcpu->flags & TC_NONBLOCK))
-		set_nonblock(tcpu);
+	set_nonblock(tcpu);
 
 	if (tcpu->buffered < 0)
 		tcpu->buffered = 0;
@@ -505,7 +524,7 @@ int tracefs_cpu_write(struct tracefs_cpu *tcpu, int wfd, bool nonblock)
 	if (ret <= 0)
 		return ret;
 
-	if (nonblock || tcpu->flags & TC_NONBLOCK)
+	if (tcpu->flags & TC_NONBLOCK)
 		mode |= SPLICE_F_NONBLOCK;
 
 	ret = init_splice(tcpu);
@@ -570,7 +589,7 @@ int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock)
 	if (ret <= 0)
 		return ret;
 
-	if (nonblock || tcpu->flags & TC_NONBLOCK)
+	if (tcpu->flags & TC_NONBLOCK)
 		mode |= SPLICE_F_NONBLOCK;
 
 	ret = splice(tcpu->fd, NULL, wfd, NULL,
