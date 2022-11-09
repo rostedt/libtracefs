@@ -597,9 +597,11 @@ tracefs_synth_get_event(struct tep_handle *tep, struct tracefs_synth *synth);
 
 struct tracefs_cpu;
 
+struct tracefs_cpu *tracefs_cpu_alloc_fd(int fd, int subbuf_size, bool nonblock);
 struct tracefs_cpu *tracefs_cpu_open(struct tracefs_instance *instance,
 				     int cpu, bool nonblock);
 void tracefs_cpu_close(struct tracefs_cpu *tcpu);
+void tracefs_cpu_free_fd(struct tracefs_cpu *tcpu);
 int tracefs_cpu_read_size(struct tracefs_cpu *tcpu);
 int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock);
 int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock);

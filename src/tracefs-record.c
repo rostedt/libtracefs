@@ -24,7 +24,6 @@ enum {
 };
 
 struct tracefs_cpu {
-	int		cpu;
 	int		fd;
 	int		flags;
 	int		nfds;
@@ -37,25 +36,21 @@ struct tracefs_cpu {
 };
 
 /**
- * tracefs_cpu_open - open an instance raw trace file
- * @instance: the instance (NULL for toplevel) of the cpu raw file to open
- * @cpu: The CPU that the raw trace file is associated with
+ * tracefs_cpu_alloc_fd - create a tracefs_cpu instance for an existing fd
+ * @fd: The file descriptor to attach the tracefs_cpu to
+ * @subbuf_size: The expected size to read the subbuffer with
  * @nonblock: If true, the file will be opened in O_NONBLOCK mode
  *
  * Return a descriptor that can read the tracefs trace_pipe_raw file
- * for a give @cpu in a given @instance.
+ * that is associated with the given @fd and must be read in @subbuf_size.
  *
  * Returns NULL on error.
  */
 struct tracefs_cpu *
-tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
+tracefs_cpu_alloc_fd(int fd, int subbuf_size, bool nonblock)
 {
 	struct tracefs_cpu *tcpu;
-	struct tep_handle *tep;
 	int mode = O_RDONLY;
-	char path[128];
-	char *buf;
-	int len;
 	int ret;
 
 	tcpu = calloc(1, sizeof(*tcpu));
@@ -70,32 +65,9 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 	tcpu->splice_pipe[0] = -1;
 	tcpu->splice_pipe[1] = -1;
 
-	sprintf(path, "per_cpu/cpu%d/trace_pipe_raw", cpu);
+	tcpu->fd = fd;
 
-	tcpu->cpu = cpu;
-	tcpu->fd = tracefs_instance_file_open(instance, path, mode);
-	if (tcpu->fd < 0) {
-		free(tcpu);
-		return NULL;
-	}
-
-	tep = tep_alloc();
-	if (!tep)
-		goto fail;
-
-	/* Get the size of the page */
-	buf = tracefs_instance_file_read(NULL, "events/header_page", &len);
-	if (!buf)
-		goto fail;
-
-	ret = tep_parse_header_page(tep, buf, len, sizeof(long));
-	free(buf);
-	if (ret < 0)
-		goto fail;
-
-	tcpu->subbuf_size = tep_get_sub_buffer_size(tep);
-	tep_free(tep);
-	tep = NULL;
+	tcpu->subbuf_size = subbuf_size;
 
 	if (tcpu->flags & TC_NONBLOCK) {
 		tcpu->ctrl_pipe[0] = -1;
@@ -113,9 +85,69 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 
 	return tcpu;
  fail:
-	tep_free(tep);
-	close(tcpu->fd);
 	free(tcpu);
+	return NULL;
+}
+
+/**
+ * tracefs_cpu_open - open an instance raw trace file
+ * @instance: the instance (NULL for toplevel) of the cpu raw file to open
+ * @cpu: The CPU that the raw trace file is associated with
+ * @nonblock: If true, the file will be opened in O_NONBLOCK mode
+ *
+ * Return a descriptor that can read the tracefs trace_pipe_raw file
+ * for a give @cpu in a given @instance.
+ *
+ * Returns NULL on error.
+ */
+struct tracefs_cpu *
+tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
+{
+	struct tracefs_cpu *tcpu;
+	struct tep_handle *tep;
+	char path[128];
+	char *buf;
+	int mode = O_RDONLY;
+	int subbuf_size;
+	int len;
+	int ret;
+	int fd;
+
+	if (nonblock)
+		mode |= O_NONBLOCK;
+
+	sprintf(path, "per_cpu/cpu%d/trace_pipe_raw", cpu);
+
+	fd = tracefs_instance_file_open(instance, path, mode);
+	if (fd < 0)
+		return NULL;
+
+	tep = tep_alloc();
+	if (!tep)
+		goto fail;
+
+	/* Get the size of the page */
+	buf = tracefs_instance_file_read(NULL, "events/header_page", &len);
+	if (!buf)
+		goto fail;
+
+	ret = tep_parse_header_page(tep, buf, len, sizeof(long));
+	free(buf);
+	if (ret < 0)
+		goto fail;
+
+	subbuf_size = tep_get_sub_buffer_size(tep);
+	tep_free(tep);
+	tep = NULL;
+
+	tcpu = tracefs_cpu_alloc_fd(fd, subbuf_size, nonblock);
+	if (!tcpu)
+		goto fail;
+
+	return tcpu;
+ fail:
+	tep_free(tep);
+	close(fd);
 	return NULL;
 }
 
@@ -124,6 +156,23 @@ static void close_fd(int fd)
 	if (fd < 0)
 		return;
 	close(fd);
+}
+
+/**
+ * tracefs_cpu_free_fd - clean up the tracefs_cpu descriptor
+ * @tcpu: The descriptor created with tracefs_cpu_alloc_fd()
+ *
+ * Closes all the internal file descriptors that were opened by
+ * tracefs_cpu_alloc_fd(), and frees the descriptor.
+ */
+void tracefs_cpu_free_fd(struct tracefs_cpu *tcpu)
+{
+	close_fd(tcpu->ctrl_pipe[0]);
+	close_fd(tcpu->ctrl_pipe[1]);
+	close_fd(tcpu->splice_pipe[0]);
+	close_fd(tcpu->splice_pipe[1]);
+
+	free(tcpu);
 }
 
 /**
@@ -139,12 +188,7 @@ void tracefs_cpu_close(struct tracefs_cpu *tcpu)
 		return;
 
 	close(tcpu->fd);
-	close_fd(tcpu->ctrl_pipe[0]);
-	close_fd(tcpu->ctrl_pipe[1]);
-	close_fd(tcpu->splice_pipe[0]);
-	close_fd(tcpu->splice_pipe[1]);
-
-	free(tcpu);
+	tracefs_cpu_free_fd(tcpu);
 }
 
 /**
