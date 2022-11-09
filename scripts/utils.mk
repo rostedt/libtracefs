@@ -101,7 +101,7 @@ extract_example =				\
 
 do_sample_build =							\
 	$(Q)($(print_sample_build)					\
-	$(CC) -o $1 $2 $(CFLAGS) $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS))
+	$(CC) -o $1 $2 $(CFLAGS) $(LIBTRACEFS_STATIC) $(LIBTRACEEVENT_LIBS) -lpthread)
 
 do_sample_obj =									\
 	$(Q)($(print_sample_obj)						\

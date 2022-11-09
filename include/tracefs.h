@@ -595,4 +595,18 @@ struct tracefs_synth *tracefs_sql(struct tep_handle *tep, const char *name,
 struct tep_event *
 tracefs_synth_get_event(struct tep_handle *tep, struct tracefs_synth *synth);
 
+struct tracefs_cpu;
+
+struct tracefs_cpu *tracefs_cpu_open(struct tracefs_instance *instance,
+				     int cpu, bool nonblock);
+void tracefs_cpu_close(struct tracefs_cpu *tcpu);
+int tracefs_cpu_read_size(struct tracefs_cpu *tcpu);
+int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock);
+int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock);
+int tracefs_cpu_write(struct tracefs_cpu *tcpu, int wfd, bool nonblock);
+int tracefs_cpu_stop(struct tracefs_cpu *tcpu);
+int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer);
+int tracefs_cpu_flush_write(struct tracefs_cpu *tcpu, int wfd);
+
+
 #endif /* _TRACE_FS_H */

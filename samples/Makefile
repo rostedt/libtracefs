@@ -21,6 +21,7 @@ EXAMPLES += hist-cont
 EXAMPLES += tracer
 EXAMPLES += stream
 EXAMPLES += instances-affinity
+EXAMPLES += cpu
 
 TARGETS :=
 TARGETS += sqlhist

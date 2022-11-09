@@ -14,6 +14,7 @@ OBJS += tracefs-filter.o
 OBJS += tracefs-dynevents.o
 OBJS += tracefs-eprobes.o
 OBJS += tracefs-uprobes.o
+OBJS += tracefs-record.o
 
 # Order matters for the the three below
 OBJS += sqlhist-lex.o
