@@ -17,6 +17,7 @@ void tracefs_put_tracing_file(char *name);
 const char *tracefs_tracing_dir(void);
 const char *tracefs_debug_dir(void);
 int tracefs_set_tracing_dir(char *tracing_dir);
+int tracefs_tracing_dir_is_mounted(bool mount, const char **path);
 
 /* ftrace instances */
 struct tracefs_instance;

@@ -3,8 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_get_tracing_file, tracefs_put_tracing_file, tracefs_tracing_dir, tracefs_debug_dir, tracefs_set_tracing_dir -
-Find and set locations of trace directory and files.
+tracefs_get_tracing_file, tracefs_put_tracing_file, tracefs_tracing_dir, tracefs_debug_dir, tracefs_set_tracing_dir,
+tracefs_tracing_dir_is_mounted - Find and set locations of trace directory and files.
 
 SYNOPSIS
 --------
@@ -17,6 +17,7 @@ void *tracefs_put_tracing_file*(char pass:[*]_name_);
 const char pass:[*]*tracefs_tracing_dir*(void);
 const char pass:[*]*tracefs_debug_dir*(void);
 int *tracefs_set_tracing_dir*(char pass:[*]_tracing_dir_)
+int *tracefs_tracing_dir_is_mounted*(bool _mount_, const char pass:[**]_path_);
 --
 
 DESCRIPTION
@@ -52,6 +53,12 @@ that it will return where the debugfs file system is mounted. If it
 is not mounted it will try to mount it. The return string must _not_
 be freed.
 
+*tracefs_tracing_dir_is_mounted()* returns 1 if the tracing directory is
+already mounted and 0 if it is not. If _mount_ is true, it will try to
+mount it if it is not, and returns 0 if it succesfully mounted it and -1
+if it did not. If _path_ is set, it will be assigned to the path where it
+mounted it. _path_ is internal and should not be freed.
+
 RETURN VALUE
 ------------
 The *tracefs_set_tracing_dir()* function returns 0 on success, -1 otherwise.
@@ -64,6 +71,9 @@ in case of an error. The returned string must _not_ be freed.
 
 The *tracefs_debug_dir()* function returns a constant string or NULL
 in case of an error. The returned string must _not_ be freed.
+
+The *tracefs_tracing_dir_is_mounted()* returns 1 if the tracing directory
+is already mounted, 0 if it is not, and -1 on error.
 
 EXAMPLE
 -------

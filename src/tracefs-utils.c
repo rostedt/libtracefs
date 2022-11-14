@@ -85,14 +85,7 @@ static int mount_debugfs(void)
 	return ret;
 }
 
-/**
- * trace_find_tracing_dir - Find tracing directory
- * @debugfs: Boolean to just return the debugfs directory
- *
- * Returns string containing the full path to the system's tracing directory.
- * The string must be freed by free()
- */
-__hidden char *trace_find_tracing_dir(bool debugfs)
+static char *find_tracing_dir(bool debugfs, bool mount)
 {
 	char *debug_str = NULL;
 	char fspath[PATH_MAX+1];
@@ -127,18 +120,19 @@ __hidden char *trace_find_tracing_dir(bool debugfs)
 
 	if (debugfs) {
 		if (strcmp(type, "debugfs") != 0) {
-			if (mount_debugfs() < 0)
+			if (!mount || mount_debugfs() < 0)
 				return NULL;
 			strcpy(fspath, DEBUGFS_PATH);
 		}
 	} else if (strcmp(type, "tracefs") != 0) {
-		if (mount_tracefs() < 0) {
+		if (!mount || mount_tracefs() < 0) {
 			if (debug_str) {
 				strncpy(fspath, debug_str, PATH_MAX);
 				fspath[PATH_MAX] = 0;
 			} else {
-				if (mount_debugfs() < 0) {
-					tracefs_warning("debugfs not mounted, please mount");
+				if (!mount || mount_debugfs() < 0) {
+					if (mount)
+						tracefs_warning("debugfs not mounted, please mount");
 					free(debug_str);
 					return NULL;
 				}
@@ -163,6 +157,50 @@ __hidden char *trace_find_tracing_dir(bool debugfs)
 	}
 
 	return tracing_dir;
+}
+
+/**
+ * tracefs_tracing_dir_is_mounted - test if the tracing dir is already mounted
+ * @mount: Mount it if it is not already mounted
+ * @path: the path to the tracing directory if mounted or was mounted
+ *
+ * Returns 1 if the tracing directory is already mounted and 0 if it is not.
+ * If @mount is set and it fails to mount, it returns -1.
+ *
+ * If path is not NULL, and the tracing directory is or was mounted, it holds
+ * the path to the tracing directory. It must not be freed.
+ */
+int tracefs_tracing_dir_is_mounted(bool mount, const char **path)
+{
+	const char *dir;
+
+	dir = find_tracing_dir(false, false);
+	if (dir) {
+		if (path)
+			*path = dir;
+		return 1;
+	}
+	if (!mount)
+		return 0;
+
+	dir = find_tracing_dir(false, mount);
+	if (!dir)
+		return -1;
+	if (path)
+		*path = dir;
+	return 0;
+}
+
+/**
+ * trace_find_tracing_dir - Find tracing directory
+ * @debugfs: Boolean to just return the debugfs directory
+ *
+ * Returns string containing the full path to the system's tracing directory.
+ * The string must be freed by free()
+ */
+__hidden char *trace_find_tracing_dir(bool debugfs)
+{
+	return find_tracing_dir(debugfs, false);
 }
 
 /**

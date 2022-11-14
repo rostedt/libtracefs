@@ -17,6 +17,7 @@ Locations of tracing files and directories:
 	const char pass:[*]*tracefs_tracing_dir*(void);
 	const char pass:[*]*tracefs_debug_dir*(void);
 	int *tracefs_set_tracing_dir*(char pass:[*]_tracing_dir_)
+	int *tracefs_tracing_dir_is_mounted*(bool _mount_, const char pass:[**]_path_);
 
 Trace instances:
 	struct tracefs_instance pass:[*]*tracefs_instance_create*(const char pass:[*]_name_);
