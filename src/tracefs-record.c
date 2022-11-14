@@ -308,8 +308,11 @@ int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 	ret = read(tcpu->fd, buffer, tcpu->subbuf_size);
 
 	/* It's OK if there's no data to read */
-	if (ret < 0 && errno == EAGAIN)
+	if (ret < 0 && errno == EAGAIN) {
+		/* Reset errno */
+		errno = 0;
 		ret = 0;
+	}
 
 	return ret;
 }
@@ -470,8 +473,11 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer)
 		tcpu->buffered -= ret;
 
 	/* It's OK if there's no data to read */
-	if (ret < 0 && errno == EAGAIN)
+	if (ret < 0 && errno == EAGAIN) {
+		/* Reset errno */
+		errno = 0;
 		ret = 0;
+	}
 
 	return ret;
 }
