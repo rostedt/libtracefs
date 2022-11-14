@@ -364,6 +364,43 @@ const char *tracefs_instance_get_name(struct tracefs_instance *instance)
 }
 
 /**
+ * tracefs_instance_get_buffer_size - return the buffer size of the ring buffer
+ * @instance: The instance to get the buffer size from
+ * @cpu: if less that zero, will return the total size, otherwise the cpu size
+ *
+ * Returns the buffer size. If @cpu is less than zero, it returns the total size
+ * of the ring buffer otherwise it returs the size of the buffer for the given
+ * CPU.
+ *
+ * Returns -1 on error.
+ */
+ssize_t tracefs_instance_get_buffer_size(struct tracefs_instance *instance, int cpu)
+{
+	unsigned long long size;
+	char *path;
+	char *val;
+	int ret;
+
+	if (cpu < 0) {
+		val = tracefs_instance_file_read(instance, "buffer_total_size_kb", NULL);
+	} else {
+		ret = asprintf(&path, "per_cpu/cpu%d/buffer_size_kb", cpu);
+		if (ret < 0)
+			return ret;
+
+		val = tracefs_instance_file_read(instance, path, NULL);
+		free(path);
+	}
+
+	if (!val)
+		return -1;
+
+	size = strtoull(val, NULL, 0);
+	free(val);
+	return size;
+}
+
+/**
  * tracefs_instance_get_trace_dir - return the top trace directory, where the instance is confuigred
  * @instance: ftrace instance
  *

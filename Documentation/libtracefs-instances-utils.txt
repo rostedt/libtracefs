@@ -3,9 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_instance_get_name, tracefs_instance_get_trace_dir,
-tracefs_instances_walk, tracefs_instance_exists -
-Helper functions for working with tracing instances.
+tracefs_instance_get_name, tracefs_instance_get_trace_dir, tracefs_instances_walk, tracefs_instance_exists,
+tracefs_instance_get_buffer_size - Helper functions for working with tracing instances.
 
 SYNOPSIS
 --------
@@ -17,7 +16,7 @@ const char pass:[*]*tracefs_instance_get_name*(struct tracefs_instance pass:[*]_
 const char pass:[*]*tracefs_instance_get_trace_dir*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_instances_walk*(int (pass:[*]_callback_)(const char pass:[*], void pass:[*]), void pass:[*]_context)_;
 bool *tracefs_instance_exists*(const char pass:[*]_name_);
-
+size_t *tracefs_instance_get_buffer_size*(struct tracefs_instance pass:[*]_instance_, int _cpu_);
 --
 
 DESCRIPTION
@@ -39,6 +38,10 @@ called for the top top instance.
 The *tracefs_instance_exists()* function checks if an instance with the given
 _name_ exists in the system.
 
+The *tracefs_instace_get_buffer_size()* returns the size of the ring buffer. If _cpu_
+is negative, it returns the total size of all the per CPU ring buffers, otherwise
+it returns the size of the per CPU ring buffer for _cpu_.
+
 RETURN VALUE
 ------------
 The *tracefs_instance_get_name()* returns a string or NULL in case of the top
@@ -52,6 +55,9 @@ if the iteration was stopped by the _callback_, or -1 in case of an error.
 
 The *tracefs_instance_exists()* returns true if an instance with the given _name_
 exists in the system or false otherwise.
+
+The *tracefs_instance_get_buffer_size()* returns the size of the ring buffer depending on
+the _cpu_ value passed in, or -1 on error.
 
 EXAMPLE
 -------
