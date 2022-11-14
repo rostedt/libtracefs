@@ -1044,9 +1044,68 @@ static bool match(const char *str, regex_t *re)
 	return regexec(re, str, 0, NULL, 0) == 0;
 }
 
+enum event_state {
+	STATE_INIT,
+	STATE_ENABLED,
+	STATE_DISABLED,
+	STATE_MIXED,
+	STATE_ERROR,
+};
+
+static int read_event_state(struct tracefs_instance *instance, const char *file,
+			    enum event_state *state)
+{
+	char *val;
+	int ret = 0;
+
+	if (*state == STATE_ERROR)
+		return -1;
+
+	val = tracefs_instance_file_read(instance, file, NULL);
+	if (!val)
+		return -1;
+
+	switch (val[0]) {
+	case '0':
+		switch (*state) {
+		case STATE_INIT:
+			*state = STATE_DISABLED;
+			break;
+		case STATE_ENABLED:
+			*state = STATE_MIXED;
+			break;
+		default:
+			break;
+		}
+		break;
+	case '1':
+		switch (*state) {
+		case STATE_INIT:
+			*state = STATE_ENABLED;
+			break;
+		case STATE_DISABLED:
+			*state = STATE_MIXED;
+			break;
+		default:
+			break;
+		}
+		break;
+	case 'X':
+		*state = STATE_MIXED;
+		break;
+	default:
+		*state = TRACEFS_ERROR;
+		ret = -1;
+		break;
+	}
+	free(val);
+
+	return ret;
+}
+
 static int enable_disable_event(struct tracefs_instance *instance,
 				const char *system, const char *event,
-				bool enable)
+				bool enable, enum event_state *state)
 {
 	const char *str = enable ? "1" : "0";
 	char *system_event;
@@ -1056,14 +1115,18 @@ static int enable_disable_event(struct tracefs_instance *instance,
 	if (ret < 0)
 		return ret;
 
-	ret = tracefs_instance_file_write(instance, system_event, str);
+	if (state)
+		ret = read_event_state(instance, system_event, state);
+	else
+		ret = tracefs_instance_file_write(instance, system_event, str);
 	free(system_event);
 
 	return ret;
 }
 
 static int enable_disable_system(struct tracefs_instance *instance,
-				 const char *system, bool enable)
+				 const char *system, bool enable,
+				 enum event_state *state)
 {
 	const char *str = enable ? "1" : "0";
 	char *system_path;
@@ -1073,7 +1136,10 @@ static int enable_disable_system(struct tracefs_instance *instance,
 	if (ret < 0)
 		return ret;
 
-	ret = tracefs_instance_file_write(instance, system_path, str);
+	if (state)
+		ret = read_event_state(instance, system_path, state);
+	else
+		ret = tracefs_instance_file_write(instance, system_path, str);
 	free(system_path);
 
 	return ret;
@@ -1111,7 +1177,7 @@ static int make_regex(regex_t *re, const char *match)
 
 static int event_enable_disable(struct tracefs_instance *instance,
 				const char *system, const char *event,
-				bool enable)
+				bool enable, enum event_state *state)
 {
 	regex_t system_re, event_re;
 	char **systems;
@@ -1148,7 +1214,7 @@ static int event_enable_disable(struct tracefs_instance *instance,
 
 		/* Check for the short cut first */
 		if (!event) {
-			ret = enable_disable_system(instance, systems[s], enable);
+			ret = enable_disable_system(instance, systems[s], enable, state);
 			if (ret < 0)
 				break;
 			ret = 0;
@@ -1163,7 +1229,7 @@ static int event_enable_disable(struct tracefs_instance *instance,
 			if (!match(events[e], &event_re))
 				continue;
 			ret = enable_disable_event(instance, systems[s],
-						   events[e], enable);
+						   events[e], enable, state);
 			if (ret < 0)
 				break;
 			ret = 0;
@@ -1202,11 +1268,55 @@ static int event_enable_disable(struct tracefs_instance *instance,
 int tracefs_event_enable(struct tracefs_instance *instance,
 			 const char *system, const char *event)
 {
-	return event_enable_disable(instance, system, event, true);
+	return event_enable_disable(instance, system, event, true, NULL);
 }
 
 int tracefs_event_disable(struct tracefs_instance *instance,
 			  const char *system, const char *event)
 {
-	return event_enable_disable(instance, system, event, false);
+	return event_enable_disable(instance, system, event, false, NULL);
+}
+
+/**
+ * tracefs_event_is_enabled - return if the event is enabled or not
+ * @instance: ftrace instance, can be NULL for the top instance
+ * @system: The name of the system to check
+ * @event: The name of the event to check
+ *
+ * Checks is an event or multiple events are enabled.
+ *
+ * If @system is NULL, then it will check all the systems where @event is
+ * a match.
+ *
+ * If @event is NULL, then it will check all events where @system is a match.
+ *
+ * If both @system and @event are NULL, then it will check all events
+ *
+ * Returns TRACEFS_ALL_ENABLED if all matching are enabled.
+ * Returns TRACEFS_SOME_ENABLED if some are enabled and some are not
+ * Returns TRACEFS_ALL_DISABLED if none of the events are enabled.
+ * Returns TRACEFS_ERROR if there is an error reading the events.
+ */
+enum tracefs_enable_state
+tracefs_event_is_enabled(struct tracefs_instance *instance,
+			 const char *system, const char *event)
+{
+	enum event_state state = STATE_INIT;
+	int ret;
+
+	ret = event_enable_disable(instance, system, event, false, &state);
+
+	if (ret < 0)
+		return TRACEFS_ERROR;
+
+	switch (state) {
+	case STATE_ENABLED:
+		return TRACEFS_ALL_ENABLED;
+	case STATE_DISABLED:
+		return TRACEFS_ALL_DISABLED;
+	case STATE_MIXED:
+		return TRACEFS_SOME_ENABLED;
+	default:
+		return TRACEFS_ERROR;
+	}
 }

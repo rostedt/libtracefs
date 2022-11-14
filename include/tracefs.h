@@ -67,8 +67,17 @@ int tracefs_trace_off(struct tracefs_instance *instance);
 int tracefs_trace_on_fd(int fd);
 int tracefs_trace_off_fd(int fd);
 
+enum tracefs_enable_state {
+	TRACEFS_ERROR		= -1,
+	TRACEFS_ALL_DISABLED	= 0,
+	TRACEFS_ALL_ENABLED	= 1,
+	TRACEFS_SOME_ENABLED	= 2,
+};
+
 int tracefs_event_enable(struct tracefs_instance *instance, const char *system, const char *event);
 int tracefs_event_disable(struct tracefs_instance *instance, const char *system, const char *event);
+enum tracefs_enable_state tracefs_event_is_enabled(struct tracefs_instance *instance,
+			 const char *system, const char *event);
 
 char *tracefs_error_last(struct tracefs_instance *instance);
 char *tracefs_error_all(struct tracefs_instance *instance);
