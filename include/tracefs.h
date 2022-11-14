@@ -56,6 +56,7 @@ char *tracefs_instance_get_affinity_raw(struct tracefs_instance *instance);
 int tracefs_instance_get_affinity_set(struct tracefs_instance *instance,
 				      cpu_set_t *set, size_t set_size);
 ssize_t tracefs_instance_get_buffer_size(struct tracefs_instance *instance, int cpu);
+int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t size, int cpu);
 char **tracefs_instances(const char *regex);
 
 bool tracefs_instance_exists(const char *name);

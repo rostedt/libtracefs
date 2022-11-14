@@ -400,6 +400,33 @@ ssize_t tracefs_instance_get_buffer_size(struct tracefs_instance *instance, int 
 	return size;
 }
 
+int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t size, int cpu)
+{
+	char *path;
+	char *val;
+	int ret;
+
+	ret = asprintf(&val, "%zd", size);
+	if (ret < 0)
+		return ret;
+
+	if (cpu < 0) {
+		ret = tracefs_instance_file_write(instance, "buffer_size_kb", val);
+	} else {
+		ret = asprintf(&path, "per_cpu/cpu%d/buffer_size_kb", cpu);
+		if (ret < 0) {
+			free(val);
+			return ret;
+		}
+
+		ret = tracefs_instance_file_write(instance, path, "val");
+		free(path);
+	}
+	free(val);
+
+	return ret < 0 ? -1 : 0;
+}
+
 /**
  * tracefs_instance_get_trace_dir - return the top trace directory, where the instance is confuigred
  * @instance: ftrace instance

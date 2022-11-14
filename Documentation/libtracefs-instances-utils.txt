@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_instance_get_name, tracefs_instance_get_trace_dir, tracefs_instances_walk, tracefs_instance_exists,
-tracefs_instance_get_buffer_size - Helper functions for working with tracing instances.
+tracefs_instance_get_buffer_size, tracefs_instance_set_buffer_size - Helper functions for working with tracing instances.
 
 SYNOPSIS
 --------
@@ -17,6 +17,7 @@ const char pass:[*]*tracefs_instance_get_trace_dir*(struct tracefs_instance pass
 int *tracefs_instances_walk*(int (pass:[*]_callback_)(const char pass:[*], void pass:[*]), void pass:[*]_context)_;
 bool *tracefs_instance_exists*(const char pass:[*]_name_);
 size_t *tracefs_instance_get_buffer_size*(struct tracefs_instance pass:[*]_instance_, int _cpu_);
+int *tracefs_instance_set_buffer_size*(struct tracefs_instance pass:[*]_instance_, size_t _size_, int _cpu_);
 --
 
 DESCRIPTION
@@ -42,6 +43,11 @@ The *tracefs_instace_get_buffer_size()* returns the size of the ring buffer. If 
 is negative, it returns the total size of all the per CPU ring buffers, otherwise
 it returns the size of the per CPU ring buffer for _cpu_.
 
+The *tracefs_instance_set_buffer_size()* function sets the size of the ring buffer.
+If _cpu_ is negative, then it sets all the per CPU ring buffers to _size_ (note
+the total size is the number of CPUs * _size_). If _cpu_ is specified, then it only
+sets the size of the per CPU ring buffer.
+
 RETURN VALUE
 ------------
 The *tracefs_instance_get_name()* returns a string or NULL in case of the top
@@ -58,6 +64,8 @@ exists in the system or false otherwise.
 
 The *tracefs_instance_get_buffer_size()* returns the size of the ring buffer depending on
 the _cpu_ value passed in, or -1 on error.
+
+The *tracefs_instance_set_buffer_size()* returns zero on success and -1 on error.
 
 EXAMPLE
 -------
