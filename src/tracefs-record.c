@@ -495,6 +495,10 @@ int tracefs_cpu_flush_write(struct tracefs_cpu *tcpu, int wfd)
 	if (ret > 0)
 		ret = write(wfd, buffer, ret);
 
+	/* It's OK if there's no data to read */
+	if (ret < 0 && errno == EAGAIN)
+		ret = 0;
+
 	return ret;
 }
 
