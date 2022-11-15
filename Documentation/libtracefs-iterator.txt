@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_iterate_raw_events, tracefs_iterate_stop, tracefs_follow_event - Iterate over events in the ring buffer
+tracefs_iterate_raw_events, tracefs_iterate_stop, tracefs_follow_event, tracefs_follow_missed_events - Iterate over events in the ring buffer
 
 SYNOPSIS
 --------
@@ -22,7 +22,12 @@ int *tracefs_follow_event*(struct tep_handle pass:[*]_tep_, struct tracefs_insta
 			  int (pass:[*]_callback_)(struct tep_event pass:[*],
 					  struct tep_record pass:[*],
 					  int, void pass:[*]),
-			  void pass:[*]_callback_data_):
+			  void pass:[*]_callback_data_);
+int *tracefs_follow_missed_events*(struct tracefs_instance pass:[*]_instance_,
+			  int (pass:[*]_callback_)(struct tep_event pass:[*],
+					  struct tep_record pass:[*],
+					  int, void pass:[*]),
+			  void pass:[*]_callback_data_);
 --
 
 DESCRIPTION
@@ -57,6 +62,12 @@ will be passed to the _callback_ as well. Note, if it returns something other
 than 0, it will stop the loop before the _callback_ of *tracefs_iterate_raw_events()*
 is called.
 
+The *tracefs_follow_missed_events()* will call the _callback_ when missed
+events are detected. It will set the _record_ parameter of the callback to the
+record that came after the missed events and _event_ will be of the type of
+event _record_ is. _cpu_ will be set to the CPU that missed the events, and
+_callback_data_ will be the content that was passed in to the function.
+
 RETURN VALUE
 ------------
 The *tracefs_iterate_raw_events()* function returns -1 in case of an error or
@@ -69,19 +80,22 @@ EXAMPLE
 #include <unistd.h>
 #include <tracefs.h>
 #include <stdbool.h>
+#include <signal.h>
 
 struct my_struct {
 	bool		stopped;
 };
+
+#define MAX_COUNT 500000
+static int counter;
 
 static int callback(struct tep_event *event, struct tep_record *record,
 		    int cpu, void *data)
 {
 	struct my_struct *my_data = data;
 	static struct trace_seq seq;
-	static int counter;
 
-	if (counter++ > 10000) {
+	if (counter++ > MAX_COUNT) {
 		my_data->stopped = true;
 		return 1;
 	}
@@ -124,28 +138,52 @@ static int sched_callback(struct tep_event *event, struct tep_record *record,
 	return 0;
 }
 
+static int missed_callback(struct tep_event *event, struct tep_record *record,
+			   int cpu, void *data)
+{
+	printf("OOPS! cpu %d dropped ", cpu);
+	if (record->missed_events > 0)
+		printf("%lld ", record->missed_events);
+	printf("events\n");
+	return 0;
+}
+
+static struct tracefs_instance *instance;
+static struct my_struct my_data;
+
+static void sig(int s)
+{
+	tracefs_iterate_stop(instance);
+	my_data.stopped = true;
+}
+
 int main (int argc, char **argv, char **env)
 {
 	struct tep_handle *tep;
-	struct tracefs_instance *instance;
-	struct my_struct my_data = { .stopped = false };
 	int this_pid = getpid();
 
 	instance = tracefs_instance_create("my-buffer");
 	if (!instance)
 		return -1;
 
-	tracefs_event_enable(instance, "sched", NULL);
+	signal(SIGINT, sig);
+
+	tracefs_event_enable(instance, NULL, NULL);
 	sleep(1);
 	tracefs_event_disable(instance, NULL, NULL);
 	tep = tracefs_local_events(NULL);
 	tep_load_plugins(tep);
+	tracefs_follow_missed_events(instance, missed_callback, NULL);
 	tracefs_follow_event(tep, instance, "sched", "sched_switch", sched_callback, &this_pid);
 	tracefs_iterate_raw_events(tep, instance, NULL, 0, callback, &my_data);
 	tracefs_instance_destroy(instance);
 
-	if (my_data.stopped)
-		printf("stopped!\n");
+	if (my_data.stopped) {
+		if (counter > MAX_COUNT)
+			printf("Finished max count\n");
+		else
+			printf("Finished via signal\n");
+	}
 
 	return 0;
 }

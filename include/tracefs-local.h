@@ -35,6 +35,7 @@ struct tracefs_instance {
 	struct tracefs_options_mask	supported_opts;
 	struct tracefs_options_mask	enabled_opts;
 	struct follow_event		*followers;
+	struct follow_event		*missed_followers;
 	char				*trace_dir;
 	char				*name;
 	pthread_mutex_t			lock;
@@ -45,6 +46,7 @@ struct tracefs_instance {
 	int				ftrace_marker_fd;
 	int				ftrace_marker_raw_fd;
 	int				nr_followers;
+	int				nr_missed_followers;
 	bool				pipe_keep_going;
 	bool				iterate_keep_going;
 };

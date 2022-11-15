@@ -23,6 +23,9 @@
 static struct follow_event *root_followers;
 static int nr_root_followers;
 
+static struct follow_event *root_missed_followers;
+static int nr_root_missed_followers;
+
 struct cpu_iterate {
 	struct tracefs_cpu *tcpu;
 	struct tep_record record;
@@ -120,6 +123,87 @@ int read_next_record(struct tep_handle *tep, struct cpu_iterate *cpu)
 	return -1;
 }
 
+/**
+ * tracefs_follow_missed_events - Add callback for missed events for iterators
+ * @instance: The instance to follow
+ * @callback: The function to call when missed events is detected
+ * @callback_data: The data to pass to @callback
+ *
+ * This attaches a callback to an @instance or the root instance if @instance
+ * is NULL, where if tracefs_iterate_raw_events() is called, that if missed
+ * events are detected, it will call @callback, with the following parameters:
+ *  @event: The event pointer of the record with the missing events
+ *  @record; The event instance of @event.
+ *  @cpu: The cpu that the event happened on.
+ *  @callback_data: The same as @callback_data passed to the function.
+ *
+ * If the count of missing events is available, @record->missed_events
+ * will have a positive number holding the number of missed events since
+ * the last event on the same CPU, or just -1 if that number is unknown
+ * but missed events did happen.
+ *
+ * Returns 0 on success and -1 on error.
+ */
+int tracefs_follow_missed_events(struct tracefs_instance *instance,
+				 int (*callback)(struct tep_event *,
+						 struct tep_record *,
+						 int, void *),
+				 void *callback_data)
+{
+	struct follow_event **followers;
+	struct follow_event *follower;
+	struct follow_event follow;
+	int *nr_followers;
+
+	follow.event = NULL;
+	follow.callback = callback;
+	follow.callback_data = callback_data;
+
+	if (instance) {
+		followers = &instance->missed_followers;
+		nr_followers = &instance->nr_missed_followers;
+	} else {
+		followers = &root_missed_followers;
+		nr_followers = &nr_root_missed_followers;
+	}
+	follower = realloc(*followers, sizeof(*follower) *
+			    ((*nr_followers) + 1));
+	if (!follower)
+		return -1;
+
+	*followers = follower;
+	follower[(*nr_followers)++] = follow;
+
+	return 0;
+}
+
+static int call_missed_events(struct tracefs_instance *instance,
+			      struct tep_event *event, struct tep_record *record, int cpu)
+{
+	struct follow_event *followers;
+	int nr_followers;
+	int ret = 0;
+	int i;
+
+	if (instance) {
+		followers = instance->missed_followers;
+		nr_followers = instance->nr_missed_followers;
+	} else {
+		followers = root_missed_followers;
+		nr_followers = nr_root_missed_followers;
+	}
+
+	if (!followers)
+		return 0;
+
+	for (i = 0; i < nr_followers; i++) {
+		ret |= followers[i].callback(event, record,
+					     cpu, followers[i].callback_data);
+	}
+
+	return ret;
+}
+
 static int call_followers(struct tracefs_instance *instance,
 			  struct tep_event *event, struct tep_record *record, int cpu)
 {
@@ -127,6 +211,11 @@ static int call_followers(struct tracefs_instance *instance,
 	int nr_followers;
 	int ret = 0;
 	int i;
+
+	if (record->missed_events)
+		ret = call_missed_events(instance, event, record, cpu);
+	if (ret)
+		return ret;
 
 	if (instance) {
 		followers = instance->followers;
