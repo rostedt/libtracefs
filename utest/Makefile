@@ -21,7 +21,7 @@ $(bdir):
 
 $(OBJS): | $(bdir)
 
-$(bdir)/trace-utest: $(OBJS)
+$(bdir)/trace-utest: $(OBJS) $(obj)/lib/libtracefs.a
 	$(Q)$(do_app_build)
 
 $(bdir)/%.o: %.c
