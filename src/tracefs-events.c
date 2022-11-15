@@ -20,6 +20,9 @@
 #include "tracefs.h"
 #include "tracefs-local.h"
 
+static struct follow_event *root_followers;
+static int nr_root_followers;
+
 struct cpu_iterate {
 	struct tracefs_cpu *tcpu;
 	struct tep_record record;
@@ -117,7 +120,36 @@ int read_next_record(struct tep_handle *tep, struct cpu_iterate *cpu)
 	return -1;
 }
 
-static int read_cpu_pages(struct tep_handle *tep, struct cpu_iterate *cpus, int count,
+static int call_followers(struct tracefs_instance *instance,
+			  struct tep_event *event, struct tep_record *record, int cpu)
+{
+	struct follow_event *followers;
+	int nr_followers;
+	int ret = 0;
+	int i;
+
+	if (instance) {
+		followers = instance->followers;
+		nr_followers = instance->nr_followers;
+	} else {
+		followers = root_followers;
+		nr_followers = nr_root_followers;
+	}
+
+	if (!followers)
+		return 0;
+
+	for (i = 0; i < nr_followers; i++) {
+		if (followers[i].event == event)
+			ret |= followers[i].callback(event, record,
+						     cpu, followers[i].callback_data);
+	}
+
+	return ret;
+}
+
+static int read_cpu_pages(struct tep_handle *tep, struct tracefs_instance *instance,
+			  struct cpu_iterate *cpus, int count,
 			  int (*callback)(struct tep_event *,
 					  struct tep_record *,
 					  int, void *),
@@ -143,6 +175,8 @@ static int read_cpu_pages(struct tep_handle *tep, struct cpu_iterate *cpus, int 
 				j = i;
 		}
 		if (j < count) {
+			if (call_followers(instance, cpus[j].event, &cpus[j].record, cpus[j].cpu))
+				break;
 			if (callback(cpus[j].event, &cpus[j].record, cpus[j].cpu, callback_context))
 				break;
 			cpus[j].event = NULL;
@@ -205,6 +239,69 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 	return -1;
 }
 
+/**
+ * tracefs_follow_event - Add callback for specific events for iterators
+ * @tep: a handle to the trace event parser context
+ * @instance: The instance to follow
+ * @system: The system of the event to track
+ * @event_name: The name of the event to track
+ * @callback: The function to call when the event is hit in an iterator
+ * @callback_data: The data to pass to @callback
+ *
+ * This attaches a callback to an @instance or the root instance if @instance
+ * is NULL, where if tracefs_iterate_raw_events() is called, that if the specified
+ * event is hit, it will call @callback, with the following parameters:
+ *  @event: The event pointer that was found by @system and @event_name.
+ *  @record; The event instance of @event.
+ *  @cpu: The cpu that the event happened on.
+ *  @callback_data: The same as @callback_data passed to the function.
+ *
+ * Returns 0 on success and -1 on error.
+ */
+int tracefs_follow_event(struct tep_handle *tep, struct tracefs_instance *instance,
+			  const char *system, const char *event_name,
+			  int (*callback)(struct tep_event *,
+					  struct tep_record *,
+					  int, void *),
+			  void *callback_data)
+{
+	struct follow_event **followers;
+	struct follow_event *follower;
+	struct follow_event follow;
+	int *nr_followers;
+
+	if (!tep) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	follow.event = tep_find_event_by_name(tep, system, event_name);
+	if (!follow.event) {
+		errno = ENOENT;
+		return -1;
+	}
+
+	follow.callback = callback;
+	follow.callback_data = callback_data;
+
+	if (instance) {
+		followers = &instance->followers;
+		nr_followers = &instance->nr_followers;
+	} else {
+		followers = &root_followers;
+		nr_followers = &nr_root_followers;
+	}
+	follower = realloc(*followers, sizeof(*follower) *
+			    ((*nr_followers) + 1));
+	if (!follower)
+		return -1;
+
+	*followers = follower;
+	follower[(*nr_followers)++] = follow;
+
+	return 0;
+}
+
 static bool top_iterate_keep_going;
 
 /*
@@ -247,7 +344,7 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 	ret = open_cpu_files(instance, cpus, cpu_size, &all_cpus, &count);
 	if (ret < 0)
 		goto out;
-	ret = read_cpu_pages(tep, all_cpus, count,
+	ret = read_cpu_pages(tep, instance, all_cpus, count,
 			     callback, callback_context,
 			     keep_going);
 

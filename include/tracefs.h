@@ -126,6 +126,12 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 						int, void *),
 				void *callback_context);
 void tracefs_iterate_stop(struct tracefs_instance *instance);
+int tracefs_follow_event(struct tep_handle *tep, struct tracefs_instance *instance,
+			  const char *system, const char *event_name,
+			  int (*callback)(struct tep_event *,
+					  struct tep_record *,
+					  int, void *),
+			  void *callback_data);
 
 char *tracefs_event_get_file(struct tracefs_instance *instance,
 			     const char *system, const char *event,

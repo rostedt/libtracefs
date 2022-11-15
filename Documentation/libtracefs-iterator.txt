@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_iterate_raw_events, tracefs_iterate_stop - Iterate over events in the ring buffer
+tracefs_iterate_raw_events, tracefs_iterate_stop, tracefs_follow_event - Iterate over events in the ring buffer
 
 SYNOPSIS
 --------
@@ -17,6 +17,12 @@ int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs
 				 void pass:[*]_callback_context_);
 void *tracefs_iterate_stop*(struct tracefs_instance pass:[*]_instance_);
 
+int *tracefs_follow_event*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_,
+			  const char pass:[*]_system_, const char pass:[*]_event_name_,
+			  int (pass:[*]_callback_)(struct tep_event pass:[*],
+					  struct tep_record pass:[*],
+					  int, void pass:[*]),
+			  void pass:[*]_callback_data_):
 --
 
 DESCRIPTION
@@ -43,6 +49,14 @@ to halt. This can be called from either a callback that is called by
 the iterator (even though a return of non-zero will stop it), or from another
 thread.
 
+The *tracefs_follow_event()* is used with *tracefs_iterate_raw_events()* but
+intead of the callback being called for every event, it is only called for the
+specified _system_ / _event_name_ given to the function. The _callback_ is the
+same as for *tracefs_iterate_raw_events()*, and the passed in _callback_context_
+will be passed to the _callback_ as well. Note, if it returns something other
+than 0, it will stop the loop before the _callback_ of *tracefs_iterate_raw_events()*
+is called.
+
 RETURN VALUE
 ------------
 The *tracefs_iterate_raw_events()* function returns -1 in case of an error or
@@ -52,56 +66,89 @@ EXAMPLE
 -------
 [source,c]
 --
+#include <unistd.h>
 #include <tracefs.h>
+#include <stdbool.h>
 
-char **systems = tracefs_event_systems(NULL);
+struct my_struct {
+	bool		stopped;
+};
 
-	if (systems) {
-		int i = 0;
-		/* Got registered trace systems from the top trace instance */
-		while (systems[i]) {
-			char **events = tracefs_system_events(NULL, systems[i]);
-			if (events) {
-				/* Got registered events in system[i] from the top trace instance */
-				int j = 0;
-
-				while (events[j]) {
-					/* Got event[j] in system[i] from the top trace instance */
-					j++;
-				}
-				tracefs_list_free(events);
-			}
-			i++;
-		}
-		tracefs_list_free(systems);
-	}
-....
-static int records_walk(struct tep_event *tep, struct tep_record *record, int cpu, void *context)
+static int callback(struct tep_event *event, struct tep_record *record,
+		    int cpu, void *data)
 {
-	/* Got recorded event on cpu */
+	struct my_struct *my_data = data;
+	static struct trace_seq seq;
+	static int counter;
+
+	if (counter++ > 10000) {
+		my_data->stopped = true;
+		return 1;
+	}
+
+	if (!seq.buffer)
+		trace_seq_init(&seq);
+
+	tep_print_event(event->tep, &seq, record, "%16s-%-5d [%03d] %6.1000d %s: %s\n",
+			TEP_PRINT_COMM, TEP_PRINT_PID, TEP_PRINT_CPU,
+			TEP_PRINT_TIME, TEP_PRINT_NAME, TEP_PRINT_INFO);
+	trace_seq_terminate(&seq);
+	trace_seq_do_printf(&seq);
+	trace_seq_reset(&seq);
 	return 0;
 }
-...
-struct tep_handle *tep = tracefs_local_events(NULL);
 
-	if (!tep) {
-		/* Failed to initialise tep handler with local events */
-		...
+static int sched_callback(struct tep_event *event, struct tep_record *record,
+			  int cpu, void *data)
+{
+	static struct tep_format_field *prev_pid;
+	static struct tep_format_field *next_pid;
+	unsigned long long pid;
+	int this_pid = *(int *)data;
+
+	if (!prev_pid) {
+		prev_pid = tep_find_field(event, "prev_pid");
+		next_pid = tep_find_field(event, "next_pid");
+		if (!prev_pid || !next_pid) {
+			fprintf(stderr, "No pid fields??\n");
+			return -1;
+		}
 	}
 
-	errno = 0;
-	ret = tracefs_event_enable(NULL, "sched", NULL);
-	if (ret < 0 && !errno)
-		printf("Could not find 'sched' events\n");
-	tracefs_event_enable(NULL, "irq", "irq_handler_\(enter\|exit\)");
+	tep_read_number_field(prev_pid, record->data, &pid);
+	if (pid == this_pid)
+		printf("WE ARE LEAVING!\n");
+	tep_read_number_field(next_pid, record->data, &pid);
+	if (pid == this_pid)
+		printf("WE ARE ARRIVING!\n");
+	return 0;
+}
 
-	if (tracefs_iterate_raw_events(tep, NULL, NULL, 0, records_walk, NULL) < 0) {
-		/* Error walking through the recorded raw events */
-	}
+int main (int argc, char **argv, char **env)
+{
+	struct tep_handle *tep;
+	struct tracefs_instance *instance;
+	struct my_struct my_data = { .stopped = false };
+	int this_pid = getpid();
 
-	/* Disable all events */
-	tracefs_event_disable(NULL, NULL, NULL);
-	tep_free(tep);
+	instance = tracefs_instance_create("my-buffer");
+	if (!instance)
+		return -1;
+
+	tracefs_event_enable(instance, "sched", NULL);
+	sleep(1);
+	tracefs_event_disable(instance, NULL, NULL);
+	tep = tracefs_local_events(NULL);
+	tep_load_plugins(tep);
+	tracefs_follow_event(tep, instance, "sched", "sched_switch", sched_callback, &this_pid);
+	tracefs_iterate_raw_events(tep, instance, NULL, 0, callback, &my_data);
+	tracefs_instance_destroy(instance);
+
+	if (my_data.stopped)
+		printf("stopped!\n");
+
+	return 0;
+}
 --
 FILES
 -----

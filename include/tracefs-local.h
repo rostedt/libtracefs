@@ -23,9 +23,18 @@ struct tracefs_options_mask {
 	unsigned long long	mask;
 };
 
+struct follow_event {
+	struct tep_event	*event;
+	void			*callback_data;
+	int (*callback)(struct tep_event *,
+			struct tep_record *,
+			int, void *);
+};
+
 struct tracefs_instance {
 	struct tracefs_options_mask	supported_opts;
 	struct tracefs_options_mask	enabled_opts;
+	struct follow_event		*followers;
 	char				*trace_dir;
 	char				*name;
 	pthread_mutex_t			lock;
@@ -35,6 +44,7 @@ struct tracefs_instance {
 	int				ftrace_notrace_fd;
 	int				ftrace_marker_fd;
 	int				ftrace_marker_raw_fd;
+	int				nr_followers;
 	bool				pipe_keep_going;
 	bool				iterate_keep_going;
 };
