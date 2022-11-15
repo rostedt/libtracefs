@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_event_systems, tracefs_system_events, tracefs_event_enable, tracefs_event_disable,
-tracefs_event_is_enabled, tracefs_iterate_raw_events, tracefs_iterate_stop - Work with trace systems and events.
+tracefs_event_is_enabled - Work with trace systems and events.
 
 SYNOPSIS
 --------
@@ -27,13 +27,6 @@ int *tracefs_event_disable*(struct tracefs_instance pass:[*]_instance_, const ch
 			    const char pass:[*]_event_);
 enum tracefs_enable_state *tracefs_event_is_enabled*(struct tracefs_instance pass:[*]_instance_,
 			 const char pass:[*]_system_, const char pass:[*]_event_);
-
-int *tracefs_iterate_raw_events*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_,
-				 cpu_set_t pass:[*]_cpus_, int _cpu_size_,
-				 int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]),
-				 void pass:[*]_callback_context_);
-void *tracefs_iterate_stop*(struct tracefs_instance pass:[*]_instance_);
-
 --
 
 DESCRIPTION
@@ -89,26 +82,6 @@ events. The enabled state is defined as:
 
 *TRACEFS_SOME_ENABLED* - Some matching events were enabled while others were not.
 
-The *tracefs_iterate_raw_events()* function will read the tracefs raw
-data buffers and call the specified _callback_ function for every event it
-encounters. Events are iterated in sorted order: oldest first. An initialized
-_tep_ handler is required (See *tracefs_local_events*(3)). If _instance_ is
-NULL, then the toplevel tracefs buffer is used, otherwise the buffer for
-the corresponding _instance_ is read. To filter only on a subset of CPUs,
-_cpus_ and _cpu_size_ may be set to only call _callback_ with events that
-occurred on the CPUs specified, otherwise if _cpus_ is NULL then the _callback_
-function will be called for all events, and _cpu_size_ is ignored. The
-_callback_ function will be called with the following parameters: A
-pointer to a struct tep_event that corresponds to the type of event the
-record is; The record representing the event; The CPU that the event
-occurred on; and a pointer to user specified _callback_context_. If the _callback_
-returns non-zero, the iteration stops.
-
-Use *tracefs_iterate_stop()* to force a executing *tracefs_iterate_raw_events()*
-to halt. This can be called from either a callback that is called by
-the iterator (even though a return of non-zero will stop it), or from another
-thread.
-
 RETURN VALUE
 ------------
 The *tracefs_event_systems()* and *tracefs_system_events()* functions return
@@ -125,9 +98,6 @@ and errno is not set.
 
 The *tracefs_event_is_enabled()* returns the enabled status of the matching events
 or TRACEFS_ERROR on error.
-
-The *tracefs_iterate_raw_events()* function returns -1 in case of an error or
-0 otherwise.
 
 EXAMPLE
 -------
