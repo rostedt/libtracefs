@@ -1055,7 +1055,7 @@ int tracefs_tracer_set(struct tracefs_instance *instance,
  out:
 	tracefs_put_tracing_file(tracer_path);
 	close(fd);
-	return ret;
+	return ret > 0 ? 0 : ret;
 }
 
 int  tracefs_tracer_clear(struct tracefs_instance *instance)
