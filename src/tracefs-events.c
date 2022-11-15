@@ -21,14 +21,13 @@
 #include "tracefs-local.h"
 
 struct cpu_iterate {
+	struct tracefs_cpu *tcpu;
 	struct tep_record record;
 	struct tep_event *event;
 	struct kbuffer *kbuf;
 	void *page;
 	int psize;
-	int rsize;
 	int cpu;
-	int fd;
 };
 
 static int read_kbuf_record(struct cpu_iterate *cpu)
@@ -60,9 +59,21 @@ int read_next_page(struct tep_handle *tep, struct cpu_iterate *cpu)
 {
 	enum kbuffer_long_size long_size;
 	enum kbuffer_endian endian;
+	int r;
 
-	cpu->rsize = read(cpu->fd, cpu->page, cpu->psize);
-	if (cpu->rsize <= 0)
+	if (!cpu->tcpu)
+		return -1;
+
+	r = tracefs_cpu_buffered_read(cpu->tcpu, cpu->page, true);
+	/*
+	 * tracefs_cpu_buffered_read() only reads in full subbuffer size,
+	 * but this wants partial buffers as well. If the function returns
+	 * empty (-1 for EAGAIN), try tracefs_cpu_read() next, as that can
+	 * read partially filled buffers too, but isn't as efficient.
+	 */
+	if (r <= 0)
+		r = tracefs_cpu_read(cpu->tcpu, cpu->page, true);
+	if (r <= 0)
 		return -1;
 
 	if (!cpu->kbuf) {
@@ -82,8 +93,8 @@ int read_next_page(struct tep_handle *tep, struct cpu_iterate *cpu)
 	}
 
 	kbuffer_load_subbuffer(cpu->kbuf, cpu->page);
-	if (kbuffer_subbuffer_size(cpu->kbuf) > cpu->rsize) {
-		tracefs_warning("%s: page_size > %d", __func__, cpu->rsize);
+	if (kbuffer_subbuffer_size(cpu->kbuf) > r) {
+		tracefs_warning("%s: page_size > %d", __func__, r);
 		return -1;
 	}
 
@@ -147,64 +158,51 @@ static int read_cpu_pages(struct tep_handle *tep, struct cpu_iterate *cpus, int 
 static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 			  int cpu_size, struct cpu_iterate **all_cpus, int *count)
 {
+	struct tracefs_cpu *tcpu;
 	struct cpu_iterate *tmp;
-	unsigned int p_size;
-	struct dirent *dent;
-	char file[PATH_MAX];
-	struct stat st;
-	int ret = -1;
-	int fd = -1;
-	char *path;
-	DIR *dir;
+	int nr_cpus;
 	int cpu;
 	int i = 0;
 
-	path = tracefs_instance_get_file(instance, "per_cpu");
-	if (!path)
-		return -1;
-	dir = opendir(path);
-	if (!dir)
-		goto out;
-	p_size = getpagesize();
-	while ((dent = readdir(dir))) {
-		const char *name = dent->d_name;
+	*all_cpus = NULL;
 
-		if (strlen(name) < 4 || strncmp(name, "cpu", 3) != 0)
-			continue;
-		cpu = atoi(name + 3);
+	nr_cpus = sysconf(_SC_NPROCESSORS_CONF);
+	for (cpu = 0; cpu < nr_cpus; cpu++) {
 		if (cpus && !CPU_ISSET_S(cpu, cpu_size, cpus))
 			continue;
-		sprintf(file, "%s/%s", path, name);
-		if (stat(file, &st) < 0 || !S_ISDIR(st.st_mode))
-			continue;
-
-		sprintf(file, "%s/%s/trace_pipe_raw", path, name);
-		fd = open(file, O_RDONLY | O_NONBLOCK);
-		if (fd < 0)
-			continue;
-		tmp = realloc(*all_cpus, (i + 1) * sizeof(struct cpu_iterate));
+		tcpu = tracefs_cpu_open(instance, cpu, true);
+		tmp = realloc(*all_cpus, (i + 1) * sizeof(*tmp));
 		if (!tmp) {
-			close(fd);
-			goto out;
+			i--;
+			goto error;
 		}
-		memset(tmp + i, 0, sizeof(struct cpu_iterate));
-		tmp[i].fd = fd;
-		tmp[i].cpu = cpu;
-		tmp[i].page =  malloc(p_size);
-		tmp[i].psize = p_size;
+
 		*all_cpus = tmp;
-		*count = i + 1;
+
+		memset(tmp + i, 0, sizeof(*tmp));
+
+		if (!tcpu)
+			goto error;
+
+		tmp[i].tcpu = tcpu;
+		tmp[i].cpu = cpu;
+		tmp[i].psize = tracefs_cpu_read_size(tcpu);
+		tmp[i].page =  malloc(tmp[i].psize);
+
 		if (!tmp[i++].page)
-			goto out;
+			goto error;
 	}
-
-	ret = 0;
-
-out:
-	if (dir)
-		closedir(dir);
-	tracefs_put_tracing_file(path);
-	return ret;
+	*count = i;
+	return 0;
+ error:
+	tmp = *all_cpus;
+	for (; i >= 0; i--) {
+		tracefs_cpu_close(tmp[i].tcpu);
+		free(tmp[i].page);
+	}
+	free(tmp);
+	*all_cpus = NULL;
+	return -1;
 }
 
 static bool top_iterate_keep_going;
@@ -236,7 +234,7 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 {
 	bool *keep_going = instance ? &instance->iterate_keep_going :
 				      &top_iterate_keep_going;
-	struct cpu_iterate *all_cpus = NULL;
+	struct cpu_iterate *all_cpus;
 	int count = 0;
 	int ret;
 	int i;
@@ -257,7 +255,7 @@ out:
 	if (all_cpus) {
 		for (i = 0; i < count; i++) {
 			kbuffer_free(all_cpus[i].kbuf);
-			close(all_cpus[i].fd);
+			tracefs_cpu_close(all_cpus[i].tcpu);
 			free(all_cpus[i].page);
 		}
 		free(all_cpus);
