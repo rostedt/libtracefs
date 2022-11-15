@@ -234,7 +234,7 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 						int, void *),
 				void *callback_context)
 {
-	bool *keep_going = instance ? &instance->pipe_keep_going :
+	bool *keep_going = instance ? &instance->iterate_keep_going :
 				      &top_iterate_keep_going;
 	struct cpu_iterate *all_cpus = NULL;
 	int count = 0;
