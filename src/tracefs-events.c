@@ -266,7 +266,8 @@ static int read_cpu_pages(struct tep_handle *tep, struct tracefs_instance *insta
 		if (j < count) {
 			if (call_followers(instance, cpus[j].event, &cpus[j].record, cpus[j].cpu))
 				break;
-			if (callback(cpus[j].event, &cpus[j].record, cpus[j].cpu, callback_context))
+			if (callback &&
+			    callback(cpus[j].event, &cpus[j].record, cpus[j].cpu, callback_context))
 				break;
 			cpus[j].event = NULL;
 			read_next_record(tep, cpus + j);
@@ -420,6 +421,7 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 {
 	bool *keep_going = instance ? &instance->iterate_keep_going :
 				      &top_iterate_keep_going;
+	struct follow_event *followers;
 	struct cpu_iterate *all_cpus;
 	int count = 0;
 	int ret;
@@ -427,7 +429,14 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 
 	(*(volatile bool *)keep_going) = true;
 
-	if (!tep || !callback)
+	if (!tep)
+		return -1;
+
+	if (instance)
+		followers = instance->followers;
+	else
+		followers = root_followers;
+	if (!callback && !followers)
 		return -1;
 
 	ret = open_cpu_files(instance, cpus, cpu_size, &all_cpus, &count);
