@@ -245,7 +245,7 @@ const char *tracefs_tracing_dir(void)
 	if (tracing_dir)
 		return tracing_dir;
 
-	tracing_dir = trace_find_tracing_dir(false);
+	tracing_dir = find_tracing_dir(false, true);
 	return tracing_dir;
 }
 
@@ -263,7 +263,7 @@ const char *tracefs_debug_dir(void)
 	if (debug_dir)
 		return debug_dir;
 
-	debug_dir = trace_find_tracing_dir(true);
+	debug_dir = find_tracing_dir(true, true);
 	return debug_dir;
 }
 
