@@ -15,6 +15,8 @@
 #include <kbuffer.h>
 #include <pthread.h>
 
+#include <sys/mount.h>
+
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
 
@@ -46,6 +48,10 @@
 #define SQL_5_EVENT	"irq_lat"
 #define SQL_5_SQL	"select end.common_pid as pid, (end.common_timestamp.usecs - start.common_timestamp.usecs) as irq_lat from irq_disable as start join irq_enable as end on start.common_pid = end.common_pid, start.parent_offs == end.parent_offs where start.common_pid != 0"
 #define SQL_5_START	"irq_disable"
+
+#define DEBUGFS_DEFAULT_PATH "/sys/kernel/debug"
+#define TRACEFS_DEFAULT_PATH "/sys/kernel/tracing"
+#define TRACEFS_DEFAULT2_PATH "/sys/kernel/debug/tracing"
 
 static struct tracefs_instance *test_instance;
 static struct tep_handle *test_tep;
@@ -738,6 +744,80 @@ static void test_follow_events(void)
 {
 	test_instance_follow_events(NULL);
 	test_instance_follow_events(test_instance);
+}
+
+extern char *find_tracing_dir(bool debugfs, bool mount);
+static void test_mounting(void)
+{
+	const char *tracing_dir;
+	const char *debug_dir;
+	char *save_tracing = NULL;
+	char *save_debug = NULL;
+	char *dir;
+	int ret;
+
+	/* First, unmount all instances of debugfs */
+	do {
+		dir = find_tracing_dir(true, false);
+		if (dir) {
+			ret = umount(dir);
+			CU_TEST(ret == 0);
+			if (ret < 0)
+				return;
+			/* Save the first instance that's not /sys/kernel/debug */
+			if (!save_debug && strcmp(dir, DEBUGFS_DEFAULT_PATH) != 0)
+				save_debug = dir;
+			else
+				free(dir);
+		}
+	} while (dir);
+
+	/* Next, unmount all instances of tracefs */
+	do {
+		dir = find_tracing_dir(false, false);
+		if (dir) {
+			ret = umount(dir);
+			CU_TEST(ret == 0);
+			if (ret < 0)
+				return;
+			/* Save the first instance that's not in /sys/kernel/ */
+			if (!save_tracing && strncmp(dir, "/sys/kernel/", 12) != 0)
+				save_tracing = dir;
+			else
+				free(dir);
+		}
+	} while (dir);
+
+	/* Mount first the tracing dir (which should mount at /sys/kernel/tracing */
+	tracing_dir = tracefs_tracing_dir();
+	CU_TEST(tracing_dir != NULL);
+	if (tracing_dir != NULL) {
+		CU_TEST(strcmp(tracing_dir, TRACEFS_DEFAULT_PATH) == 0 ||
+			strcmp(tracing_dir, TRACEFS_DEFAULT2_PATH) == 0);
+		if (strncmp(tracing_dir, "/sys/kernel/", 12) != 0)
+			printf("Tracing directory mounted at '%s'\n",
+			       tracing_dir);
+	}
+
+	/* Now mount debugfs dir, which should mount at /sys/kernel/debug */
+	debug_dir = tracefs_debug_dir();
+	CU_TEST(debug_dir != NULL);
+	if (debug_dir != NULL) {
+		CU_TEST(strcmp(debug_dir, DEBUGFS_DEFAULT_PATH) == 0);
+		if (strcmp(debug_dir, DEBUGFS_DEFAULT_PATH) != 0)
+			printf("debug directory mounted at '%s'\n",
+			       debug_dir);
+	}
+
+	if (save_debug)
+		mount("debugfs", save_debug, "debugfs", 0, NULL);
+
+	if (save_tracing &&
+	    (!save_debug || strncmp(save_debug, save_tracing, strlen(save_debug) != 0)))
+		mount("tracefs", save_tracing, "tracefs", 0, NULL);
+
+	free(save_debug);
+	free(save_tracing);
 }
 
 static int read_trace_cpu_file(struct test_cpu_data *data)
@@ -2248,6 +2328,10 @@ void test_tracefs_lib(void)
 		fprintf(stderr, "Suite \"%s\" cannot be ceated\n", TRACEFS_SUITE);
 		return;
 	}
+
+	/* Must be first test */
+	CU_add_test(suite, "Test tracefs/debugfs mounting", test_mounting);
+
 	CU_add_test(suite, "Follow events", test_follow_events);
 	CU_add_test(suite, "trace cpu read",
 		    test_trace_cpu_read);

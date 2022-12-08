@@ -85,7 +85,8 @@ static int mount_debugfs(void)
 	return ret;
 }
 
-static char *find_tracing_dir(bool debugfs, bool mount)
+/* Exported for testing purpose only */
+__hidden char *find_tracing_dir(bool debugfs, bool mount)
 {
 	char *debug_str = NULL;
 	char fspath[PATH_MAX+1];
