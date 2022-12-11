@@ -751,8 +751,10 @@ static void test_mounting(void)
 {
 	const char *tracing_dir;
 	const char *debug_dir;
+	struct stat st;
 	char *save_tracing = NULL;
 	char *save_debug = NULL;
+	char *path;
 	char *dir;
 	int ret;
 
@@ -797,6 +799,11 @@ static void test_mounting(void)
 		if (strncmp(tracing_dir, "/sys/kernel/", 12) != 0)
 			printf("Tracing directory mounted at '%s'\n",
 			       tracing_dir);
+
+		/* Make sure the directory has content.*/
+		asprintf(&path, "%s/trace", tracing_dir);
+		CU_TEST(stat(path, &st) == 0);
+		free(path);
 	}
 
 	/* Now mount debugfs dir, which should mount at /sys/kernel/debug */
@@ -807,6 +814,11 @@ static void test_mounting(void)
 		if (strcmp(debug_dir, DEBUGFS_DEFAULT_PATH) != 0)
 			printf("debug directory mounted at '%s'\n",
 			       debug_dir);
+
+		/* Make sure the directory has content.*/
+		asprintf(&path, "%s/tracing", debug_dir);
+		CU_TEST(stat(path, &st) == 0);
+		free(path);
 	}
 
 	if (save_debug)
@@ -2329,9 +2341,7 @@ void test_tracefs_lib(void)
 		return;
 	}
 
-	/* Must be first test */
 	CU_add_test(suite, "Test tracefs/debugfs mounting", test_mounting);
-
 	CU_add_test(suite, "Follow events", test_follow_events);
 	CU_add_test(suite, "trace cpu read",
 		    test_trace_cpu_read);
