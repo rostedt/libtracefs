@@ -2342,7 +2342,6 @@ void test_tracefs_lib(void)
 	}
 
 	CU_add_test(suite, "Test tracefs/debugfs mounting", test_mounting);
-	CU_add_test(suite, "Follow events", test_follow_events);
 	CU_add_test(suite, "trace cpu read",
 		    test_trace_cpu_read);
 	CU_add_test(suite, "trace cpu pipe",
@@ -2359,6 +2358,10 @@ void test_tracefs_lib(void)
 		    test_system_event);
 	CU_add_test(suite, "tracefs_iterate_raw_events API",
 		    test_iter_raw_events);
+
+	/* Follow events test must be after the iterate raw events above */
+	CU_add_test(suite, "Follow events", test_follow_events);
+
 	CU_add_test(suite, "tracefs_tracers API",
 		    test_tracers);
 	CU_add_test(suite, "tracefs_local events API",
