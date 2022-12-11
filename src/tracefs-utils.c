@@ -230,6 +230,16 @@ int tracefs_set_tracing_dir(char *tracing_dir)
 	return 0;
 }
 
+/* Used to check if the directory is still mounted */
+static int test_dir(const char *dir, const char *file)
+{
+	char path[strlen(dir) + strlen(file) + 2];
+	struct stat st;
+
+	sprintf(path, "%s/%s", dir, file);
+	return stat(path, &st) < 0 ? 0 : 1;
+}
+
 /**
  * tracefs_tracing_dir - Get tracing directory
  *
@@ -240,10 +250,11 @@ const char *tracefs_tracing_dir(void)
 {
 	static const char *tracing_dir;
 
+	/* Do not check custom_tracing_dir */
 	if (custom_tracing_dir)
 		return custom_tracing_dir;
 
-	if (tracing_dir)
+	if (tracing_dir && test_dir(tracing_dir, "trace"))
 		return tracing_dir;
 
 	tracing_dir = find_tracing_dir(false, true);
@@ -261,7 +272,7 @@ const char *tracefs_debug_dir(void)
 {
 	static const char *debug_dir;
 
-	if (debug_dir)
+	if (debug_dir && test_dir(debug_dir, "tracing"))
 		return debug_dir;
 
 	debug_dir = find_tracing_dir(true, true);
