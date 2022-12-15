@@ -713,9 +713,6 @@ dynevent_info(struct tracefs_dynevent *dynevent, char **system,
 			&dynevent->address, &dynevent->format };
 	int i;
 
-	if (!dynevent)
-		return TRACEFS_DYNEVENT_UNKNOWN;
-
 	for (i = 0; i < ARRAY_SIZE(lv); i++) {
 		if (lv[i]) {
 			if (*rv[i]) {
