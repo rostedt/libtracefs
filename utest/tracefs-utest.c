@@ -825,7 +825,7 @@ static void test_mounting(void)
 		mount("debugfs", save_debug, "debugfs", 0, NULL);
 
 	if (save_tracing &&
-	    (!save_debug || strncmp(save_debug, save_tracing, strlen(save_debug) != 0)))
+	    (!save_debug || strncmp(save_debug, save_tracing, strlen(save_debug)) != 0))
 		mount("tracefs", save_tracing, "tracefs", 0, NULL);
 
 	free(save_debug);
