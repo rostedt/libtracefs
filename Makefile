@@ -164,6 +164,9 @@ export INCLUDES
 # Append required CFLAGS
 override CFLAGS += -D_GNU_SOURCE $(LIBTRACEEVENT_INCLUDES) $(INCLUDES)
 
+# Make sure 32 bit stat() works on large file systems
+override CFLAGS += -D_FILE_OFFSET_BITS=64
+
 all: all_cmd
 
 LIB_TARGET  = libtracefs.a libtracefs.so.$(TRACEFS_VERSION)
