@@ -419,7 +419,7 @@ int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t s
 			return ret;
 		}
 
-		ret = tracefs_instance_file_write(instance, path, "val");
+		ret = tracefs_instance_file_write(instance, path, val);
 		free(path);
 	}
 	free(val);
