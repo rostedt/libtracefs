@@ -421,7 +421,7 @@ int tracefs_cpu_stop(struct tracefs_cpu *tcpu)
 {
 	int ret = 1;
 
-	if (tcpu->flags & TC_NONBLOCK)
+	if (tcpu->flags & TC_PERM_NONBLOCK)
 		return 0;
 
 	ret = write(tcpu->ctrl_pipe[1], &ret, 1);
