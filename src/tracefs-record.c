@@ -464,10 +464,13 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer)
 	if (tcpu->buffered < 0)
 		tcpu->buffered = 0;
 
-	if (tcpu->buffered)
-		goto do_read;
+	if (tcpu->buffered) {
+		ret = read(tcpu->splice_pipe[0], buffer, tcpu->subbuf_size);
+		if (ret > 0)
+			tcpu->buffered -= ret;
+		return ret;
+	}
 
- do_read:
 	ret = read(tcpu->fd, buffer, tcpu->subbuf_size);
 	if (ret > 0 && tcpu->buffered)
 		tcpu->buffered -= ret;
