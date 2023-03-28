@@ -612,6 +612,7 @@ struct tracefs_hist *tracefs_synth_get_start_hist(struct tracefs_synth *synth);
 int tracefs_synth_create(struct tracefs_synth *synth);
 int tracefs_synth_destroy(struct tracefs_synth *synth);
 void tracefs_synth_free(struct tracefs_synth *synth);
+int tracefs_synth_set_instance(struct tracefs_synth *synth, struct tracefs_instance *instance);
 int tracefs_synth_echo_cmd(struct trace_seq *seq, struct tracefs_synth *synth);
 int tracefs_synth_raw_fmt(struct trace_seq *seq, struct tracefs_synth *synth);
 const char *tracefs_synth_show_event(struct tracefs_synth *synth);

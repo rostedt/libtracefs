@@ -2195,6 +2195,25 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 }
 
 /**
+ * tracefs_synth_set_instance - Set the ftrace instance of the synthetic events
+ * @synth: The tracefs_synth descriptor
+ * @instance: ftrace instance
+ *
+ * Set the ftrace instance, in which the synthetic event will be created. By default,
+ * the top instance is used. This API must be called before the call to tracefs_synth_create(),
+ * in order to use the new instance when creating the event.
+ *
+ * Returns 0 on success and -1 on error.
+ */
+int tracefs_synth_set_instance(struct tracefs_synth *synth, struct tracefs_instance *instance)
+{
+	if (!synth)
+		return -1;
+	synth->instance = instance;
+	return 0;
+}
+
+/**
  * tracefs_synth_create - creates the synthetic event on the system
  * @synth: The tracefs_synth descriptor
  *
