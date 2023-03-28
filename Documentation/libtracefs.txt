@@ -214,6 +214,7 @@ Synthetic events:
 	void *tracefs_synth_free*(struct tracefs_synth pass:[*]_synth_);
 	int *tracefs_synth_create*(struct tracefs_synth pass:[*]_synth_);
 	int *tracefs_synth_destroy*(struct tracefs_synth pass:[*]_synth_);
+	int *tracefs_synth_set_instance*(struct tracefs_synth pass:[*]_synth_, struct tracefs_instance pass:[*]_instance_);
 	int *tracefs_synth_echo_cmd*(struct trace_seq pass:[*]_seq_, struct tracefs_synth pass:[*]_synth_);
 	bool *tracefs_synth_complete*(struct tracefs_synth pass:[*]_synth_);
 	struct tracefs_hist pass:[*]*tracefs_synth_get_start_hist*(struct tracefs_synth pass:[*]_synth_);
