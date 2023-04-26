@@ -1618,6 +1618,187 @@ static void test_instance_file(void)
 	free(inst_dir);
 }
 
+static bool test_check_file_content(struct tracefs_instance *instance, char *file,
+				    char *content, bool full_match, bool ignore_comments)
+{
+	char *save = NULL;
+	char *buf, *line;
+	bool ret = false;
+	int len;
+
+	if (!tracefs_file_exists(instance, file))
+		return false;
+
+	buf = tracefs_instance_file_read(instance, file, NULL);
+	if (strlen(content) == 0) {
+		/* check for empty file */
+		if (!buf)
+			return true;
+		if (!ignore_comments) {
+			if (strlen(buf) > 0)
+				goto out;
+		} else {
+			line = strtok_r(buf, "\n", &save);
+			while (line) {
+				if (line[0] != '#')
+					goto out;
+				line = strtok_r(NULL, "\n", &save);
+			}
+		}
+	} else {
+		if (!buf || strlen(buf) < 1)
+			return false;
+		if (full_match) {
+			/* strip the newline */
+			len = strlen(buf) - 1;
+			while (buf[len] == '\n' || buf[len] == '\r') {
+				buf[len] = '\0';
+				len = strlen(buf) - 1;
+				if (len < 0)
+					goto out;
+			}
+			if (strcmp(buf, content))
+				goto out;
+		} else {
+			if (!strstr(buf, content))
+				goto out;
+		}
+	}
+
+	ret = true;
+out:
+	free(buf);
+	return ret;
+}
+
+static bool test_check_event_file_content(struct tracefs_instance *instance,
+					  char *system, char *event, char *file,
+					  char *content, bool full_match, bool ignore_comments)
+{
+	char *efile;
+	int ret;
+
+	ret = asprintf(&efile, "events/%s/%s/%s", system, event, file);
+	if (ret <= 0)
+		return false;
+	ret = test_check_file_content(instance, efile, content, full_match, ignore_comments);
+	free(efile);
+	return ret;
+}
+
+static bool check_cpu_mask(struct tracefs_instance *instance)
+{
+	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int fullwords = (cpus - 1) / 32;
+	int bits = (cpus - 1) % 32 + 1;
+	int len = (fullwords + 1) * 9;
+	char buf[len + 1];
+
+	buf[0] = '\0';
+	sprintf(buf, "%x", (unsigned int)((1ULL << bits) - 1));
+	while (fullwords-- > 0)
+		strcat(buf, ",ffffffff");
+
+	return test_check_file_content(instance, "tracing_cpumask", buf, true, false);
+}
+
+static bool test_instance_check_default_state(struct tracefs_instance *instance)
+{
+	char **systems;
+	char **events;
+	int i, j;
+	int ok;
+
+	if (tracefs_trace_is_on(instance) != 1)
+		return false;
+	if (!test_check_file_content(instance, "current_tracer", "nop", true, false))
+		return false;
+	if (!test_check_file_content(instance, "events/enable", "0", true, false))
+		return false;
+	if (!test_check_file_content(instance, "set_ftrace_pid", "no pid", true, false))
+		return false;
+	if (!test_check_file_content(instance, "trace", "", true, true))
+		return false;
+	if (!test_check_file_content(instance, "error_log", "", true, false))
+		return false;
+	if (!test_check_file_content(instance, "trace_clock", "[local]", false, false))
+		return false;
+	if (!test_check_file_content(instance, "set_event_pid", "", true, false))
+		return false;
+	if (!test_check_file_content(instance, "tracing_max_latency", "0", true, false))
+		return false;
+	if (!test_check_file_content(instance, "set_ftrace_filter", "", true, true))
+		return false;
+	if (!test_check_file_content(instance, "set_ftrace_notrace", "", true, true))
+		return false;
+	if (!check_cpu_mask(instance))
+		return false;
+
+	ok = 1;
+	systems = tracefs_event_systems(NULL);
+	if (systems) {
+		for (i = 0; systems[i]; i++) {
+			events = tracefs_system_events(NULL, systems[i]);
+			if (!events)
+				continue;
+			for (j = 0; events[j]; j++) {
+				if (!test_check_event_file_content(instance, systems[i], events[j],
+								    "enable", "0", true, false))
+					break;
+				if (!test_check_event_file_content(instance, systems[i], events[j],
+								    "filter", "none", true, false))
+					break;
+				if (!test_check_event_file_content(instance, systems[i], events[j],
+								    "trigger", "", true, true))
+					break;
+			}
+			if (events[j])
+				ok = 0;
+			tracefs_list_free(events);
+			if (!ok)
+				return false;
+		}
+		tracefs_list_free(systems);
+	}
+
+	return true;
+}
+
+static void test_instance_reset(void)
+{
+	struct tracefs_instance *instance = NULL;
+	const char *name = get_rand_str();
+
+	CU_TEST(tracefs_instance_exists(name) == false);
+	instance = tracefs_instance_create(name);
+	CU_TEST(instance != NULL);
+
+	CU_TEST(test_instance_check_default_state(instance) == true);
+
+	CU_TEST(tracefs_tracer_set(instance, TRACEFS_TRACER_HWLAT) == 0);
+	CU_TEST(tracefs_event_enable(instance, "bridge", "fdb_delete") == 0);
+	CU_TEST(tracefs_instance_file_write(instance, "set_ftrace_pid", "5") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "trace_clock", "global") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "set_event_pid", "5") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "set_ftrace_filter",
+						      "schedule:stacktrace") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "set_ftrace_notrace",
+						      "schedule:stacktrace") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "tracing_cpumask", "0f") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "events/syscalls/sys_exit_read/trigger",
+						      "enable_event:kmem:kmalloc:1") > 0);
+	CU_TEST(tracefs_instance_file_write(instance, "events/bridge/fdb_delete/filter",
+						      "common_pid == 5") > 0);
+
+	CU_TEST(test_instance_check_default_state(instance) == false);
+
+	tracefs_instance_reset(instance);
+	CU_TEST(test_instance_check_default_state(instance) == true);
+
+	CU_TEST(tracefs_instance_destroy(instance) == 0);
+	tracefs_instance_free(instance);
+}
+
 static bool check_fd_name(int fd, const char *dir, const char *name)
 {
 	char link[PATH_MAX + 1];
@@ -2354,6 +2535,8 @@ void test_tracefs_lib(void)
 		    test_file_fd);
 	CU_add_test(suite, "instance file descriptor",
 		    test_instance_file);
+	CU_add_test(suite, "instance reset",
+		    test_instance_reset);
 	CU_add_test(suite, "systems and events APIs",
 		    test_system_event);
 	CU_add_test(suite, "tracefs_iterate_raw_events API",
