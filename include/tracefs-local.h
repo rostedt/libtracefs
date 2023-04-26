@@ -64,6 +64,7 @@ int trace_get_instance(struct tracefs_instance *instance);
 /* Can be overridden */
 void tracefs_warning(const char *fmt, ...);
 
+char *strstrip(char *str);
 int str_read_file(const char *file, char **buffer, bool warn);
 char *trace_append_file(const char *dir, const char *name);
 char *trace_find_tracing_dir(bool debugfs);

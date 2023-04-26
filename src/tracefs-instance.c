@@ -1239,3 +1239,210 @@ char *tracefs_instance_get_affinity(struct tracefs_instance *instance)
 
 	return set;
 }
+
+static int clear_trigger(const char *file)
+{
+	char trigger[BUFSIZ];
+	char *save = NULL;
+	char *line;
+	char *buf;
+	int size;
+	int len;
+	int ret;
+
+	size = str_read_file(file, &buf, true);
+	if (size < 1)
+		return 0;
+
+	trigger[0] = '!';
+
+	for (line = strtok_r(buf, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
+		if (line[0] == '#')
+			continue;
+		len = strlen(line);
+		if (len > BUFSIZ - 2)
+			len = BUFSIZ - 2;
+		strncpy(trigger + 1, line, len);
+		trigger[len + 1] = '\0';
+		/* We don't want any filters or extra on the line */
+		strtok(trigger, " ");
+		write_file(file, trigger, O_WRONLY);
+	}
+
+	free(buf);
+
+	/*
+	 * Some triggers have an order in removing them.
+	 * They will not be removed if done in the wrong order.
+	 */
+	size = str_read_file(file, &buf, true);
+	if (size < 1)
+		return 0;
+
+	ret = 0;
+	for (line = strtok(buf, "\n"); line; line = strtok(NULL, "\n")) {
+		if (line[0] == '#')
+			continue;
+		ret = 1;
+		break;
+	}
+	free(buf);
+	return ret;
+}
+
+static void disable_func_stack_trace_instance(struct tracefs_instance *instance)
+{
+	char *content;
+	char *cond;
+	int size;
+
+	content = tracefs_instance_file_read(instance, "current_tracer", &size);
+	if (!content)
+		return;
+	cond = strstrip(content);
+	if (memcmp(cond, "function", size - (cond - content)) != 0)
+		goto out;
+
+	tracefs_option_disable(instance, TRACEFS_OPTION_FUNC_STACKTRACE);
+ out:
+	free(content);
+}
+
+static void reset_cpu_mask(struct tracefs_instance *instance)
+{
+	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int fullwords = (cpus - 1) / 32;
+	int bits = (cpus - 1) % 32 + 1;
+	int len = (fullwords + 1) * 9;
+	char buf[len + 1];
+
+	buf[0] = '\0';
+	sprintf(buf, "%x", (unsigned int)((1ULL << bits) - 1));
+	while (fullwords-- > 0)
+		strcat(buf, ",ffffffff");
+
+	tracefs_instance_file_write(instance, "tracing_cpumask", buf);
+}
+
+static void clear_func_filter(struct tracefs_instance *instance, const char *file)
+{
+	char filter[BUFSIZ];
+	char *line;
+	char *buf;
+	char *p;
+	int len;
+
+	buf = tracefs_instance_file_read(instance, file, NULL);
+	if (!buf)
+		return;
+
+	/* Now remove filters */
+	filter[0] = '!';
+
+	/*
+	 * To delete a filter, we need to write a '!filter'
+	 * to the file for each filter.
+	 */
+	for (line = strtok(buf, "\n"); line; line = strtok(NULL, "\n")) {
+		if (line[0] == '#')
+			continue;
+		len = strlen(line);
+		if (len > BUFSIZ - 2)
+			len = BUFSIZ - 2;
+
+		strncpy(filter + 1, line, len);
+		filter[len + 1] = '\0';
+		/*
+		 * To remove "unlimited" filters, we must remove
+		 * the ":unlimited" from what we write.
+		 */
+		p = strstr(filter, ":unlimited");
+		if (p) {
+			*p = '\0';
+			len = p - filter;
+		}
+		/*
+		 * The write to this file expects white space
+		 * at the end :-p
+		 */
+		filter[len] = '\n';
+		filter[len+1] = '\0';
+		tracefs_instance_file_append(instance, file, filter);
+	}
+}
+
+static void clear_func_filters(struct tracefs_instance *instance)
+{
+	int i;
+	const char * const files[] = { "set_ftrace_filter",
+				       "set_ftrace_notrace",
+				       "set_graph_function",
+				       "set_graph_notrace",
+				       "stack_trace_filter",
+				       NULL };
+
+	for (i = 0; files[i]; i++)
+		clear_func_filter(instance, files[i]);
+}
+
+/**
+ * tracefs_instance_reset - Reset a ftrace instance to its default state
+ * @instance - a ftrace instance to be reseted
+ *
+ * The main logic and the helper functions are copied from
+ * trace-cmd/tracecmd/trace-record.c, trace_reset()
+ */
+void tracefs_instance_reset(struct tracefs_instance *instance)
+{
+	int has_trigger = -1;
+	char **systems;
+	struct stat st;
+	char **events;
+	char *file;
+	int i, j;
+
+	tracefs_trace_off(instance);
+	disable_func_stack_trace_instance(instance);
+	tracefs_tracer_clear(instance);
+	tracefs_instance_file_write(instance, "events/enable", "0");
+	tracefs_instance_file_write(instance, "set_ftrace_pid", "");
+	tracefs_instance_file_clear(instance, "trace");
+
+	systems = tracefs_event_systems(NULL);
+	if (systems) {
+		for (i = 0; systems[i]; i++) {
+			events = tracefs_system_events(NULL, systems[i]);
+			if (!events)
+				continue;
+			for (j = 0; events[j]; j++) {
+				file = tracefs_event_get_file(instance, systems[i],
+							      events[j], "filter");
+				write_file(file, "0", O_WRONLY | O_TRUNC);
+				tracefs_put_tracing_file(file);
+
+				file = tracefs_event_get_file(instance, systems[i],
+							      events[j], "trigger");
+				if (has_trigger < 0) {
+					/* Check if the kernel is configured with triggers */
+					if (stat(file, &st) < 0)
+						has_trigger = 0;
+					else
+						has_trigger = 1;
+				}
+				if (has_trigger)
+					clear_trigger(file);
+				tracefs_put_tracing_file(file);
+			}
+			tracefs_list_free(events);
+		}
+		tracefs_list_free(systems);
+	}
+
+	tracefs_instance_file_write(instance, "error_log", " ");
+	tracefs_instance_file_write(instance, "trace_clock", "local");
+	tracefs_instance_file_write(instance, "set_event_pid", "");
+	reset_cpu_mask(instance);
+	clear_func_filters(instance);
+	tracefs_instance_file_write(instance, "tracing_max_latency", "0");
+	tracefs_trace_on(instance);
+}

@@ -319,6 +319,26 @@ void tracefs_put_tracing_file(char *name)
 	free(name);
 }
 
+/* The function is copied from trace-cmd */
+__hidden char *strstrip(char *str)
+{
+	char *s;
+
+	if (!str)
+		return NULL;
+
+	s = str + strlen(str) - 1;
+	while (s >= str && isspace(*s))
+		s--;
+	s++;
+	*s = '\0';
+
+	for (s = str; *s && isspace(*s); s++)
+		;
+
+	return s;
+}
+
 __hidden int str_read_file(const char *file, char **buffer, bool warn)
 {
 	char stbuf[BUFSIZ];

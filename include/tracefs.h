@@ -23,6 +23,7 @@ int tracefs_tracing_dir_is_mounted(bool mount, const char **path);
 struct tracefs_instance;
 
 void tracefs_instance_free(struct tracefs_instance *instance);
+void tracefs_instance_reset(struct tracefs_instance *instance);
 struct tracefs_instance *tracefs_instance_create(const char *name);
 struct tracefs_instance *tracefs_instance_alloc(const char *tracing_dir,
 						const char *name);
