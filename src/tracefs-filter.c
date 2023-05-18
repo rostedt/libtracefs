@@ -41,6 +41,13 @@ static const struct tep_format_field common_comm = {
 	.size			= 16,
 };
 
+const struct tep_format_field common_stacktrace __hidden = {
+	.type			= "unsigned long[]",
+	.name			= "stacktrace",
+	.size			= 4,
+	.flags			= TEP_FIELD_IS_ARRAY | TEP_FIELD_IS_DYNAMIC,
+};
+
 /*
  * This also must be able to accept fields that are OK via the histograms,
  * such as common_timestamp.
@@ -55,6 +62,9 @@ static const struct tep_format_field *get_event_field(struct tep_event *event,
 
 	if (!strcmp(field_name, TRACEFS_TIMESTAMP_USECS))
 		return &common_timestamp_usecs;
+
+	if (!strcmp(field_name, TRACEFS_STACKTRACE))
+		return &common_stacktrace;
 
 	field = tep_find_any_field(event, field_name);
 	if (!field && (!strcmp(field_name, "COMM") || !strcmp(field_name, "comm")))

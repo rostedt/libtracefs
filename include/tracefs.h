@@ -335,6 +335,7 @@ enum tracefs_hist_key_type {
 	TRACEFS_HIST_KEY_LOG,
 	TRACEFS_HIST_KEY_USECS,
 	TRACEFS_HIST_KEY_BUCKETS,
+	TRACEFS_HIST_KEY_STACKTRACE,
 	TRACEFS_HIST_KEY_MAX
 };
 
@@ -553,6 +554,8 @@ int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
 
 #define TRACEFS_TIMESTAMP "common_timestamp"
 #define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"
+
+#define TRACEFS_STACKTRACE "common_stacktrace"
 
 enum tracefs_synth_handler {
 	TRACEFS_SYNTH_HANDLE_NONE	= 0,

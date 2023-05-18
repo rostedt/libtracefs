@@ -566,7 +566,8 @@ static int test_field_exists(struct tep_handle *tep,
 		return -1;
 
 	if (!strcmp(field_name, TRACEFS_TIMESTAMP) ||
-	    !strcmp(field->field, TRACEFS_TIMESTAMP_USECS))
+	    !strcmp(field->field, TRACEFS_TIMESTAMP_USECS) ||
+	    !strcmp(field->field, TRACEFS_STACKTRACE))
 		tfield = (void *)1L;
 	else
 		tfield = tep_find_any_field(field->event, field_name);
@@ -695,6 +696,8 @@ static int update_vars(struct tep_handle *tep,
 			field->field = store_str(sb, TRACEFS_TIMESTAMP);
 		if (!strcmp(field->field, "TIMESTAMP_USECS"))
 			field->field = store_str(sb, TRACEFS_TIMESTAMP_USECS);
+		if (!strcmp(field->field, "STACKTRACE"))
+			field->field = store_str(sb, TRACEFS_STACKTRACE);
 		if (test_field_exists(tep, sb, expr))
 			return -1;
 	}

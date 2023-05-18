@@ -416,6 +416,9 @@ int tracefs_hist_add_key_cnt(struct tracefs_hist *hist, const char *key,
 	case TRACEFS_HIST_KEY_BUCKETS:
 		ret = asprintf(&key_type, "%s.buckets=%d", key, cnt);
 		break;
+	case TRACEFS_HIST_KEY_STACKTRACE:
+		ret = asprintf(&key_type, "%s.stacktrace", key);
+		break;
 	case TRACEFS_HIST_KEY_MAX:
 		/* error */
 		break;
@@ -500,13 +503,22 @@ add_sort_key(struct tracefs_hist *hist, const char *sort_key, char **list)
 {
 	char **key_list = hist->keys;
 	char **val_list = hist->values;
+	char *dot;
+	int len;
 	int i;
 
 	if (strcmp(sort_key, TRACEFS_HIST_HITCOUNT) == 0)
 		goto out;
 
+	len = strlen(sort_key);
+
 	for (i = 0; key_list[i]; i++) {
 		if (strcmp(key_list[i], sort_key) == 0)
+			break;
+		dot = strchr(key_list[i], '.');
+		if (!dot || dot - key_list[i] != len)
+			continue;
+		if (strncmp(key_list[i], sort_key, len) == 0)
 			break;
 	}
 
@@ -915,7 +927,8 @@ static char *add_synth_field(const struct tep_format_field *field,
 	bool sign;
 
 	if (field->flags & TEP_FIELD_IS_ARRAY) {
-		str = strdup("char");
+		str = strdup(field->type);
+		str = strtok(str, "[");
 		str = append_string(str, " ", name);
 		str = append_string(str, NULL, "[");
 
@@ -966,6 +979,9 @@ static char *add_synth_field(const struct tep_format_field *field,
 		errno = EBADF;
 		return NULL;
 	}
+
+	if (field == &common_stacktrace)
+		type = field->type;
 
 	str = strdup(type);
 	str = append_string(str, " ", name);

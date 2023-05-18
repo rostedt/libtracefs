@@ -51,6 +51,8 @@ struct tracefs_instance {
 	bool				iterate_keep_going;
 };
 
+extern const struct tep_format_field common_stacktrace;
+
 extern pthread_mutex_t toplevel_lock;
 
 static inline pthread_mutex_t *trace_get_lock(struct tracefs_instance *instance)

@@ -162,6 +162,19 @@ select start.pid, (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS) as lat from sche
    WHERE start.prio < 100 || end.prev_prio < 100
 --
 
+If the kernel supports it, you can pass around a stacktrace between events.
+
+[source, c]
+--
+select start.prev_pid as pid, (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS) as delta, start.STACKTRACE as stack
+   FROM sched_switch as start JOIN sched_switch as end ON start.prev_pid = end.next_pid
+   WHERE start.prev_state == 2
+--
+
+The above will record a stacktrace when a task is in the UNINTERRUPTIBLE (blocked) state, and trigger
+the synthetic event when it is scheduled back in, recording the time delta that it was blocked for.
+It will record the stacktrace of where it was when it scheduled out along with the delta.
+
 
 KEYWORDS AS EVENT FIELDS
 ------------------------
