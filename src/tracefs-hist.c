@@ -748,6 +748,7 @@ struct name_hash {
  * @start_parens: Current parenthesis level for start event
  * @end_parens: Current parenthesis level for end event
  * @new_format: onmatch().trace(synth_event,..) or onmatch().synth_event(...)
+ * @created: Set if tracefs_synth_create() was called on this; cleared on destroy()
  */
 struct tracefs_synth {
 	struct tracefs_instance *instance;
@@ -778,6 +779,7 @@ struct tracefs_synth {
 	char			arg_name[16];
 	int			arg_cnt;
 	bool			new_format;
+	bool			created;
 };
 
  /*
@@ -2207,7 +2209,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
  */
 int tracefs_synth_set_instance(struct tracefs_synth *synth, struct tracefs_instance *instance)
 {
-	if (!synth)
+	if (!synth || synth->created)
 		return -1;
 	synth->instance = instance;
 	return 0;
@@ -2271,6 +2273,8 @@ int tracefs_synth_create(struct tracefs_synth *synth)
 	if (ret < 0)
 		goto remove_start_hist;
 
+	synth->created = true;
+
 	return 0;
 
  remove_start_hist:
@@ -2333,6 +2337,9 @@ int tracefs_synth_destroy(struct tracefs_synth *synth)
 	free(hist);
 
 	ret = tracefs_dynevent_destroy(synth->dyn_event, true);
+
+	if (!ret)
+		synth->created = false;
 
 	return ret ? -1 : 0;
 }
