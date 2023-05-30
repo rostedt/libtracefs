@@ -983,7 +983,7 @@ struct test_synth {
 	char *match_name;
 };
 
-static void test_synth_compare(struct test_synth *synth, struct tracefs_dynevent **devents)
+static void test_synth_compare(struct test_synth *sevents, struct tracefs_dynevent **devents)
 {
 	enum tracefs_dynevent_type stype;
 	char *format;
@@ -996,9 +996,9 @@ static void test_synth_compare(struct test_synth *synth, struct tracefs_dynevent
 		CU_TEST(stype == TRACEFS_DYNEVENT_SYNTH);
 		if (stype != TRACEFS_DYNEVENT_SYNTH)
 			continue;
-		CU_TEST(event && synth[i].name && strcmp(event, synth[i].name) == 0);
-		if (synth[i].match_name) {
-			CU_TEST(strstr(format, synth[i].match_name) != NULL);
+		CU_TEST(event && sevents[i].name && strcmp(event, sevents[i].name) == 0);
+		if (sevents[i].match_name) {
+			CU_TEST(strstr(format, sevents[i].match_name) != NULL);
 		}
 		free(event);
 		free(format);
