@@ -994,7 +994,9 @@ static void test_synth_compare(struct test_synth *synth, struct tracefs_dynevent
 		stype = tracefs_dynevent_info(devents[i], NULL,
 					      &event, NULL, NULL, &format);
 		CU_TEST(stype == TRACEFS_DYNEVENT_SYNTH);
-		CU_TEST(strcmp(event, synth[i].name) == 0);
+		if (stype != TRACEFS_DYNEVENT_SYNTH)
+			continue;
+		CU_TEST(event && synth[i].name && strcmp(event, synth[i].name) == 0);
 		if (synth[i].match_name) {
 			CU_TEST(strstr(format, synth[i].match_name) != NULL);
 		}
