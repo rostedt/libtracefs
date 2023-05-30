@@ -1047,6 +1047,12 @@ static void test_instance_synthetic(struct tracefs_instance *instance)
 
 	devents = get_dynevents_check(TRACEFS_DYNEVENT_SYNTH, sevents_count);
 	CU_TEST(devents != NULL);
+	if (!devents)
+		goto out;
+	CU_TEST(devents[sevents_count] == NULL);
+	if (devents[sevents_count])
+		goto out;
+
 	test_synth_compare(sevents, devents);
 	tracefs_dynevent_list_free(devents);
 
@@ -1057,6 +1063,7 @@ static void test_instance_synthetic(struct tracefs_instance *instance)
 
 	get_dynevents_check(TRACEFS_DYNEVENT_SYNTH, 0);
 
+ out:
 	for (i = 0; i < sevents_count; i++)
 		tracefs_synth_free(synth[i]);
 
