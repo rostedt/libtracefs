@@ -1768,6 +1768,7 @@ static void test_instance_reset(void)
 {
 	struct tracefs_instance *instance = NULL;
 	const char *name = get_rand_str();
+	char **tracers;
 
 	CU_TEST(tracefs_instance_exists(name) == false);
 	instance = tracefs_instance_create(name);
@@ -1775,8 +1776,13 @@ static void test_instance_reset(void)
 
 	CU_TEST(test_instance_check_default_state(instance) == true);
 
-	CU_TEST(tracefs_tracer_set(instance, TRACEFS_TRACER_HWLAT) == 0);
-	CU_TEST(tracefs_event_enable(instance, "bridge", "fdb_delete") == 0);
+	tracers = tracefs_tracers(NULL);
+	CU_TEST(tracers != NULL);
+	if (tracers) {
+		CU_TEST(tracefs_tracer_set(instance, TRACEFS_TRACER_CUSTOM, tracers[0]) == 0);
+		tracefs_list_free(tracers);
+	}
+	CU_TEST(tracefs_event_enable(instance, "sched", "sched_switch") == 0);
 	CU_TEST(tracefs_instance_file_write(instance, "set_ftrace_pid", "5") > 0);
 	CU_TEST(tracefs_instance_file_write(instance, "trace_clock", "global") > 0);
 	CU_TEST(tracefs_instance_file_write(instance, "set_event_pid", "5") > 0);
@@ -1785,9 +1791,9 @@ static void test_instance_reset(void)
 	CU_TEST(tracefs_instance_file_write(instance, "set_ftrace_notrace",
 						      "schedule:stacktrace") > 0);
 	CU_TEST(tracefs_instance_file_write(instance, "tracing_cpumask", "0f") > 0);
-	CU_TEST(tracefs_instance_file_write(instance, "events/syscalls/sys_exit_read/trigger",
+	CU_TEST(tracefs_event_file_write(instance, "syscalls", "sys_exit_read", "trigger",
 						      "enable_event:kmem:kmalloc:1") > 0);
-	CU_TEST(tracefs_instance_file_write(instance, "events/bridge/fdb_delete/filter",
+	CU_TEST(tracefs_event_file_write(instance, "sched", "sched_switch", "filter",
 						      "common_pid == 5") > 0);
 
 	CU_TEST(test_instance_check_default_state(instance) == false);
