@@ -817,14 +817,7 @@ char **tracefs_system_events(const char *tracing_dir, const char *system)
 	return events;
 }
 
-/**
- * tracefs_tracers - returns an array of available tracers
- * @tracing_dir: The directory that contains the tracing directory
- *
- * Returns an allocate list of plugins. The array ends with NULL
- * Both the plugin names and array must be freed with tracefs_list_free()
- */
-char **tracefs_tracers(const char *tracing_dir)
+static char **list_tracers(const char *tracing_dir)
 {
 	char *available_tracers;
 	struct stat st;
@@ -880,6 +873,35 @@ char **tracefs_tracers(const char *tracing_dir)
 	free(available_tracers);
 
 	return plugins;
+}
+
+/**
+ * tracefs_tracers - returns an array of available tracers
+ * @tracing_dir: The directory that contains the tracing directory
+ *
+ * Returns an allocate list of plugins. The array ends with NULL
+ * Both the plugin names and array must be freed with tracefs_list_free()
+ */
+char **tracefs_tracers(const char *tracing_dir)
+{
+	return list_tracers(tracing_dir);
+}
+
+/**
+ * tracefs_instance_tracers - returns an array of available tracers for an instance
+ * @instance: ftrace instance, can be NULL for the top instance
+ *
+ * Returns an allocate list of plugins. The array ends with NULL
+ * Both the plugin names and array must be freed with tracefs_list_free()
+ */
+char **tracefs_instance_tracers(struct tracefs_instance *instance)
+{
+	const char *tracing_dir = NULL;
+
+	if (instance)
+		tracing_dir = instance->trace_dir;
+
+	return list_tracers(tracing_dir);
 }
 
 static int load_events(struct tep_handle *tep,

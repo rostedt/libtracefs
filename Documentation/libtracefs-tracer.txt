@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_tracer_set, tracefs_tracer_clear - Enable or disable a tracer in an instance or the top level
+tracefs_instance_tracers, tracefs_tracer_set, tracefs_tracer_clear - Enable or disable a tracer in an instance or the top level
 
 SYNOPSIS
 --------
@@ -11,6 +11,7 @@ SYNOPSIS
 --
 *#include <tracefs.h>*
 
+char pass:[**] *tracefs_instance_tracers*(struct tracefs_instance pass:[*]_instance_);
 int *tracefs_tracer_set*(struct tracefs_instance pass:[*]_instance_, enum tracefs_tracers _tracer_);
 int *tracefs_tracer_set*(struct tracefs_instance pass:[*]_instance_, enum tracefs_tracers _tracer_, const char pass:[*]_name_);
 int *tracefs_tracer_clear*(struct tracefs_instance pass:[*]_instance_);
@@ -18,6 +19,11 @@ int *tracefs_tracer_clear*(struct tracefs_instance pass:[*]_instance_);
 
 DESCRIPTION
 -----------
+*tracefs_instance_tracers* will return a list of available tracers for a given
+_instance_ (note, an instance may not have the same set of available tracers as
+the top level). If _instance_ is NULL, then the list of available tracers
+returned will be for the top level.
+
 *tracefs_tracer_set* enables a tracer in the given instance, defined by the
 _instance_ parameter. If _instance_ is NULL, then the top level instance is
 changed. If _tracer_ is set to *TRACFES_TRACER_CUSTOM* then a _name_
@@ -119,10 +125,12 @@ int main(int argc, char *argv[])
 {
 	struct tracefs_instance *inst = NULL;
 	enum tracefs_tracers t = TRACEFS_TRACER_NOP;
+	const char *cust = NULL;
 	const char *buf = NULL;
-	const char *cust;
+	char **tracers;
 	int ret;
 	int ch;
+	int i;
 
 	while ((ch = getopt(argc, argv, "nfgiwdc:B:")) > 0) {
 		switch (ch) {
@@ -161,19 +169,27 @@ int main(int argc, char *argv[])
 		ret = tracefs_tracer_set(inst, t);
 
 	if (ret < 0) {
+		if (errno == ENODEV) {
+			if (cust)
+				printf("Tracer '%s' not supported by kernel\n", cust);
+			else
+				printf("Tracer not supported by kernel\n");
+			tracers = tracefs_instance_tracers(inst);
+			printf("Available tracers:");
+			for (i = 0; tracers && tracers[i]; i++)
+				printf(" %s", tracers[i]);
+			tracefs_list_free(tracers);
+			printf("\n");
+		} else
+			perror("Error");
 		if (inst) {
 			tracefs_instance_destroy(inst);
 			tracefs_instance_free(inst);
 		}
-		if (errno == ENODEV)
-			printf("Tracer not supported by kernel\n");
-		else
-			perror("Error");
 		exit(-1);
 	}
 
-	if (inst)
-		tracefs_instance_free(inst);
+	tracefs_instance_free(inst);
 
 	exit(0);
 }

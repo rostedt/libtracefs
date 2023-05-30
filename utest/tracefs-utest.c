@@ -1776,7 +1776,7 @@ static void test_instance_reset(void)
 
 	CU_TEST(test_instance_check_default_state(instance) == true);
 
-	tracers = tracefs_tracers(NULL);
+	tracers = tracefs_instance_tracers(instance);
 	CU_TEST(tracers != NULL);
 	if (tracers) {
 		CU_TEST(tracefs_tracer_set(instance, TRACEFS_TRACER_CUSTOM, tracers[0]) == 0);

@@ -159,6 +159,7 @@ bool tracefs_event_file_exists(struct tracefs_instance *instance,
 			       const char *file);
 
 char **tracefs_tracers(const char *tracing_dir);
+char **tracefs_instance_tracers(struct tracefs_instance *instance);
 
 struct tep_handle *tracefs_local_events(const char *tracing_dir);
 struct tep_handle *tracefs_local_events_system(const char *tracing_dir,
