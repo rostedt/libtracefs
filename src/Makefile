@@ -18,6 +18,9 @@ OBJS += tracefs-record.o
 ifeq ($(VSOCK_DEFINED), 1)
 OBJS += tracefs-vsock.o
 endif
+ifeq ($(PERF_DEFINED), 1)
+OBJS += tracefs-perf.o
+endif
 
 # Order matters for the the three below
 OBJS += sqlhist-lex.o

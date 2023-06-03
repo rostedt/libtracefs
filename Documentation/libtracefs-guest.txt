@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_find_cid_pid, tracefs_instance_find_cid_pid -
+tracefs_find_cid_pid, tracefs_instance_find_cid_pid, tracefs_time_conversion -
 helper functions to handle tracing guests
 
 SYNOPSIS
@@ -14,6 +14,7 @@ SYNOPSIS
 
 char pass:[*]*tracefs_find_cid_pid*(int _cid_);
 char pass:[*]*tracefs_instance_find_cid_pid*(struct tracefs_instance pass:[*]_instance_, int _cid_);
+int *tracefs_time_conversion*(int _cpu_, int pass:[*]_shift_, int pass:[*]_multi_, long long pass:[*]offset);
 --
 
 DESCRIPTION
@@ -26,6 +27,11 @@ the pid of the thread leader.
 The *tracefs_instance_find_cid_pid*() is the same as *tracefs_find_cid_pid*() but defines
 the instance to use to perform the tracing in. If NULL it will use the top level
 buffer to perform the tracing.
+
+The *tracefs_time_conversion*() will return the values used by the kernel to convert
+the raw time stamp counter into nanoseconds for the given _cpu_. Pointers for _shift_, _multi_
+and _offset_ can be NULL to be ignored, otherwise they are set with the shift, multiplier
+and offset repectively.
 
 RETURN VALUE
 ------------
@@ -76,8 +82,67 @@ static int find_cids(void)
 	return 0;
 }
 
+struct time_info {
+	int		shift;
+	int		multi;
+};
+
+static void show_time_conversion(void)
+{
+	struct time_info *tinfo;
+	int cpus;
+	int cpu;
+	int ret;
+
+	cpus = sysconf(_SC_NPROCESSORS_CONF);
+	tinfo = calloc(cpus, sizeof(*tinfo));
+	if (!tinfo)
+		exit(-1);
+
+	for (cpu = 0; cpu < cpus; cpu++) {
+		ret  = tracefs_time_conversion(cpu,
+						&tinfo[cpu].shift,
+						&tinfo[cpu].multi,
+						NULL);
+		if (ret)
+			break;
+	}
+	if (cpu != cpus) {
+		if (!cpu) {
+			perror("tracefs_time_conversion");
+			exit(-1);
+		}
+		printf("Only read %d of %d CPUs", cpu, cpus);
+		cpus = cpu + 1;
+	}
+
+	/* Check if all the shift and mult values are the same */
+	for (cpu = 1; cpu < cpus; cpu++) {
+		if (tinfo[cpu - 1].shift != tinfo[cpu].shift)
+			break;
+		if (tinfo[cpu - 1].multi != tinfo[cpu].multi)
+			break;
+	}
+
+	if (cpu == cpus) {
+		printf("All cpus have:\n");
+		printf(" shift:  %d\n", tinfo[0].shift);
+		printf(" multi:  %d\n", tinfo[0].multi);
+		printf("\n");
+		return;
+	}
+
+	for (cpu = 0; cpu < cpus; cpu++) {
+		printf("CPU: %d\n", cpu);
+		printf(" shift:  %d\n", tinfo[cpu].shift);
+		printf(" multi:  %d\n", tinfo[cpu].multi);
+		printf("\n");
+	}
+}
+
 int main(int argc, char *argv[])
 {
+	show_time_conversion();
 	find_cids();
 	exit(0);
 }

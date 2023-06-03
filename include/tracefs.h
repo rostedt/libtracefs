@@ -644,4 +644,7 @@ int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock);
 int tracefs_instance_find_cid_pid(struct tracefs_instance *instance, int cid);
 int tracefs_find_cid_pid(int cid);
 
+/* More guest helpers */
+int tracefs_time_conversion(int cpu, int *shift, int *mult, long long *offset);
+
 #endif /* _TRACE_FS_H */

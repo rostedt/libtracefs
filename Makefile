@@ -79,13 +79,19 @@ else
 VSOCK_DEFINED := 0
 endif
 
+ifndef NO_PERF
+PERF_DEFINED := $(shell if (echo "$(pound)include <linux/perf_event.h>" | $(CC) -E - >/dev/null 2>&1) ; then echo 1; else echo 0 ; fi)
+else
+PREF_DEFINED := 0
+endif
+
 etcdir ?= /etc
 etcdir_SQ = '$(subst ','\'',$(etcdir))'
 
 export man_dir man_dir_SQ html_install html_install_SQ INSTALL
 export img_install img_install_SQ
 export DESTDIR DESTDIR_SQ
-export VSOCK_DEFINED
+export VSOCK_DEFINED PERF_DEFINED
 
 pound := \#
 
