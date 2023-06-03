@@ -640,4 +640,8 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer);
 int tracefs_cpu_flush_write(struct tracefs_cpu *tcpu, int wfd);
 int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock);
 
+/* Mapping vsocket cids to pids using tracing */
+int tracefs_instance_find_cid_pid(struct tracefs_instance *instance, int cid);
+int tracefs_find_cid_pid(int cid);
+
 #endif /* _TRACE_FS_H */

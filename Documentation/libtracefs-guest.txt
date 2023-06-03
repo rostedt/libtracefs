@@ -1,0 +1,123 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_find_cid_pid, tracefs_instance_find_cid_pid -
+helper functions to handle tracing guests
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+char pass:[*]*tracefs_find_cid_pid*(int _cid_);
+char pass:[*]*tracefs_instance_find_cid_pid*(struct tracefs_instance pass:[*]_instance_, int _cid_);
+--
+
+DESCRIPTION
+-----------
+The *tracefs_find_cid_pid*() will use tracing to follow the wakeups of connecting to
+the given _cid_ in order to find the pid of the guest thread that belongs to the vsocket cid.
+It will then read the proc file system to find the thread leader, and it will return
+the pid of the thread leader.
+
+The *tracefs_instance_find_cid_pid*() is the same as *tracefs_find_cid_pid*() but defines
+the instance to use to perform the tracing in. If NULL it will use the top level
+buffer to perform the tracing.
+
+RETURN VALUE
+------------
+Both *tracefs_find_cid_pid*() and *tracefs_instance_find_cid_pid*() will return the
+pid of the guest main thread that belongs to the _cid_, or -1 on error (or not found).
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <unistd.h>
+#include <tracefs.h>
+
+#define MAX_CID		256
+
+static void find_cid(struct tracefs_instance *instance, int cid)
+{
+	int pid;
+
+	pid = tracefs_instance_find_cid_pid(instance, cid);
+	if (pid >= 0)
+		printf("%d\t%d\n", cid, pid);
+}
+
+static int find_cids(void)
+{
+	struct tracefs_instance *instance;
+	char *name;
+	int cid;
+	int ret;
+
+	ret = asprintf(&name, "vsock_find-%d\n", getpid());
+	if (ret < 0)
+		return ret;
+
+	instance = tracefs_instance_create(name);
+	free(name);
+	if (!instance)
+		return -1;
+
+	for (cid = 0; cid < MAX_CID; cid++)
+		find_cid(instance, cid);
+
+	tracefs_event_disable(instance, NULL, NULL);
+	tracefs_instance_destroy(instance);
+	tracefs_instance_free(instance);
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	find_cids();
+	exit(0);
+}
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

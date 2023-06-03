@@ -22,6 +22,7 @@ EXAMPLES += tracer
 EXAMPLES += stream
 EXAMPLES += instances-affinity
 EXAMPLES += cpu
+EXAMPLES += guest
 
 TARGETS :=
 TARGETS += sqlhist

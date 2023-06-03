@@ -15,6 +15,9 @@ OBJS += tracefs-dynevents.o
 OBJS += tracefs-eprobes.o
 OBJS += tracefs-uprobes.o
 OBJS += tracefs-record.o
+ifeq ($(VSOCK_DEFINED), 1)
+OBJS += tracefs-vsock.o
+endif
 
 # Order matters for the the three below
 OBJS += sqlhist-lex.o
