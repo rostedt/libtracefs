@@ -1006,6 +1006,15 @@ static void test_synth_compare(struct test_synth *sevents, struct tracefs_dyneve
 	CU_TEST(devents == NULL || devents[i] == NULL);
 }
 
+static void destroy_dynevents(unsigned int type)
+{
+	int ret;
+
+	ret = tracefs_dynevent_destroy_all(type, true);
+	CU_TEST(ret == 0);
+	get_dynevents_check(type, 0);
+}
+
 static void test_instance_synthetic(struct tracefs_instance *instance)
 {
 	struct test_synth sevents[] = {
@@ -1025,9 +1034,7 @@ static void test_instance_synthetic(struct tracefs_instance *instance)
 	CU_TEST(tep != NULL);
 
 	/* kprobes APIs */
-	ret = tracefs_dynevent_destroy_all(TRACEFS_DYNEVENT_SYNTH, true);
-	CU_TEST(ret == 0);
-	get_dynevents_check(TRACEFS_DYNEVENT_SYNTH, 0);
+	destroy_dynevents(TRACEFS_DYNEVENT_SYNTH);
 
 	for (i = 0; i < sevents_count; i++) {
 		synth[i] = tracefs_synth_alloc(tep,  sevents[i].name,
@@ -1260,9 +1267,7 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 	CU_TEST(tracefs_kretprobe_raw("test", "test", NULL, "test") != 0);
 
 	/* kprobes APIs */
-	ret = tracefs_dynevent_destroy_all(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE, true);
-	CU_TEST(ret == 0);
-	get_dynevents_check(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE, 0);
+	destroy_dynevents(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE);
 
 	for (i = 0; i < kprobe_count; i++) {
 		dkprobe[i] = tracefs_kprobe_alloc(ktests[i].system, ktests[i].event,
@@ -1327,9 +1332,7 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 		tracefs_dynevent_free(dkretprobe[i]);
 
 	/* kprobes raw APIs */
-	ret = tracefs_dynevent_destroy_all(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE, true);
-	CU_TEST(ret == 0);
-	get_dynevents_check(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE, 0);
+	destroy_dynevents(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE);
 
 	for (i = 0; i < kprobe_count; i++) {
 		ret = tracefs_kprobe_raw(ktests[i].system, ktests[i].event,
@@ -1365,9 +1368,7 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 	tracefs_dynevent_list_free(devents);
 	devents = NULL;
 
-	ret = tracefs_dynevent_destroy_all(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE, true);
-	CU_TEST(ret == 0);
-	get_dynevents_check(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE, 0);
+	destroy_dynevents(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE);
 	free(dkretprobe);
 	free(dkprobe);
 	tep_free(tep);
@@ -1392,7 +1393,6 @@ static void test_eprobes_instance(struct tracefs_instance *instance)
 	struct tep_handle *tep;
 	char *tsys, *tevent;
 	char *tmp, *sav;
-	int ret;
 	int i;
 
 	tep = tep_alloc();
@@ -1405,9 +1405,7 @@ static void test_eprobes_instance(struct tracefs_instance *instance)
 	CU_TEST(tracefs_eprobe_alloc("test", "test", NULL, "test", "test") == NULL);
 	CU_TEST(tracefs_eprobe_alloc("test", "test", "test", NULL, "test") == NULL);
 
-	ret = tracefs_dynevent_destroy_all(TRACEFS_DYNEVENT_EPROBE, true);
-	CU_TEST(ret == 0);
-	get_dynevents_check(TRACEFS_DYNEVENT_EPROBE, 0);
+	destroy_dynevents(TRACEFS_DYNEVENT_EPROBE);
 
 	for (i = 0; i < count; i++) {
 		tmp = strdup(etests[i].address);
