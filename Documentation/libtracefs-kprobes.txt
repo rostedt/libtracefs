@@ -3,8 +3,9 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_kprobe_alloc, tracefs_kretprobe_alloc, tracefs_kprobe_raw, tracefs_kretprobe_raw -
-Allocate, get, and create kprobes
+tracefs_kprobe_alloc, tracefs_kretprobe_alloc, tracefs_kprobe_raw, tracefs_kretprobe_raw,
+tracefs_kprobe_destroy -
+Allocate, get, create, and remove kprobes
 
 SYNOPSIS
 --------
@@ -22,6 +23,8 @@ int *tracefs_kprobe_raw*(const char pass:[*]_system_, const char pass:[*]_event_
 			 const char pass:[*]_addr_, const char pass:[*]_format_);
 int *tracefs_kretprobe_raw*(const char pass:[*]_system_, const char pass:[*]_event_,
 			    const char pass:[*]_addr_, const char pass:[*]_format_);
+int *tracefs_kprobe_destroy*(const char pass:[*]_system_, const char pass:[*]_event_,
+			   const char pass:[*]_addr_, const char pass:[*]_format_, bool _force_);
 --
 
 DESCRIPTION
@@ -49,6 +52,9 @@ document.
 creates a kretprobe instead of a kprobe. The difference is also described
 in the Linux kernel source in the Documentation/trace/kprobetrace.rst file.
 
+*tracefs_kprobe_destroy*() will destroy a specific kprobe or kretprobe created by
+*tracefs_kprobe_raw*() or *tracefs_kretprobe_raw*() with the same parameters.
+
 RETURN VALUE
 ------------
 
@@ -60,6 +66,10 @@ The *tracefs_kprobe_alloc*() and *tracefs_kretprobe_alloc*() APIs return a point
 tracefs_dynevent structure, describing the probe. This pointer must be freed by
 *tracefs_dynevent_free*(3). Note, this only allocates a descriptor representing the kprobe. It does
 not modify the running system.
+
+The *tracefs_kprobe_destroy*() returns 0 on success or -1 on error if it was not able to
+successful destory (or find) the kprobe or kretprobe.
+
 
 ERRORS
 ------

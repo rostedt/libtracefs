@@ -1368,7 +1368,23 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 	tracefs_dynevent_list_free(devents);
 	devents = NULL;
 
-	destroy_dynevents(TRACEFS_DYNEVENT_KPROBE | TRACEFS_DYNEVENT_KRETPROBE);
+	/* Try destroying all the events using tracefs_kprobe_destroy */
+	for (i = 0; i < kprobe_count; i++) {
+		ret = tracefs_kprobe_destroy(ktests[i].system, ktests[i].event,
+					     ktests[i].address, ktests[i].format, true);
+		CU_TEST(ret == 0);
+		get_dynevents_check(TRACEFS_DYNEVENT_KPROBE, kprobe_count - (i + 1));
+	}
+	get_dynevents_check(TRACEFS_DYNEVENT_KPROBE, 0);
+
+	for (i = 0; i < kretprobe_count; i++) {
+		ret = tracefs_kprobe_destroy(kretests[i].system, kretests[i].event,
+					     kretests[i].address, kretests[i].format, true);
+		CU_TEST(ret == 0);
+		get_dynevents_check(TRACEFS_DYNEVENT_KRETPROBE, kretprobe_count - (i + 1));
+	}
+	get_dynevents_check(TRACEFS_DYNEVENT_KRETPROBE, 0);
+
 	free(dkretprobe);
 	free(dkprobe);
 	tep_free(tep);

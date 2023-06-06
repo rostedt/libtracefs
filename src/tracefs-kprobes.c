@@ -196,3 +196,33 @@ int tracefs_kretprobe_raw(const char *system, const char *event,
 {
 	return kprobe_raw(TRACEFS_DYNEVENT_KRETPROBE, system, event, addr, format);
 }
+
+/**
+ * tracefs_kprobe_destroy - Remove an individual kprobe or kretprobe
+ * @system: The system of the kprobe to remove (could be NULL)
+ * @event: The event of the kprobe or kretprobe to remove
+ * @addr: The address used to create the kprobe
+ * @format: The format used to create the kprobe
+ * @force: If true, try to disable the kprobe/kretprobe first
+ *
+ * This removes the kprobe or kretprobe that was created by
+ * tracefs_kprobe_raw() or tracefs_kretprobe_raw().
+ *
+ * Returns 0 on success and -1 otherwise.
+ */
+int tracefs_kprobe_destroy(const char *system, const char *event,
+			   const char *addr, const char *format, bool force)
+{
+	struct tracefs_dynevent *kp;
+	int ret;
+
+	kp = tracefs_kprobe_alloc(system, event, addr, format);
+	if (!kp)
+		return -1;
+
+	ret = tracefs_dynevent_destroy(kp, force);
+
+	tracefs_dynevent_free(kp);
+
+	return ret;
+}
