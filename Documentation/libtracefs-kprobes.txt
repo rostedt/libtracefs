@@ -30,6 +30,8 @@ int *tracefs_kprobe_destroy*(const char pass:[*]_system_, const char pass:[*]_ev
 DESCRIPTION
 -----------
 *tracefs_kprobe_alloc*() allocates a new kprobe context. The kbrobe is not configured in the system.
+The kprobe can be added to the system by passing in the returned descriptor into
+*tracefs_dynevent_create(3)*.
 The new kprobe will be in the _system_ group (or kprobes if _system_ is NULL) and have the name of
 _event_ (or _addr_ if _event_ is NULL). The kprobe will be inserted to _addr_ (function name, with
 or without offset, or a address), and the _format_ will define the format of the kprobe. See the
