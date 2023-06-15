@@ -11,7 +11,7 @@ e = executable(
    'trace-utest',
    source,
    include_directories: [incdir],
-   dependencies: [libtraceevent_dep, cunit_dep],
+   dependencies: [libtraceevent_dep, threads_dep, cunit_dep],
    link_with: libtracefs_static)
 
 test('trace-utest', e)

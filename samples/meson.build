@@ -30,7 +30,7 @@ foreach ex : examples
     executable(
         ex.underscorify(),
         src,
-        dependencies: [libtracefs_dep, libtraceevent_dep],
+        dependencies: [libtracefs_dep, libtraceevent_dep, threads_dep],
         include_directories: [incdir])
 endforeach
 
@@ -39,7 +39,7 @@ src = gen.process(meson.current_source_dir() + '/../Documentation/libtracefs-sql
 executable(
    'sqlhist',
    src,
-   dependencies: [libtracefs_dep, libtraceevent_dep],
+   dependencies: [libtracefs_dep, libtraceevent_dep, threads_dep],
    include_directories: [incdir],
    install: true,
    install_dir: bindir)

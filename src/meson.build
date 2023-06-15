@@ -36,14 +36,14 @@ libtracefs = library(
     'tracefs',
     sources, lfiles, pfiles,
     version: library_version,
-    dependencies: [libtraceevent_dep],
+    dependencies: [libtraceevent_dep, threads_dep],
     include_directories: [incdir],
     install: true)
 
 libtracefs_static = static_library(
     'tracefs_static',
     sources, lfiles, pfiles,
-    dependencies: [libtraceevent_dep],
+    dependencies: [libtraceevent_dep, threads_dep],
     include_directories: [incdir],
     install: false)
 
