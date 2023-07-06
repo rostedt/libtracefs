@@ -31,8 +31,9 @@ The *tracefs_trace_pipe_stream()* function redirects the stream of trace data to
 file. The "splice" system call is used to moves the data without copying between kernel
 address space and user address space. The _fd_ is the file descriptor of the output file
 and _flags_ is a bit mask of flags to be passed to the open system call of the trace_pipe
-file (see ). If flags contain O_NONBLOCK, then that is also passed to the splice calls
-that may read the file to the output stream file descriptor.
+file (see *open(2)*). If flags contain O_NONBLOCK, then that is also passed to the splice calls
+that may read the file to the output stream file descriptor. Note, O_RDONLY is or'd to
+the _flags_ and only O_NONBLOCK is useful for this parameter.
 
 The *tracefs_trace_pipe_print()* function is similar to *tracefs_trace_pipe_stream()*, but
 the stream of trace data is redirected to stdout.
