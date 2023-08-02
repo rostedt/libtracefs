@@ -453,7 +453,7 @@ int tracefs_hist_command(struct tracefs_instance *instance,
 static inline int tracefs_hist_start(struct tracefs_instance *instance,
 				     struct tracefs_hist *hist)
 {
-	return tracefs_hist_command(instance, hist, 0);
+	return tracefs_hist_command(instance, hist, TRACEFS_HIST_CMD_START);
 }
 
 /**
