@@ -123,6 +123,7 @@ __hidden void trace_put_instance(struct tracefs_instance *instance)
 		close(instance->ftrace_marker_raw_fd);
 
 	free(instance->trace_dir);
+	free(instance->followers);
 	free(instance->name);
 	pthread_mutex_destroy(&instance->lock);
 	free(instance);
