@@ -10,6 +10,7 @@ OBJS += tracefs-tools.o
 OBJS += tracefs-marker.o
 OBJS += tracefs-kprobes.o
 OBJS += tracefs-hist.o
+OBJS += tracefs-stats.o
 OBJS += tracefs-filter.o
 OBJS += tracefs-dynevents.o
 OBJS += tracefs-eprobes.o

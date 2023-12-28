@@ -68,6 +68,19 @@ char **tracefs_instances(const char *regex);
 int tracefs_instance_get_buffer_percent(struct tracefs_instance *instance);
 int tracefs_instance_set_buffer_percent(struct tracefs_instance *instance, int val);
 
+struct tracefs_buffer_stat;
+
+struct tracefs_buffer_stat *tracefs_instance_get_stat(struct tracefs_instance *instance, int cpu);
+void tracefs_instance_put_stat(struct tracefs_buffer_stat *tstat);
+ssize_t tracefs_buffer_stat_entries(struct tracefs_buffer_stat *tstat);
+ssize_t tracefs_buffer_stat_overrun(struct tracefs_buffer_stat *tstat);
+ssize_t tracefs_buffer_stat_commit_overrun(struct tracefs_buffer_stat *tstat);
+ssize_t tracefs_buffer_stat_bytes(struct tracefs_buffer_stat *tstat);
+long long tracefs_buffer_stat_event_timestamp(struct tracefs_buffer_stat *tstat);
+long long tracefs_buffer_stat_timestamp(struct tracefs_buffer_stat *tstat);
+ssize_t tracefs_buffer_stat_dropped_events(struct tracefs_buffer_stat *tstat);
+ssize_t tracefs_buffer_stat_read_events(struct tracefs_buffer_stat *tstat);
+
 bool tracefs_instance_exists(const char *name);
 bool tracefs_file_exists(struct tracefs_instance *instance, const char *name);
 bool tracefs_dir_exists(struct tracefs_instance *instance, const char *name);

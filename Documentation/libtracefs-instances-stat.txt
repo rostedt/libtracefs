@@ -1,0 +1,183 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_instance_get_stat, tracefs_instance_put_stat, tracefs_buffer_stat_entries, tracefs_buffer_stat_overrun,
+tracefs_buffer_stat_commit_overrun, tracefs_buffer_stat_bytes, tracefs_buffer_stat_event_timestamp,
+tracefs_buffer_stat_timestamp, tracefs_buffer_stat_dropped_events, tracefs_buffer_stat_read_events
+- Handling tracing buffer stats
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+struct tracefs_buffer_stat pass:[*]*tracefs_instance_get_stat*(struct tracefs_instance pass:[*]_instance_, int _cpu_);
+void *tracefs_instance_put_stat*(struct tracefs_buffer_stat pass:[*]_tstat_);
+ssize_t *tracefs_buffer_stat_entries*(struct tracefs_buffer_stat pass:[*]_tstat_);
+ssize_t *tracefs_buffer_stat_overrun*(struct tracefs_buffer_stat pass:[*]_tstat_);
+ssize_t *tracefs_buffer_stat_commit_overrun*(struct tracefs_buffer_stat pass:[*]_tstat_);
+ssize_t *tracefs_buffer_stat_bytes*(struct tracefs_buffer_stat pass:[*]_tstat_);
+long long *tracefs_buffer_stat_event_timestamp*(struct tracefs_buffer_stat pass:[*]_tstat_);
+long long *tracefs_buffer_stat_timestamp*(struct tracefs_buffer_stat pass:[*]_tstat_);
+ssize_t *tracefs_buffer_stat_dropped_events*(struct tracefs_buffer_stat pass:[*]_tstat_);
+ssize_t *tracefs_buffer_stat_read_events*(struct tracefs_buffer_stat pass:[*]_tstat_);
+--
+
+DESCRIPTION
+-----------
+This set of functions read and parse the tracefs/per_cpu/cpuX/stats file.
+These files hold the statistics of the per CPU ring buffer, such as how
+many events are in the ring buffer, how many have been read and so on.
+
+The *tracefs_instance_get_stat()* function will read and parse a given statistics
+file for a given _instance_ and _cpu_. As the ring buffer is split into per_cpu buffers,
+the information is only associated to the given _cpu_. The returned tracefs_buffer_stat
+pointer can be used with the other *tracefs_buffer_stat* functions and must be freed with
+*tracefs_instance_put_stat()*.
+
+The *tracefs_instance_put_stat()* will free the resources allocated for the given _stat_
+that was created by *tracefs_instance_get_stat()*.
+
+The *tracefs_buffer_stat_entries()* returns the number of events that are currently
+in the ring buffer associated with _tstat_.
+
+The *tracefs_buffer_stat_overrun()* returns the number of events that were lost by
+the ring buffer writer overrunning the reader.
+
+The *tracefs_buffer_stat_commit_overrun()* returns the number of events that were
+lost because the ring buffer was too small and an interrupt interrupted a lower
+context event being recorded and it added more events than the ring buffer could
+hold. Note this is not a common occurrence and when it happens it means that
+something was not set up properly.
+
+The *tracefs_buffer_stat_bytes()* returns the number of bytes that the current events
+take up. Note, it includes the meta data for the events, but does not include the
+meta data for the sub-buffers.
+
+The *tracefs_buffer_stat_event_timestamp()* returns the timestamp of the last event in the
+ring buffer.
+
+The *tracefs_buffer_stat_timestamp()* returns the current timestamp of the ring buffer.
+Note, it is only read when *tracefs_instance_get_stat()* is called. It will have the
+timestamp of the ring buffer when that function was called.
+
+The *tracefs_buffer_stat_dropped_events()* returns the number of events that were
+dropped if overwrite mode is disabled. It will show the events that were lost because
+the writer caught up to the reader and could not write any more events.
+
+The *tracefs_buffer_stat_read_events()* returns the number of events that were consumed
+by a reader.
+
+
+RETURN VALUE
+------------
+The *tracefs_instance_get_stat()* returns a tracefs_buffer_stat structure that can
+be used to retrieve the statistics via the other functions. It must be freed with
+*tracefs_instance_put_stat()*.
+
+The other functions that return different values from the tracefs_buffer_stat structure
+all return the value, or -1 if the value was not found.
+
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <unistd.h>
+#include <tracefs.h>
+
+int main(int argc, char **argv)
+{
+	char *trace;
+	char buf[1000];
+	int ret;
+	int i;
+
+	for (i = 0; i < sizeof(buf) - 1; i++) {
+		buf[i] = '0' + i % 10;
+	}
+	buf[i] = '\0';
+
+	tracefs_instance_clear(NULL);
+
+	for (i = 0; i < 4; i++) {
+		ret = tracefs_printf(NULL, "%s\n", buf);
+		if (ret < 0)
+			perror("write");
+	}
+
+	trace = tracefs_instance_file_read(NULL, "trace", NULL);
+	printf("%s\n", trace);
+	free(trace);
+
+	for (i = 0; i < sysconf(_SC_NPROCESSORS_CONF); i++) {
+		struct tracefs_buffer_stat *tstat;
+		ssize_t entries, eread;
+
+		tstat = tracefs_instance_get_stat(NULL, i);
+		if (!tstat)
+			continue;
+
+		entries = tracefs_buffer_stat_entries(tstat);
+		eread = tracefs_buffer_stat_read_events(tstat);
+		if (!entries && !eread) {
+			tracefs_instance_put_stat(tstat);
+			continue;
+		}
+
+		printf("CPU: %d\n", i);;
+		printf("\tentries: %zd\n", entries);
+		printf("\toverrun: %zd\n", tracefs_buffer_stat_overrun(tstat));
+		printf("\tcommit_overrun: %zd\n", tracefs_buffer_stat_commit_overrun(tstat));
+		printf("\tbytes: %zd\n", tracefs_buffer_stat_bytes(tstat));
+		printf("\tevent_timestamp: %lld\n", tracefs_buffer_stat_event_timestamp(tstat));
+		printf("\ttimestamp: %lld\n", tracefs_buffer_stat_timestamp(tstat));
+		printf("\tdropped_events: %zd\n", tracefs_buffer_stat_dropped_events(tstat));
+		printf("\tread_events: %zd\n", eread);
+
+		tracefs_instance_put_stat(tstat);
+	}
+}
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

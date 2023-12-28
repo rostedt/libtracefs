@@ -24,6 +24,7 @@ EXAMPLES += instances-affinity
 EXAMPLES += cpu
 EXAMPLES += guest
 EXAMPLES += cpu-buf
+EXAMPLES += instances-stat
 
 TARGETS :=
 TARGETS += sqlhist

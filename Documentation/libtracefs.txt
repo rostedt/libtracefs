@@ -155,6 +155,18 @@ Writing data in the trace buffer:
 Control library logs:
 	int *tracefs_set_loglevel*(enum tep_loglevel _level_);
 
+Read the ring buffer statistics:
+	struct tracefs_buffer_stat pass:[*]*tracefs_instance_get_stat*(struct tracefs_instance pass:[*]_instance_, int _cpu_);
+	void *tracefs_instance_put_stat*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	ssize_t *tracefs_buffer_stat_entries*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	ssize_t *tracefs_buffer_stat_overrun*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	ssize_t *tracefs_buffer_stat_commit_overrun*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	ssize_t *tracefs_buffer_stat_bytes*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	long long *tracefs_buffer_stat_event_timestamp*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	long long *tracefs_buffer_stat_timestamp*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	ssize_t *tracefs_buffer_stat_dropped_events*(struct tracefs_buffer_stat pass:[*]_tstat_);
+	ssize_t *tracefs_buffer_stat_read_events*(struct tracefs_buffer_stat pass:[*]_tstat_);
+
 Dynamic event generic APIs:
 	struct *tracefs_dynevent*;
 	enum *tracefs_dynevent_type*;

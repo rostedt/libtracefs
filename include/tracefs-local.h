@@ -51,6 +51,17 @@ struct tracefs_instance {
 	bool				iterate_keep_going;
 };
 
+struct tracefs_buffer_stat {
+	ssize_t				entries;
+	ssize_t				overrun;
+	ssize_t				commit_overrun;
+	ssize_t				bytes;
+	long long			oldest_ts;
+	long long			now_ts;
+	ssize_t				dropped_events;
+	ssize_t				read_events;
+};
+
 extern const struct tep_format_field common_stacktrace;
 
 extern pthread_mutex_t toplevel_lock;
