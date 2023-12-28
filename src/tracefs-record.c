@@ -110,10 +110,8 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 	struct tep_handle *tep;
 	struct kbuffer *kbuf;
 	char path[128];
-	char *buf;
 	int mode = O_RDONLY;
 	int subbuf_size;
-	int len;
 	int ret;
 	int fd;
 
@@ -131,12 +129,7 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 		goto fail;
 
 	/* Get the size of the page */
-	buf = tracefs_instance_file_read(NULL, "events/header_page", &len);
-	if (!buf)
-		goto fail;
-
-	ret = tep_parse_header_page(tep, buf, len, sizeof(long));
-	free(buf);
+	ret = tracefs_load_headers(NULL, tep);
 	if (ret < 0)
 		goto fail;
 

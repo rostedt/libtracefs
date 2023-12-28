@@ -180,6 +180,8 @@ int tracefs_fill_local_events(const char *tracing_dir,
 
 int tracefs_load_cmdlines(const char *tracing_dir, struct tep_handle *tep);
 
+int tracefs_load_headers(const char *tracing_dir, struct tep_handle *tep);
+
 char *tracefs_get_clock(struct tracefs_instance *instance);
 
 enum tracefs_option_id {

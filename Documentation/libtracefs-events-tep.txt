@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_local_events, tracefs_local_events_system, tracefs_fill_local_events,
-tracefs_load_cmdlines -
+tracefs_load_cmdlines, tracefs_load_headers -
 Initialize a tep handler with trace events from the local system.
 
 SYNOPSIS
@@ -17,6 +17,7 @@ struct tep_handle pass:[*]*tracefs_local_events*(const char pass:[*]_tracing_dir
 struct tep_handle pass:[*]*tracefs_local_events_system*(const char pass:[*]_tracing_dir_, const char pass:[*] const pass:[*]_sys_names_);
 int *tracefs_fill_local_events*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_, int pass:[*]_parsing_failures_);
 int *tracefs_load_cmdlines*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_);
+int *tracefs_load_headers*(const char pass:[*]_tracing_dir_, struct tep_handle pass:[*]_tep_);
 --
 
 DESCRIPTION
@@ -54,6 +55,10 @@ trace, there may be a need to read the mappings again after the trace.
 The *tracefs_load_cmdlines()* does just that. The _tracing_dir_ is
 the directory of the mount point to load from, or NULL to use the
 mount point of the tracefs file system.
+
+The *tracefs_load_headers()* will reade the "header_page" of the events
+directory that will update the _tep_ handle with information on how to parse the
+tracing ring buffer sub-buffer.
 
 RETURN VALUE
 ------------

@@ -1216,6 +1216,28 @@ int tracefs_load_cmdlines(const char *tracing_dir, struct tep_handle *tep)
 	return load_saved_cmdlines(tracing_dir, tep, true);
 }
 
+/**
+ * tracefs_load_headers - load just the headers into a tep handle
+ * @tracing_dir: The directory to load from (NULL to figure it out)
+ * @tep: The tep handle to load the headers into.
+ *
+ * Updates the @tep handle with the event and sub-buffer header
+ * information.
+ *
+ * Returns 0 on success and -1 on error.
+ */
+int tracefs_load_headers(const char *tracing_dir, struct tep_handle *tep)
+{
+	int ret;
+
+	if (!tracing_dir)
+		tracing_dir = tracefs_tracing_dir();
+
+	ret = read_header(tep, tracing_dir);
+
+	return ret < 0 ? -1 : 0;
+}
+
 static int fill_local_events_system(const char *tracing_dir,
 				    struct tep_handle *tep,
 				    const char * const *sys_names,
