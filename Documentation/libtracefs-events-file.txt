@@ -23,8 +23,7 @@ int *tracefs_event_file_append*(struct tracefs_instance pass:[*]_instance_, cons
 int *tracefs_event_file_clear*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
 			     const char pass:[*]_file_);
 bool *tracefs_event_file_exists*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_system_, const char pass:[*]_event_,
-			       const char pass:[*]_file_)
-
+			       const char pass:[*]_file_);
 --
 
 DESCRIPTION
