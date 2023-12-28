@@ -1364,7 +1364,9 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 		ret = tracefs_kprobe_destroy(ktests[i].system, ktests[i].event,
 					     ktests[i].address, ktests[i].format, true);
 		CU_TEST(ret == 0);
-		get_dynevents_check(TRACEFS_DYNEVENT_KPROBE, kprobe_count - (i + 1));
+		devents = get_dynevents_check(TRACEFS_DYNEVENT_KPROBE,
+					      kprobe_count - (i + 1));
+		tracefs_dynevent_list_free(devents);
 	}
 	get_dynevents_check(TRACEFS_DYNEVENT_KPROBE, 0);
 
@@ -1372,7 +1374,9 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 		ret = tracefs_kprobe_destroy(kretests[i].system, kretests[i].event,
 					     kretests[i].address, kretests[i].format, true);
 		CU_TEST(ret == 0);
-		get_dynevents_check(TRACEFS_DYNEVENT_KRETPROBE, kretprobe_count - (i + 1));
+		devents = get_dynevents_check(TRACEFS_DYNEVENT_KRETPROBE,
+					      kretprobe_count - (i + 1));
+		tracefs_dynevent_list_free(devents);
 	}
 	get_dynevents_check(TRACEFS_DYNEVENT_KRETPROBE, 0);
 
