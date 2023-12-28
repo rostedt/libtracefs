@@ -212,6 +212,9 @@ SEE ALSO
 --------
 *tracefs_cpu_open*(3)
 *tracefs_cpu_close*(3)
+*tracefs_cpu_read_buf*(3)
+*tracefs_cpu_buffered_read_buf*(3)
+*tracefs_cpu_flush_buf*(3)
 *libtracefs*(3),
 *libtraceevent*(3),
 *trace-cmd*(1)

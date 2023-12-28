@@ -1,0 +1,171 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_cpu_read_buf, tracefs_cpu_buffered_read_buf, tracefs_cpu_flush_buf
+- Reading trace_pipe_raw data returning a kbuffer
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+struct kbuffer pass:[*]*tracefs_cpu_read_buf*(struct tracefs_cpu pass:[*]_tcpu_, bool _nonblock_);
+struct kbuffer pass:[*]*tracefs_cpu_buffered_read_buf*(struct tracefs_cpu pass:[*]_tcpu_, bool _nonblock_);
+struct kbuffer pass:[*]*tracefs_cpu_flush_buf*(struct tracefs_cpu pass:[*]_tcpu_);
+--
+
+DESCRIPTION
+-----------
+This set of APIs can be used to read the raw data from the trace_pipe_raw
+files in the tracefs file system and return a kbuffer structure to read it with.
+
+The *tracefs_cpu_read_buf()* reads the trace_pipe_raw files associated to _tcpu_
+and returns a kbuffer structure that can be used to iterate the events.
+If _nonblock_ is set, and there's no data available, it will return immediately.
+Otherwise depending on how _tcpu_ was opened, it will block. If _tcpu_ was
+opened with nonblock set, then this _nonblock_ will make no difference.
+
+The *tracefs_cpu_buffered_read_buf()* is basically the same as *tracefs_cpu_read_buf()*
+except that it uses a pipe through splice to buffer reads. This will batch
+reads keeping the reading from the ring buffer less intrusive to the system,
+as just reading all the time can cause quite a disturbance. Note, one
+difference between this and *tracefs_cpu_read()* is that it will read only in
+sub buffer pages. If the ring buffer has not filled a page, then it will not
+return anything, even with _nonblock_ set.  Calls to *tracefs_cpu_flush_buf()*
+or *tracefs_cpu_flush()* should be done to read the rest of the file at the
+end of the trace.
+
+The *tracefs_cpu_flush_buf()* reads the trace_pipe_raw file associated by the
+_tcpu_ and puts it into _buffer_, which must be the size of the sub buffer
+which is retrieved.  This should be called at the end of tracing
+to get the rest of the data. This call will convert the file descriptor of
+trace_pipe_raw into non-blocking mode.
+
+RETURN VALUE
+------------
+The functions *tracefs_cpu_read_buf()*, tracefs_cpu_buffered_read_buf()* and
+*tracefs_cpu_flush()* returns a kbuffer descriptor that can be iterated
+over to find the events. Note, this descriptor is part of the tracefs_cpu structure
+and should not be freed. It will be freed. It returns NULL on error or if nonblock
+is set and there are no events available. In the case of no events, errno will be
+set with EAGAIN.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <ctype.h>
+#include <tracefs.h>
+
+static void read_page(struct tep_handle *tep, struct kbuffer *kbuf)
+{
+	static struct trace_seq seq;
+	struct tep_record record;
+
+	if (seq.buffer)
+		trace_seq_reset(&seq);
+	else
+		trace_seq_init(&seq);
+
+	while ((record.data = kbuffer_read_event(kbuf, &record.ts))) {
+		record.size = kbuffer_event_size(kbuf);
+		kbuffer_next_event(kbuf, NULL);
+		tep_print_event(tep, &seq, &record,
+				"%s-%d %9d\t%s: %s\n",
+				TEP_PRINT_COMM,
+				TEP_PRINT_PID,
+				TEP_PRINT_TIME,
+				TEP_PRINT_NAME,
+				TEP_PRINT_INFO);
+		trace_seq_do_printf(&seq);
+		trace_seq_reset(&seq);
+	}
+}
+
+int main (int argc, char **argv)
+{
+	struct tracefs_cpu *tcpu;
+	struct tep_handle *tep;
+	struct kbuffer *kbuf;
+	int cpu;
+
+	if (argc < 2 || !isdigit(argv[1][0])) {
+		printf("usage: %s cpu\n\n", argv[0]);
+		exit(-1);
+	}
+
+	cpu = atoi(argv[1]);
+
+	tep = tracefs_local_events(NULL);
+	if (!tep) {
+		perror("Reading trace event formats");
+		exit(-1);
+	}
+
+	tcpu = tracefs_cpu_open(NULL, cpu, 0);
+	if (!tcpu) {
+		perror("Open CPU 0 file");
+		exit(-1);
+	}
+
+	while ((kbuf = tracefs_cpu_buffered_read_buf(tcpu, true))) {
+		read_page(tep, kbuf);
+	}
+
+	kbuf = tracefs_cpu_flush_buf(tcpu);
+	if (kbuf)
+		read_page(tep, kbuf);
+
+	tracefs_cpu_close(tcpu);
+	tep_free(tep);
+
+	return 0;
+}
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*tracefs_cpu_open*(3)
+*tracefs_cpu_close*(3)
+*tracefs_cpu_read*(3)
+*tracefs_cpu_buffered_read*(3)
+*tracefs_cpu_flush*(3)
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2022 Google, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

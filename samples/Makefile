@@ -23,6 +23,7 @@ EXAMPLES += stream
 EXAMPLES += instances-affinity
 EXAMPLES += cpu
 EXAMPLES += guest
+EXAMPLES += cpu-buf
 
 TARGETS :=
 TARGETS += sqlhist

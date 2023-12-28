@@ -34,6 +34,8 @@ struct tracefs_cpu {
 	int		subbuf_size;
 	int		buffered;
 	int		splice_read_flags;
+	struct kbuffer	*kbuf;
+	void		*buffer;
 };
 
 /**
@@ -106,6 +108,7 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 {
 	struct tracefs_cpu *tcpu;
 	struct tep_handle *tep;
+	struct kbuffer *kbuf;
 	char path[128];
 	char *buf;
 	int mode = O_RDONLY;
@@ -138,12 +141,19 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 		goto fail;
 
 	subbuf_size = tep_get_sub_buffer_size(tep);
+
+	kbuf = tep_kbuffer(tep);
+	if (!kbuf)
+		goto fail;
+
 	tep_free(tep);
 	tep = NULL;
 
 	tcpu = tracefs_cpu_alloc_fd(fd, subbuf_size, nonblock);
 	if (!tcpu)
 		goto fail;
+
+	tcpu->kbuf = kbuf;
 
 	return tcpu;
  fail:
@@ -173,6 +183,7 @@ void tracefs_cpu_free_fd(struct tracefs_cpu *tcpu)
 	close_fd(tcpu->splice_pipe[0]);
 	close_fd(tcpu->splice_pipe[1]);
 
+	kbuffer_free(tcpu->kbuf);
 	free(tcpu);
 }
 
@@ -317,6 +328,49 @@ int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 	return ret;
 }
 
+static bool get_buffer(struct tracefs_cpu *tcpu)
+{
+	if (!tcpu->buffer) {
+		tcpu->buffer = malloc(tcpu->subbuf_size);
+		if (!tcpu->buffer)
+			return false;
+	}
+	return true;
+}
+
+/**
+ * tracefs_cpu_read_buf - read from the raw trace file and return kbuffer
+ * @tcpu: The descriptor representing the raw trace file
+ * @nonblock: Hint to not block on the read if there's no data.
+ *
+ * Reads the trace_pipe_raw files associated to @tcpu and returns a kbuffer
+ * associated with the read that can be used to parse events.
+ *
+ * If @nonblock is set, and there's no data available, it will return
+ * immediately. Otherwise depending on how @tcpu was opened, it will
+ * block. If @tcpu was opened with nonblock set, then this @nonblock
+ * will make no difference.
+ *
+ * Returns a kbuffer associated to the next sub-buffer or NULL on error
+ * or no data to read with nonblock set (EAGAIN will be set).
+ *
+ * The kbuffer returned should not be freed!
+ */
+struct kbuffer *tracefs_cpu_read_buf(struct tracefs_cpu *tcpu, bool nonblock)
+{
+	int ret;
+
+	if (!get_buffer(tcpu))
+		return NULL;
+
+	ret = tracefs_cpu_read(tcpu, tcpu->buffer, nonblock);
+	if (ret <= 0)
+		return NULL;
+
+	kbuffer_load_subbuffer(tcpu->kbuf, tcpu->buffer);
+	return tcpu->kbuf;
+}
+
 static int init_splice(struct tracefs_cpu *tcpu)
 {
 	char *buf;
@@ -410,6 +464,42 @@ int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonbl
 }
 
 /**
+ * tracefs_cpu_buffered_read_buf - Read the raw trace data buffering through a pipe
+ * @tcpu: The descriptor representing the raw trace file
+ * @nonblock: Hint to not block on the read if there's no data.
+ *
+ * This is basically the same as tracefs_cpu_read() except that it uses
+ * a pipe through splice to buffer reads. This will batch reads keeping
+ * the reading from the ring buffer less intrusive to the system, as
+ * just reading all the time can cause quite a disturbance.
+ *
+ * Note, one difference between this and tracefs_cpu_read() is that it
+ * will read only in sub buffer pages. If the ring buffer has not filled
+ * a page, then it will not return anything, even with @nonblock set.
+ * Calls to tracefs_cpu_flush() should be done to read the rest of
+ * the file at the end of the trace.
+ *
+ * Returns a kbuffer associated to the next sub-buffer or NULL on error
+ * or no data to read with nonblock set (EAGAIN will be set).
+ *
+ * The kbuffer returned should not be freed!
+ */
+struct kbuffer *tracefs_cpu_buffered_read_buf(struct tracefs_cpu *tcpu, bool nonblock)
+{
+	int ret;
+
+	if (!get_buffer(tcpu))
+		return NULL;
+
+	ret = tracefs_cpu_buffered_read(tcpu, tcpu->buffer, nonblock);
+	if (ret <= 0)
+		return NULL;
+
+	kbuffer_load_subbuffer(tcpu->kbuf, tcpu->buffer);
+	return tcpu->kbuf;
+}
+
+/**
  * tracefs_cpu_stop - Stop a blocked read of the raw tracing file
  * @tcpu: The descriptor representing the raw trace file
  *
@@ -490,6 +580,32 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer)
 	}
 
 	return ret;
+}
+
+/**
+ * tracefs_cpu_flush_buf - Finish out and read the rest of the raw tracing file
+ * @tcpu: The descriptor representing the raw trace file
+ *
+ * Reads the trace_pipe_raw file associated by the @tcpu and puts it
+ * into @buffer, which must be the size of the sub buffer which is retrieved.
+ * by tracefs_cpu_read_size(). This should be called at the end of tracing
+ * to get the rest of the data.
+ *
+ * This will set the file descriptor for reading to non-blocking mode.
+ */
+struct kbuffer *tracefs_cpu_flush_buf(struct tracefs_cpu *tcpu)
+{
+	int ret;
+
+	if (!get_buffer(tcpu))
+		return NULL;
+
+	ret = tracefs_cpu_flush(tcpu, tcpu->buffer);
+	if (ret <= 0)
+		return NULL;
+
+	kbuffer_load_subbuffer(tcpu->kbuf, tcpu->buffer);
+	return tcpu->kbuf;
 }
 
 /**
