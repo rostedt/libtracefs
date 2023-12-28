@@ -1371,6 +1371,7 @@ static void clear_func_filter(struct tracefs_instance *instance, const char *fil
 		filter[len+1] = '\0';
 		tracefs_instance_file_append(instance, file, filter);
 	}
+	free(buf);
 }
 
 static void clear_func_filters(struct tracefs_instance *instance)
