@@ -248,7 +248,7 @@ static int test_dir(const char *dir, const char *file)
  */
 const char *tracefs_tracing_dir(void)
 {
-	static const char *tracing_dir;
+	static char *tracing_dir;
 
 	/* Do not check custom_tracing_dir */
 	if (custom_tracing_dir)
@@ -257,6 +257,7 @@ const char *tracefs_tracing_dir(void)
 	if (tracing_dir && test_dir(tracing_dir, "trace"))
 		return tracing_dir;
 
+	free(tracing_dir);
 	tracing_dir = find_tracing_dir(false, true);
 	return tracing_dir;
 }
