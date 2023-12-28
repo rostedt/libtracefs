@@ -488,7 +488,7 @@ static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_da
 	if (!data->buf)
 		goto fail;
 
-	data->kbuf = kbuffer_alloc(sizeof(long) == 8, !tep_is_bigendian());
+	data->kbuf = tep_kbuffer(data->tep);
 	CU_TEST(data->kbuf != NULL);
 	if (!data->kbuf)
 		goto fail;
@@ -2127,6 +2127,7 @@ static void test_instance_file_fd(struct tracefs_instance *instance)
 	const char *name = get_rand_str();
 	const char *tdir = tracefs_instance_get_trace_dir(instance);
 	long long res = -1;
+	long long res2;
 	char rd[2];
 	int fd;
 
@@ -2146,7 +2147,34 @@ static void test_instance_file_fd(struct tracefs_instance *instance)
 	CU_TEST(read(fd, &rd, 1) == 1);
 	rd[1] = 0;
 	CU_TEST(res == atoi(rd));
+	close(fd);
 
+	/* Inverse tracing_on and test changing it with write_number */
+	res ^= 1;
+
+	CU_TEST(tracefs_instance_file_write_number(instance, TRACE_ON, (size_t)res) == 0);
+
+	CU_TEST(tracefs_instance_file_read_number(instance, TRACE_ON, &res2) == 0);
+	CU_TEST(res2 == res);
+	fd = tracefs_instance_file_open(instance, TRACE_ON, O_RDONLY);
+	CU_TEST(fd >= 0);
+	CU_TEST(read(fd, &rd, 1) == 1);
+	rd[1] = 0;
+	CU_TEST(res2 == atoi(rd));
+	close(fd);
+
+	/* Put back the result of tracing_on */
+	res ^= 1;
+
+	CU_TEST(tracefs_instance_file_write_number(instance, TRACE_ON, (size_t)res) == 0);
+
+	CU_TEST(tracefs_instance_file_read_number(instance, TRACE_ON, &res2) == 0);
+	CU_TEST(res2 == res);
+	fd = tracefs_instance_file_open(instance, TRACE_ON, O_RDONLY);
+	CU_TEST(fd >= 0);
+	CU_TEST(read(fd, &rd, 1) == 1);
+	rd[1] = 0;
+	CU_TEST(res2 == atoi(rd));
 	close(fd);
 }
 

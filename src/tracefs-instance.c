@@ -494,6 +494,27 @@ int tracefs_instance_file_write(struct tracefs_instance *instance,
 }
 
 /**
+ * tracefs_instance_file_write_number - Write integer from a trace file.
+ * @instance: ftrace instance, can be NULL for the top instance
+ * @file: name of the file
+ * @res: The integer to write to @file
+ *
+ * Returns 0 if the write succeeds, -1 on error.
+ */
+int tracefs_instance_file_write_number(struct tracefs_instance *instance,
+				       const char *file, size_t val)
+{
+	char buf[64];
+	int ret;
+
+	snprintf(buf, 64, "%zd\n", val);
+
+	ret = tracefs_instance_file_write(instance, file, buf);
+
+	return ret > 1 ? 0 : -1;
+}
+
+/**
  * tracefs_instance_file_append - Append to a trace file of specific instance.
  * @instance: ftrace instance, can be NULL for the top instance.
  * @file: name of the file.

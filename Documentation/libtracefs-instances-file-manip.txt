@@ -5,7 +5,7 @@ NAME
 ----
 
 tracefs_instance_file_open,
-tracefs_instance_file_write, tracefs_instance_file_append, tracefs_instance_file_clear,
+tracefs_instance_file_write, tracefs_instance_file_write_number, tracefs_instance_file_append, tracefs_instance_file_clear,
 tracefs_instance_file_read, tracefs_instance_file_read_number - Work with files in tracing instances.
 
 SYNOPSIS
@@ -16,6 +16,7 @@ SYNOPSIS
 
 int *tracefs_instance_file_open*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, int _mode_);
 int *tracefs_instance_file_write*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, const char pass:[*]_str_);
+int *tracefs_instance_file_write_number*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, size_t _val_);
 int *tracefs_instance_file_append*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, const char pass:[*]_str_);
 int *tracefs_instance_file_clear*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_);
 char pass:[*]*tracefs_instance_file_read*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_file_, int pass:[*]_psize_);
@@ -37,6 +38,10 @@ If -1 is passed as _mode_, default O_RDWR is used.
 The *tracefs_instance_file_write()* function writes a string _str_ in a _file_ from
 the given _instance_, without the terminating NULL character. When opening the file, this function
 tries to truncates the size of the file to zero, which clears all previously existing settings.
+
+The *tracefs_instance_file_write_number()* function converts _val_ into a string
+and then writes it to the given file. This is a helper function that does the number
+conversion to string and then calls *tracefs_instance_file_write()*.
 
 The *tracefs_instance_file_append()* function writes a string _str_ in a _file_ from
 the given _instance_, without the terminating NULL character.  This function is similar to
@@ -60,6 +65,8 @@ closed with *close*(3). In case of an error, -1 is returned.
 
 The *tracefs_instance_file_write()* function returns the number of written bytes,
 or -1 in case of an error.
+
+The *tracefs_instance_file_write_number()* function returns 0 on success and -1 on error.
 
 The *tracefs_instance_file_append()* function returns the number of written bytes,
 or -1 in case of an error.

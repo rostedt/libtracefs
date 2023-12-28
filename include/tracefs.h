@@ -36,6 +36,8 @@ tracefs_instance_get_file(struct tracefs_instance *instance, const char *file);
 char *tracefs_instance_get_dir(struct tracefs_instance *instance);
 int tracefs_instance_file_write(struct tracefs_instance *instance,
 				const char *file, const char *str);
+int tracefs_instance_file_write_number(struct tracefs_instance *instance,
+				       const char *file, size_t val);
 int tracefs_instance_file_append(struct tracefs_instance *instance,
 				 const char *file, const char *str);
 int tracefs_instance_file_clear(struct tracefs_instance *instance,
