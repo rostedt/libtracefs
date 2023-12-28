@@ -366,8 +366,7 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 	struct tep_event *event;
 	int ret;
 
-	tep = tracefs_local_events(NULL);
-	CU_TEST(tep != NULL);
+	tep = test_tep;
 
 	trace_seq_init(&seq);
 
@@ -409,7 +408,6 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 		trace_seq_reset(&seq);
 	}
 
-	tep_free(tep);
 	trace_seq_destroy(&seq);
 }
 
@@ -436,7 +434,6 @@ struct test_cpu_data {
 static void cleanup_trace_cpu(struct test_cpu_data *data)
 {
 	close(data->fd);
-	tep_free(data->tep);
 	tracefs_cpu_close(data->tcpu);
 	free(data->buf);
 	kbuffer_free(data->kbuf);
@@ -467,10 +464,7 @@ static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_da
 	if (data->fd < 0)
 		return -1;
 
-	data->tep = tracefs_local_events(NULL);
-	CU_TEST(data->tep != NULL);
-	if (!data->tep)
-		goto fail;
+	data->tep = test_tep;
 
 	data->tcpu = tracefs_cpu_open(instance, 0, true);
 	CU_TEST(data->tcpu != NULL);
@@ -685,10 +679,7 @@ static void test_instance_follow_events(struct tracefs_instance *instance)
 
 	memset(&fdata, 0, sizeof(fdata));
 
-	tep = tracefs_local_events(NULL);
-	CU_TEST(tep != NULL);
-	if (!tep)
-		return;
+	tep = test_tep;
 
 	fdata.sched_switch = tep_find_event_by_name(tep, "sched", "sched_switch");
 	CU_TEST(fdata.sched_switch != NULL);
@@ -2529,9 +2520,7 @@ static int test_suite_destroy(void)
 
 static int test_suite_init(void)
 {
-	const char *systems[] = {"ftrace", NULL};
-
-	test_tep = tracefs_local_events_system(NULL, systems);
+	test_tep = tracefs_local_events(NULL);
 	if (test_tep == NULL)
 		return 1;
 	test_instance = tracefs_instance_create(TEST_INSTANCE_NAME);
