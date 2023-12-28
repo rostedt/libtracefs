@@ -124,6 +124,7 @@ __hidden void trace_put_instance(struct tracefs_instance *instance)
 
 	free(instance->trace_dir);
 	free(instance->followers);
+	free(instance->missed_followers);
 	free(instance->name);
 	pthread_mutex_destroy(&instance->lock);
 	free(instance);
