@@ -49,6 +49,9 @@
 #define SQL_5_SQL	"select end.common_pid as pid, (end.common_timestamp.usecs - start.common_timestamp.usecs) as irq_lat from irq_disable as start join irq_enable as end on start.common_pid = end.common_pid, start.parent_offs == end.parent_offs where start.common_pid != 0"
 #define SQL_5_START	"irq_disable"
 
+#define SQL_6_EVENT	"wakeup_lat_3"
+#define SQL_6_SQL	"select start.pid, end.next_prio as prio, (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS) as lat from sched_waking as start join sched_switch as end on start.pid = end.next_pid where (start.prio >= 1 && start.prio < 100) || !(start.pid >= 0 && start.pid <= 1) && end.prev_pid != 0"
+
 #define DEBUGFS_DEFAULT_PATH "/sys/kernel/debug"
 #define TRACEFS_DEFAULT_PATH "/sys/kernel/tracing"
 #define TRACEFS_DEFAULT2_PATH "/sys/kernel/debug/tracing"
@@ -419,6 +422,13 @@ static void test_instance_trace_sql(struct tracefs_instance *instance)
 		tracefs_synth_free(synth);
 		trace_seq_reset(&seq);
 	}
+
+	synth = tracefs_sql(tep, SQL_6_EVENT, SQL_6_SQL, NULL);
+	CU_TEST(synth != NULL);
+	ret = tracefs_synth_echo_cmd(&seq, synth);
+	CU_TEST(ret == 0);
+	tracefs_synth_free(synth);
+	trace_seq_reset(&seq);
 
 	trace_seq_destroy(&seq);
 }

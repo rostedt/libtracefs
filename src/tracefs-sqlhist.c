@@ -39,6 +39,13 @@ enum field_type {
 #define for_each_field(expr, field, table) \
 	for (expr = (table)->fields; expr; expr = (field)->next)
 
+#define TIMESTAMP_COMPARE "TIMESTAMP_DELTA"
+#define TIMESTAMP_USECS_COMPARE "TIMESTAMP_USECS_DELTA"
+#define EVENT_START	"__START_EVENT__"
+#define EVENT_END	"__END_EVENT__"
+#define TIMESTAMP_NSECS "TIMESTAMP"
+#define TIMESTAMP_USECS "TIMESTAMP_USECS"
+
 struct field {
 	struct expr		*next;	/* private link list */
 	const char		*system;
@@ -374,6 +381,44 @@ __hidden void *add_field(struct sqlhist_bison *sb,
 	struct sql_table *table = sb->table;
 	struct expr *expr;
 	struct field *field;
+	bool nsecs;
+
+	/* Check if this is a TIMESTAMP compare */
+	if ((nsecs = (strcmp(field_name, TIMESTAMP_COMPARE) == 0)) ||
+	    strcmp(field_name, TIMESTAMP_USECS_COMPARE) == 0) {
+		const char *field_nameA;
+		const char *field_nameB;
+		struct expr *exprA;
+		struct expr *exprB;
+		struct field *fieldA;
+		struct field *fieldB;
+
+		if (nsecs) {
+			field_nameA = EVENT_END "." TIMESTAMP_NSECS;
+			field_nameB = EVENT_START "." TIMESTAMP_NSECS;
+		} else {
+			field_nameA = EVENT_END "." TIMESTAMP_USECS;
+			field_nameB = EVENT_START "." TIMESTAMP_USECS;
+		}
+
+		exprA = find_field(sb, field_nameA, NULL);
+		if (!exprA) {
+			create_field(fieldA, &exprA);
+			fieldA->next = table->fields;
+			table->fields = exprA;
+			fieldA->raw = field_nameA;
+		}
+
+		exprB = find_field(sb, field_nameB, NULL);
+		if (!exprB) {
+			create_field(fieldB, &exprB);
+			fieldB->next = table->fields;
+			table->fields = exprB;
+			fieldB->raw = field_nameB;
+		}
+
+		return add_compare(sb, exprA, exprB, COMPARE_SUB);
+	}
 
 	expr = find_field(sb, field_name, label);
 	if (expr)
@@ -597,17 +642,25 @@ static int update_vars(struct tep_handle *tep,
 	enum field_type ftype = FIELD_NONE;
 	struct tep_event *event;
 	struct field *field;
+	const char *extra_label;
 	const char *label;
 	const char *raw = event_field->raw;
 	const char *event_name;
 	const char *system;
 	const char *p;
 	int label_len = 0, event_len, system_len;
+	int extra_label_len = 0;
 
-	if (expr == table->to)
+	if (expr == table->to) {
 		ftype = FIELD_TO;
-	else if (expr == table->from)
+		extra_label = EVENT_END;
+	} else if (expr == table->from) {
 		ftype = FIELD_FROM;
+		extra_label = EVENT_START;
+	}
+
+	if (extra_label)
+		extra_label_len = strlen(extra_label);
 
 	p = strchr(raw, '.');
 	if (p) {
@@ -668,6 +721,13 @@ static int update_vars(struct tep_handle *tep,
 
 		len = label_len;
 		if (label && !strncmp(raw, label, len) &&
+		    raw[len] == '.') {
+			/* Label matches and takes precedence */
+			goto found;
+		}
+
+		len = extra_label_len;
+		if (extra_label && !strncmp(raw, extra_label, len) &&
 		    raw[len] == '.') {
 			/* Label matches and takes precedence */
 			goto found;

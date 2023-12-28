@@ -127,6 +127,22 @@ The *TIMESTAMP_USECS* will truncate the time down to microseconds as the timesta
 recorded in the tracing buffer has nanosecond resolution. If you do not want that
 truncation, use *TIMESTAMP* instead of *TIMESTAMP_USECS*.
 
+Because it is so common to have:
+
+[source,c]
+--
+   (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS)
+--
+
+The above can be represented with *TIMESTAMP_USECS_DELTA* or if nanoseconds are OK, you can
+use *TIMESTAMP_DELTA*. That is, the previous select can also be represented by:
+
+[source,c]
+--
+select start.pid, TIMESTAMP_USECS_DELTA as lat from sched_waking as start JOIN sched_switch as end ON start.pid = end.next_pid
+--
+
+
 Finally, the *WHERE* clause can be added, that will let you add filters on either or both events.
 
 [source,c]
