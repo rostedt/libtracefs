@@ -63,6 +63,8 @@ int tracefs_instance_get_affinity_set(struct tracefs_instance *instance,
 				      cpu_set_t *set, size_t set_size);
 ssize_t tracefs_instance_get_buffer_size(struct tracefs_instance *instance, int cpu);
 int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t size, int cpu);
+ssize_t tracefs_instance_get_subbuf_size(struct tracefs_instance *instance);
+int tracefs_instance_set_subbuf_size(struct tracefs_instance *instance, size_t size);
 char **tracefs_instances(const char *regex);
 
 int tracefs_instance_get_buffer_percent(struct tracefs_instance *instance);

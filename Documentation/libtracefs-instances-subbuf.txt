@@ -1,0 +1,152 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_instance_get_subbuf_size, tracefs_instance_set_subbuf_size - Helper functions for working with ring buffer sub buffers.
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+size_t *tracefs_instance_get_subbuf_size*(struct tracefs_instance pass:[*]_instance_);
+int *tracefs_instance_set_subbuf_size*(struct tracefs_instance pass:[*]_instance_, size_t _size_);
+--
+
+DESCRIPTION
+-----------
+Helper functions for working with the sub-buffers of the tracing ring buffer.
+The tracing ring buffer is broken up into *sub-buffers*. An event can not be
+bigger than the data section of the sub-buffer (see *tep_get_sub_buffer_data_size*(3)).
+By default, the ring buffer uses the architectures *page_size* as the default
+size of the sub-buffer, but this can be limiting if there is a need for large
+events, for example, the application wants to write large strings into
+the trace_marker file.
+
+The *tracefs_instance_get_subbuf_size()* returns the current size in kilobytes
+fo the ring buffer sub-buffers.
+
+The *tracefs_instance_set_subbuf_size()* will write the size in kilobytes of
+what the new sub-buffer size should be. Note, that this is only a hint to what
+the minimum sub-buffer size should be. It also does not take into account the
+meta-data that is used by the sub-buffer, so the size written should be no less
+than 16 bytes more than the maximum event size that will be used. The kernel
+will likely make the sub-buffer size larger than specified, as it may need to
+align the size for implementation purposes.
+
+RETURN VALUE
+------------
+The *tracefs_instance_get_subbuf_size()* returns the size of the current
+sub-buffer for the given _instance_ ring buffer or -1 on error.
+
+The *tracefs_instance_set_subbuf_size()* will return 0 if it successfully set
+the _instance_ ring buffer sub-buffer size in kilobytes, or -1 on error.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <tracefs.h>
+#include <errno.h>
+
+int main(int argc, char **argv)
+{
+	struct tep_handle *tep;
+	ssize_t save_subsize;
+	ssize_t subsize;
+	char *trace;
+	char buf[3000];
+	int meta_size;
+	int ret;
+	int i;
+
+	tep = tep_alloc();
+	ret = tracefs_load_headers(NULL, tep);
+	tep_free(tep);
+
+	if (ret < 0) {
+		perror("reading headers");
+		exit(-1);
+	}
+
+	meta_size = tep_get_sub_buffer_size(tep) - tep_get_sub_buffer_data_size(tep);
+
+	save_subsize = tracefs_instance_get_subbuf_size(NULL);
+	if (save_subsize < 0) {
+		printf("Changing sub-buffer size not available\n");
+		exit(-1);
+	}
+
+	subsize = save_subsize * 1024;
+
+	/* Have at least 4 writes fit on a sub-buffer */
+	if (subsize - meta_size < sizeof(buf) *4 ) {
+		subsize = ((sizeof(buf) * 4 + meta_size) + 1023) / 1024;
+		tracefs_instance_set_subbuf_size(NULL, subsize);
+	}
+
+	for (i = 0; i < sizeof(buf) - 1; i++) {
+		buf[i] = '0' + i % 10;
+	}
+	buf[i] = '\0';
+
+	tracefs_instance_clear(NULL);
+
+	for (i = 0; i < 4; i++) {
+		ret = tracefs_printf(NULL, "%s\n", buf);
+		if (ret < 0)
+			perror("write");
+	}
+
+	trace = tracefs_instance_file_read(NULL, "trace", NULL);
+	printf("%s\n", trace);
+	free(trace);
+
+	printf("Buffer size was: %zd * 1024\n",
+	       tracefs_instance_get_subbuf_size(NULL));
+
+	tracefs_instance_set_subbuf_size(NULL, save_subsize);
+}
+--
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+*Tzvetomir Stoyanov* <tz.stoyanov@gmail.com>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2020 VMware, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

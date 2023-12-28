@@ -442,6 +442,43 @@ int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t s
 }
 
 /**
+ * tracefs_instance_get_subbuf_size - return the sub-buffer size of the ring buffer
+ * @instance: The instance to get the buffer size from
+ *
+ * Returns the sub-buffer size in kilobytes.
+ * Returns -1 on error.
+ */
+ssize_t tracefs_instance_get_subbuf_size(struct tracefs_instance *instance)
+{
+	long long size;
+	int ret;
+
+	ret = tracefs_instance_file_read_number(instance, "buffer_subbuf_size_kb", &size);
+	if (ret < 0)
+		return ret;
+
+	return size;
+}
+
+/**
+ * tracefs_instance_set_buffer_size - modify the ring buffer sub-buffer size
+ * @instance: The instance to modify (NULL for the top level)
+ * @size: The size in kilobytes to to set the sub-buffer size to
+ *
+ * Sets the sub-buffer size in kilobytes for the given ring buffer.
+ *
+ * Returns 0 on success and -1 on error.
+ */
+int tracefs_instance_set_subbuf_size(struct tracefs_instance *instance, size_t size)
+{
+	int ret;
+
+	ret = tracefs_instance_file_write_number(instance, "buffer_subbuf_size_kb", size);
+
+	return ret < 0 ? -1 : 0;
+}
+
+/**
  * tracefs_instance_get_trace_dir - return the top trace directory, where the instance is confuigred
  * @instance: ftrace instance
  *
