@@ -53,6 +53,8 @@
 #define TRACEFS_DEFAULT_PATH "/sys/kernel/tracing"
 #define TRACEFS_DEFAULT2_PATH "/sys/kernel/debug/tracing"
 
+static pthread_barrier_t trace_barrier;
+
 static struct tracefs_instance *test_instance;
 static struct tep_handle *test_tep;
 struct test_sample {
@@ -435,6 +437,7 @@ struct test_cpu_data {
 	void				*buf;
 	int				events_per_buf;
 	int				bufsize;
+	int				nr_subbufs;
 	int				data_size;
 	int				this_pid;
 	int				fd;
@@ -452,11 +455,21 @@ static void cleanup_trace_cpu(struct test_cpu_data *data)
 #define EVENT_SYSTEM "syscalls"
 #define EVENT_NAME  "sys_enter_getppid"
 
-static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_data *data)
+static int make_trace_temp_file(void)
+{
+	char tmpfile[] = "/tmp/utest-libtracefsXXXXXX";
+	int fd;
+
+	fd = mkstemp(tmpfile);
+	unlink(tmpfile);
+	return fd;
+}
+
+static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_data *data, bool nonblock)
 {
 	struct tep_format_field **fields;
 	struct tep_event *event;
-	char tmpfile[] = "/tmp/utest-libtracefsXXXXXX";
+	ssize_t buffer_size;
 	int max = 0;
 	int ret;
 	int i;
@@ -468,20 +481,26 @@ static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_da
 
 	data->instance = instance;
 
-	data->fd = mkstemp(tmpfile);
+	data->fd = make_trace_temp_file();
 	CU_TEST(data->fd >= 0);
-	unlink(tmpfile);
 	if (data->fd < 0)
 		return -1;
 
 	data->tep = test_tep;
 
-	data->tcpu = tracefs_cpu_open(instance, 0, true);
+	data->tcpu = tracefs_cpu_open(instance, 0, nonblock);
 	CU_TEST(data->tcpu != NULL);
 	if (!data->tcpu)
 		goto fail;
 
 	data->bufsize = tracefs_cpu_read_size(data->tcpu);
+	CU_TEST(data->bufsize > 0);
+
+	data->data_size = tep_get_sub_buffer_data_size(data->tep);
+	CU_TEST(data->data_size > 0);
+
+	buffer_size = tracefs_instance_get_buffer_size(instance, 0) * 1024;
+	data->nr_subbufs = buffer_size/ data->data_size;
 
 	data->buf = calloc(1, data->bufsize);
 	CU_TEST(data->buf != NULL);
@@ -492,8 +511,6 @@ static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_da
 	CU_TEST(data->kbuf != NULL);
 	if (!data->kbuf)
 		goto fail;
-
-	data->data_size = data->bufsize - kbuffer_start_of_data(data->kbuf);
 
 	tracefs_instance_file_clear(instance, "trace");
 
@@ -517,6 +534,12 @@ static int setup_trace_cpu(struct tracefs_instance *instance, struct test_cpu_da
 	CU_TEST(max != 0);
 	if (!max)
 		goto fail;
+
+	/* round up to long size alignment */
+	max = ((max + sizeof(long) - 1)) & ~(sizeof(long) - 1);
+
+	/* Add meta header */
+	max += 4;
 
 	data->events_per_buf = data->data_size / max;
 
@@ -547,6 +570,17 @@ static void shutdown_trace_cpu(struct test_cpu_data *data)
 	CU_TEST(ret == 0);
 
 	cleanup_trace_cpu(data);
+}
+
+static void reset_trace_cpu(struct test_cpu_data *data, bool nonblock)
+{
+	close(data->fd);
+	tracefs_cpu_close(data->tcpu);
+
+	data->fd = make_trace_temp_file();
+	CU_TEST(data->fd >= 0);
+	data->tcpu = tracefs_cpu_open(data->instance, 0, nonblock);
+	CU_TEST(data->tcpu != NULL);
 }
 
 static void call_getppid(int cnt)
@@ -597,7 +631,7 @@ static void test_instance_trace_cpu_read(struct tracefs_instance *instance)
 {
 	struct test_cpu_data data;
 
-	if (setup_trace_cpu(instance, &data))
+	if (setup_trace_cpu(instance, &data, true))
 		return;
 
 	test_cpu_read(&data, 1);
@@ -613,6 +647,115 @@ static void test_trace_cpu_read(void)
 {
 	test_instance_trace_cpu_read(NULL);
 	test_instance_trace_cpu_read(test_instance);
+}
+
+static void *trace_cpu_read_thread(void *arg)
+{
+	struct test_cpu_data *data = arg;
+	struct tracefs_cpu *tcpu = data->tcpu;
+	struct kbuffer *kbuf;
+	long ret = 0;
+
+	pthread_barrier_wait(&trace_barrier);
+
+	kbuf = tracefs_cpu_read_buf(tcpu, false);
+	CU_TEST(kbuf != NULL);
+	data->done = true;
+
+	return (void *)ret;
+}
+
+static void test_cpu_read_buf_percent(struct test_cpu_data *data, int percent)
+{
+	pthread_t thread;
+	int save_percent;
+	ssize_t expect;
+	int ret;
+
+	tracefs_instance_clear(data->instance);
+
+	save_percent = tracefs_instance_get_buffer_percent(data->instance);
+	CU_TEST(save_percent >= 0);
+
+	ret = tracefs_instance_set_buffer_percent(data->instance, percent);
+	CU_TEST(ret == 0);
+
+	data->done = false;
+
+	pthread_barrier_init(&trace_barrier, NULL, 2);
+
+	pthread_create(&thread, NULL, trace_cpu_read_thread, data);
+
+	pthread_barrier_wait(&trace_barrier);
+
+	msleep(100);
+
+	CU_TEST(data->done == false);
+
+	/* For percent == 0, just test for any data */
+	if (percent) {
+		expect = data->nr_subbufs * data->events_per_buf * percent / 100;
+
+		/* Add just under the percent */
+		expect -= data->events_per_buf;
+		CU_TEST(expect > 0);
+
+		call_getppid(expect);
+
+		msleep(100);
+
+		CU_TEST(data->done == false);
+
+		/* Add just over the percent */
+		expect = data->events_per_buf * 2;
+	} else {
+		expect = data->events_per_buf;
+	}
+
+	call_getppid(expect);
+
+	msleep(100);
+
+	CU_TEST(data->done == true);
+
+	while (tracefs_cpu_flush_buf(data->tcpu))
+		;
+
+	tracefs_cpu_stop(data->tcpu);
+	pthread_join(thread, NULL);
+
+	ret = tracefs_instance_set_buffer_percent(data->instance, save_percent);
+	CU_TEST(ret == 0);
+}
+
+static void test_instance_trace_cpu_read_buf_percent(struct tracefs_instance *instance)
+{
+	struct test_cpu_data data;
+
+	if (setup_trace_cpu(instance, &data, false))
+		return;
+
+	test_cpu_read_buf_percent(&data, 0);
+
+	reset_trace_cpu(&data, false);
+
+	test_cpu_read_buf_percent(&data, 1);
+
+	reset_trace_cpu(&data, false);
+
+	test_cpu_read_buf_percent(&data, 50);
+
+	reset_trace_cpu(&data, false);
+
+	test_cpu_read_buf_percent(&data, 100);
+
+	shutdown_trace_cpu(&data);
+}
+
+static void test_trace_cpu_read_buf_percent(void)
+{
+	test_instance_trace_cpu_read_buf_percent(NULL);
+	test_instance_trace_cpu_read_buf_percent(test_instance);
 }
 
 struct follow_data {
@@ -1152,7 +1295,7 @@ static void test_instance_trace_cpu_pipe(struct tracefs_instance *instance)
 {
 	struct test_cpu_data data;
 
-	if (setup_trace_cpu(instance, &data))
+	if (setup_trace_cpu(instance, &data, true))
 		return;
 
 	test_cpu_pipe(&data, 1);
@@ -2808,6 +2951,8 @@ void test_tracefs_lib(void)
 	CU_add_test(suite, "Test tracefs/debugfs mounting", test_mounting);
 	CU_add_test(suite, "trace cpu read",
 		    test_trace_cpu_read);
+	CU_add_test(suite, "trace cpu read_buf_percent",
+		    test_trace_cpu_read_buf_percent);
 	CU_add_test(suite, "trace cpu pipe",
 		    test_trace_cpu_pipe);
 	CU_add_test(suite, "trace sql",

@@ -16,7 +16,7 @@ project(
 
 library_version = meson.project_version()
 
-libtraceevent_dep = dependency('libtraceevent', version: '>= 1.7.0', required: true)
+libtraceevent_dep = dependency('libtraceevent', version: '>= 1.8.1', required: true)
 threads_dep = dependency('threads', required: true)
 cunit_dep = dependency('cunit', required : false)
 
