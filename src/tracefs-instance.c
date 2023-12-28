@@ -402,6 +402,18 @@ ssize_t tracefs_instance_get_buffer_size(struct tracefs_instance *instance, int 
 	return size;
 }
 
+/**
+ * tracefs_instance_set_buffer_size - modify the ring buffer size
+ * @instance: The instance to modify (NULL for the top level)
+ * @size: The size in kilobytes to to set the size to
+ * @cpu: the CPU to set it to (-1 for all CPUs)
+ *
+ * Sets the size of the ring buffer per CPU buffers. If @cpu is negative,
+ * then it sets the ring buffer size for all the per CPU buffers, otherwise
+ * it only sets the per CPU buffer specified by @cpu.
+ *
+ * Returns 0 on success and -1 on error.
+ */
 int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t size, int cpu)
 {
 	char *path;
