@@ -1410,6 +1410,17 @@ static void clear_func_filters(struct tracefs_instance *instance)
 }
 
 /**
+ * tracefs_instance_clear - clear the trace buffer
+ * @instance: The instance to clear the trace for.
+ *
+ * Returns 0 on succes, -1 on error
+ */
+int tracefs_instance_clear(struct tracefs_instance *instance)
+{
+	return tracefs_instance_file_clear(instance, "trace");
+}
+
+/**
  * tracefs_instance_reset - Reset a ftrace instance to its default state
  * @instance - a ftrace instance to be reseted
  *
