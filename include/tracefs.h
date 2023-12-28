@@ -64,6 +64,9 @@ ssize_t tracefs_instance_get_buffer_size(struct tracefs_instance *instance, int 
 int tracefs_instance_set_buffer_size(struct tracefs_instance *instance, size_t size, int cpu);
 char **tracefs_instances(const char *regex);
 
+int tracefs_instance_get_buffer_percent(struct tracefs_instance *instance);
+int tracefs_instance_set_buffer_percent(struct tracefs_instance *instance, int val);
+
 bool tracefs_instance_exists(const char *name);
 bool tracefs_file_exists(struct tracefs_instance *instance, const char *name);
 bool tracefs_dir_exists(struct tracefs_instance *instance, const char *name);

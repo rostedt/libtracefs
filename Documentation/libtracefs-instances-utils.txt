@@ -4,7 +4,8 @@ libtracefs(3)
 NAME
 ----
 tracefs_instance_get_name, tracefs_instance_get_trace_dir, tracefs_instances_walk, tracefs_instance_exists,
-tracefs_instance_get_buffer_size, tracefs_instance_set_buffer_size - Helper functions for working with tracing instances.
+tracefs_instance_get_buffer_size, tracefs_instance_set_buffer_size, tracefs_instance_get_buffer_percent,
+tracefs_instance_set_buffer_percent - Helper functions for working with tracing instances.
 
 SYNOPSIS
 --------
@@ -18,6 +19,8 @@ int *tracefs_instances_walk*(int (pass:[*]_callback_)(const char pass:[*], void 
 bool *tracefs_instance_exists*(const char pass:[*]_name_);
 size_t *tracefs_instance_get_buffer_size*(struct tracefs_instance pass:[*]_instance_, int _cpu_);
 int *tracefs_instance_set_buffer_size*(struct tracefs_instance pass:[*]_instance_, size_t _size_, int _cpu_);
+int *tracefs_instance_get_buffer_percent*(struct tracefs_instance pass:[*]_instance_);
+int *tracefs_instance_set_buffer_percent*(struct tracefs_instance pass:[*]_instance_, int _val_);
 --
 
 DESCRIPTION
@@ -47,6 +50,29 @@ The *tracefs_instance_set_buffer_size()* function sets the size of the ring buff
 If _cpu_ is negative, then it sets all the per CPU ring buffers to _size_ (note
 the total size is the number of CPUs * _size_). If _cpu_ is specified, then it only
 sets the size of the per CPU ring buffer.
+
+The *tracefs_instance_set_buffer_percent()* sets the buffer percent value of
+the tracing ring buffer for _instance_ or the top level buffer if _instance_ is
+NULL. The buffer percent decides when readers on *tracefs_cpu_read*(3),
+*tracefs_cpu_buffered_read*(3), *tracefs_cpu_write*(3) and *tracefs_cpu_pipe*(3)
+will block when O_NONBLOCK is not set. The value of _val_ must be between 0 and
+100, where:
+
+[verse]
+--
+  0   - block until there's any data in the ring buffer
+  1   - block until 1% of the ring buffer sub-buffers are filled
+  50  - block until 50% of the ring buffer sub-buffers are filled
+  100 - block until the entire ring buffer is filled
+--
+
+Note, any number from 0 to 100 can be used where it is the percentage of the
+ring buffer that must be filled before a blocked reader will be notified that
+there's data to be retrieved.
+
+The *tracefs_instance_get_buffer_percent()* retrieves the current buffer percent
+setting of the tracing ring buffer for _instance_ or the top level buffer
+if _instance_ is NULL.
 
 RETURN VALUE
 ------------

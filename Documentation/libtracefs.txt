@@ -50,6 +50,8 @@ Trace instances:
 	char pass:[*]*tracefs_instance_get_affinity_raw*(struct tracefs_instance pass:[*]_instance_);
 	size_t *tracefs_instance_get_buffer_size*(struct tracefs_instance pass:[*]_instance_, int _cpu_);
 	int *tracefs_instance_set_buffer_size*(struct tracefs_instance pass:[*]_instance_, size_t _size_, int _cpu_);
+	int *tracefs_instance_get_buffer_percent*(struct tracefs_instance pass:[*]_instance_);
+	int *tracefs_instance_set_buffer_percent*(struct tracefs_instance pass:[*]_instance_, int _val_);
 
 Trace events:
 	char pass:[*]pass:[*]*tracefs_event_systems*(const char pass:[*]_tracing_dir_);
