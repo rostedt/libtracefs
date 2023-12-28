@@ -319,6 +319,7 @@ int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 
 static int init_splice(struct tracefs_cpu *tcpu)
 {
+	char *buf;
 	int ret;
 
 	if (tcpu->splice_pipe[0] >= 0)
@@ -327,6 +328,12 @@ static int init_splice(struct tracefs_cpu *tcpu)
 	ret = pipe(tcpu->splice_pipe);
 	if (ret < 0)
 		return ret;
+
+	if (str_read_file("/proc/sys/fs/pipe-max-size", &buf, false)) {
+		int size = atoi(buf);
+		fcntl(tcpu->splice_pipe[0], F_SETPIPE_SZ, &size);
+		free(buf);
+	}
 
 	ret = fcntl(tcpu->splice_pipe[0], F_GETPIPE_SZ, &tcpu->pipe_size);
 	/*
