@@ -680,6 +680,19 @@ struct kbuffer *tracefs_cpu_flush_buf(struct tracefs_cpu *tcpu);
 int tracefs_cpu_flush_write(struct tracefs_cpu *tcpu, int wfd);
 int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock);
 
+struct tracefs_cpu *
+tracefs_cpu_snapshot_open(struct tracefs_instance *instance, int cpu, bool nonblock);
+int tracefs_iterate_snapshot_events(struct tep_handle *tep,
+				    struct tracefs_instance *instance,
+				    cpu_set_t *cpus, int cpu_size,
+				    int (*callback)(struct tep_event *,
+						    struct tep_record *,
+						    int, void *),
+				    void *callback_context);
+int tracefs_snapshot_snap(struct tracefs_instance *instance);
+int tracefs_snapshot_clear(struct tracefs_instance *instance);
+int tracefs_snapshot_free(struct tracefs_instance *instance);
+
 /* Mapping vsocket cids to pids using tracing */
 int tracefs_instance_find_cid_pid(struct tracefs_instance *instance, int cid);
 int tracefs_find_cid_pid(int cid);

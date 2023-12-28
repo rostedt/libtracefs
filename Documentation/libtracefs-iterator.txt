@@ -4,7 +4,7 @@ libtracefs(3)
 NAME
 ----
 tracefs_iterate_raw_events, tracefs_iterate_stop, tracefs_follow_event, tracefs_follow_missed_events,
-tracefs_follow_event_clear, tracefs_follow_missed_events_clear - Iterate over events in the ring buffer
+tracefs_follow_event_clear, tracefs_follow_missed_events_clear, tracefs_iterate_snapshot_events - Iterate over events in the ring buffer
 
 SYNOPSIS
 --------
@@ -33,6 +33,11 @@ int *tracefs_follow_missed_events*(struct tracefs_instance pass:[*]_instance_,
 int *tracefs_follow_event_clear*(struct tracefs_instance pass:[*]_instance_,
 			  const char pass:[*]_system_, const char pass:[*]_event_name_);
 int *tracefs_follow_missed_events_clear*(struct tracefs_instance pass:[*]_instance_);
+
+int *tracefs_iterate_snapshot_events*(struct tep_handle pass:[*]_tep_, struct tracefs_instance pass:[*]_instance_,
+				 cpu_set_t pass:[*]_cpus_, int _cpu_size_,
+				 int (pass:[*]_callback_)(struct tep_event pass:[*], struct tep_record pass:[*], int, void pass:[*]),
+				 void pass:[*]_callback_context_);
 --
 
 DESCRIPTION
@@ -53,6 +58,9 @@ pointer to a struct tep_event that corresponds to the type of event the
 record is; The record representing the event; The CPU that the event
 occurred on; and a pointer to user specified _callback_context_. If the _callback_
 returns non-zero, the iteration stops.
+
+The *tracefs_iterate_snapshot_events()* works the same as *tracefs_iterate_raw_events()*
+except that it works on the snapshot buffer.
 
 Use *tracefs_iterate_stop()* to force a executing *tracefs_iterate_raw_events()*
 to halt. This can be called from either a callback that is called by

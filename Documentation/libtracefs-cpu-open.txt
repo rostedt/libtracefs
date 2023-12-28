@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_cpu_open, tracefs_cpu_close, tracefs_cpu_alloc_fd, tracefs_cpu_free_fd - Opening trace_pipe_raw data for reading
+tracefs_cpu_open, tracefs_cpu_close, tracefs_cpu_alloc_fd, tracefs_cpu_free_fd, tracefs_cpu_snapshot_open - Opening trace_pipe_raw data for reading
 
 SYNOPSIS
 --------
@@ -17,6 +17,9 @@ void *tracefs_cpu_close*(struct tracefs_cpu pass:[*]_tcpu_);
 
 struct tracefs_cpu pass:[*]*tracefs_cpu_alloc_fd*(int _fd_, int _subbuf_size_, bool _nonblock_);
 void *tracefs_cpu_free_fd*(struct tracefs_cpu pass:[*]_tcpu_);
+
+struct tracefs_cpu pass:[*]*tracefs_cpu_snapshot-open*(struct tracefs_instance pass:[*]_instance_,
+					     int _cpu_, bool _nonblock_);
 --
 
 DESCRIPTION
@@ -47,10 +50,17 @@ the file descriptor passed in. Note that *tracefs_cpu_free_fd()* should not be u
 on the descriptor returned by *tracefs_cpu_open()* as it will not close the file descriptor
 created by it.
 
+The *tracefs_cpu_snapshot_open()* is similar to *tracefs_cpu_open()* except that it
+opens the snapshot buffer (see *tracefs_snapshot_snap*(3)). The snapshot buffer
+does not have a writer to it, it is only created by a snapshot action that swaps
+the current ring buffer with the snapshot buffer. The _nonblock_, when false, acts a little
+differently here too. Reads are not affected by the "buffer_percent" file. If the
+snapshot buffer is empty, it will block until a new snapshot happens.
+
 RETURN VALUE
 ------------
-The *tracefs_cpu_open()* returns a struct tracefs_cpu descriptor that can be
-used by the other functions or NULL on error.
+The *tracefs_cpu_open()* and *tracefs_cpu_snapshot_open() both return a struct
+tracefs_cpu descriptor that can be used by the other functions or NULL on error.
 
 The *tracefs_cpu_alloc_fd()* returns a struct tracefs_cpu descriptor that can
 be used by the *tracefs_cpu_read*(3) related functions, where the descriptor

@@ -280,7 +280,8 @@ static int read_cpu_pages(struct tep_handle *tep, struct tracefs_instance *insta
 }
 
 static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
-			  int cpu_size, struct cpu_iterate **all_cpus, int *count)
+			  int cpu_size, struct cpu_iterate **all_cpus, int *count,
+			  bool snapshot)
 {
 	struct tracefs_cpu *tcpu;
 	struct cpu_iterate *tmp;
@@ -294,7 +295,10 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 	for (cpu = 0; cpu < nr_cpus; cpu++) {
 		if (cpus && !CPU_ISSET_S(cpu, cpu_size, cpus))
 			continue;
-		tcpu = tracefs_cpu_open(instance, cpu, true);
+		if (snapshot)
+			tcpu = tracefs_cpu_snapshot_open(instance, cpu, true);
+		else
+			tcpu = tracefs_cpu_open(instance, cpu, true);
 		tmp = realloc(*all_cpus, (i + 1) * sizeof(*tmp));
 		if (!tmp) {
 			i--;
@@ -497,6 +501,54 @@ int tracefs_follow_missed_events_clear(struct tracefs_instance *instance)
 
 static bool top_iterate_keep_going;
 
+static int iterate_events(struct tep_handle *tep,
+			  struct tracefs_instance *instance,
+			  cpu_set_t *cpus, int cpu_size,
+			  int (*callback)(struct tep_event *,
+					  struct tep_record *,
+						int, void *),
+			  void *callback_context, bool snapshot)
+{
+	bool *keep_going = instance ? &instance->iterate_keep_going :
+				      &top_iterate_keep_going;
+	struct follow_event *followers;
+	struct cpu_iterate *all_cpus;
+	int count = 0;
+	int ret;
+	int i;
+
+	(*(volatile bool *)keep_going) = true;
+
+	if (!tep)
+		return -1;
+
+	if (instance)
+		followers = instance->followers;
+	else
+		followers = root_followers;
+	if (!callback && !followers)
+		return -1;
+
+	ret = open_cpu_files(instance, cpus, cpu_size, &all_cpus, &count, snapshot);
+	if (ret < 0)
+		goto out;
+	ret = read_cpu_pages(tep, instance, all_cpus, count,
+			     callback, callback_context,
+			     keep_going);
+
+out:
+	if (all_cpus) {
+		for (i = 0; i < count; i++) {
+			kbuffer_free(all_cpus[i].kbuf);
+			tracefs_cpu_close(all_cpus[i].tcpu);
+			free(all_cpus[i].page);
+		}
+		free(all_cpus);
+	}
+
+	return ret;
+}
+
 /*
  * tracefs_iterate_raw_events - Iterate through events in trace_pipe_raw,
  *				per CPU trace buffers
@@ -522,44 +574,37 @@ int tracefs_iterate_raw_events(struct tep_handle *tep,
 						int, void *),
 				void *callback_context)
 {
-	bool *keep_going = instance ? &instance->iterate_keep_going :
-				      &top_iterate_keep_going;
-	struct follow_event *followers;
-	struct cpu_iterate *all_cpus;
-	int count = 0;
-	int ret;
-	int i;
+	return iterate_events(tep, instance, cpus, cpu_size, callback,
+			      callback_context, false);
+}
 
-	(*(volatile bool *)keep_going) = true;
-
-	if (!tep)
-		return -1;
-
-	if (instance)
-		followers = instance->followers;
-	else
-		followers = root_followers;
-	if (!callback && !followers)
-		return -1;
-
-	ret = open_cpu_files(instance, cpus, cpu_size, &all_cpus, &count);
-	if (ret < 0)
-		goto out;
-	ret = read_cpu_pages(tep, instance, all_cpus, count,
-			     callback, callback_context,
-			     keep_going);
-
-out:
-	if (all_cpus) {
-		for (i = 0; i < count; i++) {
-			kbuffer_free(all_cpus[i].kbuf);
-			tracefs_cpu_close(all_cpus[i].tcpu);
-			free(all_cpus[i].page);
-		}
-		free(all_cpus);
-	}
-
-	return ret;
+/*
+ * tracefs_iterate_snapshot_events - Iterate through events in snapshot_raw,
+ *				per CPU trace buffers
+ * @tep: a handle to the trace event parser context
+ * @instance: ftrace instance, can be NULL for the top instance
+ * @cpus: Iterate only through the buffers of CPUs, set in the mask.
+ *	  If NULL, iterate through all CPUs.
+ * @cpu_size: size of @cpus set
+ * @callback: A user function, called for each record from the file
+ * @callback_context: A custom context, passed to the user callback function
+ *
+ * If the @callback returns non-zero, the iteration stops - in that case all
+ * records from the current page will be lost from future reads
+ * The events are iterated in sorted order, oldest first.
+ *
+ * Returns -1 in case of an error, or 0 otherwise
+ */
+int tracefs_iterate_snapshot_events(struct tep_handle *tep,
+				    struct tracefs_instance *instance,
+				    cpu_set_t *cpus, int cpu_size,
+				    int (*callback)(struct tep_event *,
+						    struct tep_record *,
+						    int, void *),
+				    void *callback_context)
+{
+	return iterate_events(tep, instance, cpus, cpu_size, callback,
+			      callback_context, true);
 }
 
 /**

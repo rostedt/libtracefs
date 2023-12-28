@@ -92,19 +92,8 @@ tracefs_cpu_alloc_fd(int fd, int subbuf_size, bool nonblock)
 	return NULL;
 }
 
-/**
- * tracefs_cpu_open - open an instance raw trace file
- * @instance: the instance (NULL for toplevel) of the cpu raw file to open
- * @cpu: The CPU that the raw trace file is associated with
- * @nonblock: If true, the file will be opened in O_NONBLOCK mode
- *
- * Return a descriptor that can read the tracefs trace_pipe_raw file
- * for a give @cpu in a given @instance.
- *
- * Returns NULL on error.
- */
-struct tracefs_cpu *
-tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
+static struct tracefs_cpu *cpu_open(struct tracefs_instance *instance,
+				    const char *path_fmt, int cpu, bool nonblock)
 {
 	struct tracefs_cpu *tcpu;
 	struct tep_handle *tep;
@@ -118,7 +107,7 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 	if (nonblock)
 		mode |= O_NONBLOCK;
 
-	sprintf(path, "per_cpu/cpu%d/trace_pipe_raw", cpu);
+	sprintf(path, path_fmt, cpu);
 
 	fd = tracefs_instance_file_open(instance, path, mode);
 	if (fd < 0)
@@ -153,6 +142,91 @@ tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
 	tep_free(tep);
 	close(fd);
 	return NULL;
+}
+
+/**
+ * tracefs_cpu_open - open an instance raw trace file
+ * @instance: the instance (NULL for toplevel) of the cpu raw file to open
+ * @cpu: The CPU that the raw trace file is associated with
+ * @nonblock: If true, the file will be opened in O_NONBLOCK mode
+ *
+ * Return a descriptor that can read the tracefs trace_pipe_raw file
+ * for a give @cpu in a given @instance.
+ *
+ * Returns NULL on error.
+ */
+struct tracefs_cpu *
+tracefs_cpu_open(struct tracefs_instance *instance, int cpu, bool nonblock)
+{
+	return cpu_open(instance, "per_cpu/cpu%d/trace_pipe_raw", cpu, nonblock);
+}
+
+/**
+ * tracefs_cpu_snapshot_open - open an instance snapshot raw trace file
+ * @instance: the instance (NULL for toplevel) of the cpu raw file to open
+ * @cpu: The CPU that the raw trace file is associated with
+ * @nonblock: If true, the file will be opened in O_NONBLOCK mode
+ *
+ * Return a descriptor that can read the tracefs snapshot_raw file
+ * for a give @cpu in a given @instance.
+ *
+ * In nonblock mode, it will block if the snapshot is empty and wake up
+ * when there's a new snapshot.
+ *
+ * Returns NULL on error.
+ */
+struct tracefs_cpu *
+tracefs_cpu_snapshot_open(struct tracefs_instance *instance, int cpu, bool nonblock)
+{
+	return cpu_open(instance, "per_cpu/cpu%d/snapshot_raw", cpu, nonblock);
+}
+
+/**
+ * tracefs_snapshot_snap - takes a snapshot (allocates if necessary)
+ * @instance: The instance to take a snapshot on
+ *
+ * Takes a snapshot of the current ring buffer.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int tracefs_snapshot_snap(struct tracefs_instance *instance)
+{
+	int ret;
+
+	ret = tracefs_instance_file_write(instance, "snapshot", "1");
+	return ret < 0 ? -1 : 0;
+}
+
+/**
+ * tracefs_snapshot_clear - clears the snapshot
+ * @instance: The instance to clear the snapshot
+ *
+ * Clears the snapshot buffer for the @instance.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int tracefs_snapshot_clear(struct tracefs_instance *instance)
+{
+	int ret;
+
+	ret = tracefs_instance_file_write(instance, "snapshot", "2");
+	return ret < 0 ? -1 : 0;
+}
+
+/**
+ * tracefs_snapshot_free - frees the snapshot
+ * @instance: The instance to free the snapshot
+ *
+ * Frees the snapshot for the given @instance.
+ *
+ * Returns 0 on success, -1 on error.
+ */
+int tracefs_snapshot_free(struct tracefs_instance *instance)
+{
+	int ret;
+
+	ret = tracefs_instance_file_write(instance, "snapshot", "0");
+	return ret < 0 ? -1 : 0;
 }
 
 static void close_fd(int fd)

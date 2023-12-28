@@ -181,7 +181,7 @@ static void test_iter_write(struct tracefs_instance *instance)
 }
 
 
-static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu)
+static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu, bool snapshot)
 {
 	int cpus = sysconf(_SC_NPROCESSORS_CONF);
 	cpu_set_t *cpuset = NULL;
@@ -189,6 +189,9 @@ static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu)
 	int check = 0;
 	int ret;
 	int i;
+
+	if (snapshot)
+		tracefs_instance_clear(instance);
 
 	if (cpu >= 0) {
 		cpuset = CPU_ALLOC(cpus);
@@ -199,8 +202,15 @@ static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu)
 	test_found = 0;
 	last_ts = 0;
 	test_iter_write(instance);
-	ret = tracefs_iterate_raw_events(test_tep, instance, cpuset, cpu_size,
-					 test_callback, &cpu);
+
+	if (snapshot) {
+		tracefs_snapshot_snap(instance);
+		ret = tracefs_iterate_snapshot_events(test_tep, instance, cpuset, cpu_size,
+						      test_callback, &cpu);
+	} else {
+		ret = tracefs_iterate_raw_events(test_tep, instance, cpuset, cpu_size,
+						 test_callback, &cpu);
+	}
 	CU_TEST(ret == 0);
 	if (cpu < 0) {
 		CU_TEST(test_found == TEST_ARRAY_SIZE);
@@ -234,15 +244,34 @@ static void test_instance_iter_raw_events(struct tracefs_instance *instance)
 	ret = tracefs_iterate_raw_events(test_tep, instance, NULL, 0, NULL, NULL);
 	CU_TEST(ret < 0);
 
-	iter_raw_events_on_cpu(instance, -1);
+	iter_raw_events_on_cpu(instance, -1, false);
 	for (i = 0; i < cpus; i++)
-		iter_raw_events_on_cpu(instance, i);
+		iter_raw_events_on_cpu(instance, i, false);
 }
 
 static void test_iter_raw_events(void)
 {
+	test_instance_iter_raw_events(NULL);
 	test_instance_iter_raw_events(test_instance);
 }
+
+static void test_instance_iter_snapshot_events(struct tracefs_instance *instance)
+{
+	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int i;
+
+	iter_raw_events_on_cpu(instance, -1, true);
+	for (i = 0; i < cpus; i++)
+		iter_raw_events_on_cpu(instance, i, true);
+	tracefs_snapshot_free(instance);
+}
+
+static void test_iter_snapshot_events(void)
+{
+	test_instance_iter_snapshot_events(NULL);
+	test_instance_iter_snapshot_events(test_instance);
+}
+
 
 #define RAND_STR_SIZE 20
 #define RAND_ASCII "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -3218,6 +3247,9 @@ void test_tracefs_lib(void)
 		    test_instance_reset);
 	CU_add_test(suite, "systems and events APIs",
 		    test_system_event);
+	CU_add_test(suite, "tracefs_iterate_snapshot_events API",
+		    test_iter_snapshot_events);
+
 	CU_add_test(suite, "tracefs_iterate_raw_events API",
 		    test_iter_raw_events);
 
