@@ -2516,6 +2516,7 @@ static void test_custom_trace_dir(void)
 
 static int test_suite_destroy(void)
 {
+	tracefs_instance_reset(NULL);
 	tracefs_instance_destroy(test_instance);
 	tracefs_instance_free(test_instance);
 	tep_free(test_tep);
@@ -2530,6 +2531,9 @@ static int test_suite_init(void)
 	test_instance = tracefs_instance_create(TEST_INSTANCE_NAME);
 	if (!test_instance)
 		return 1;
+
+	/* Start with a new slate */
+	tracefs_instance_reset(NULL);
 
 	return 0;
 }
