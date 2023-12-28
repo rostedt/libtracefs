@@ -107,6 +107,14 @@ Function filters:
 	int *tracefs_function_notrace*(struct tracefs_instance pass:[*]_instance_, const char pass:[*]_filter_, const char pass:[*]_module_, int _flags_);
 	int *tracefs_filter_functions*(const char pass:[*]_filter_, const char pass:[*]_module_, char pass:[*]pass:[*]pass:[*]_list_);
 
+PID filters:
+	int *tracefs_filter_pid_function*(struct tracefs_instance pass:[*]_instance,_ int _pid_,
+				bool _reset_, bool _notrace_);
+	int *tracefs_filter_pid_function_clear*(struct tracefs_instance pass:[*]_instance_, bool _notrace_);
+	int *tracefs_filter_pid_events*(struct tracefs_instance pass:[*]_instance_, int _pid_,
+				bool _reset_, bool _notrace_);
+	int *tracefs_filter_pid_events_clear*(struct tracefs_instance pass:[*]_instance_, bool _notrace_);
+
 Trace helper functions:
 	void *tracefs_list_free*(char pass:[*]pass:[*]_list_);
 	char pass:[**]*tracefs_list_add*(char **_list_, const char *_string_);

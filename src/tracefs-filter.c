@@ -801,6 +801,138 @@ int tracefs_event_filter_clear(struct tracefs_instance *instance,
 					"filter", "0");
 }
 
+static int write_pid_file(struct tracefs_instance *instance, const char *file,
+		      int pid, bool reset)
+{
+	char buf[64];
+	int ret;
+
+	sprintf(buf, "%d", pid);
+
+	if (reset)
+		ret = tracefs_instance_file_write(instance, file, buf);
+	else
+		ret = tracefs_instance_file_append(instance, file, buf);
+
+	return ret < 0 ? -1 : 0;
+}
+
+/**
+ * tracefs_filter_pid_function - set function tracing to filter the pid
+ * @instance: The instance to set the filter to
+ * @pid: The pid to filter on
+ * @reset: If set, it will clear out all other pids being filtered
+ * @notrace: If set, it will filter all but this pid
+ *
+ * Set the function tracing to trace or avoid tracing a given @pid.
+ * If @notrace is set, then it will avoid tracing the @pid.
+ * If @reset is set, it will clear the filter as well.
+ *
+ * Note, @reset only resets what pids will be traced, or what pids will
+ *   not be traced. That is, if both @reset and @notrace is set, then
+ *   it will not affect pids that are being traced. It will only clear
+ *   the pids that are not being traced. To do both, The
+ *   tracefs_filter_pid_function_clear() needs to be called with the
+ *   inverse of @notrace.
+ *
+ * Returns -1 on error, 0 on success.
+ */
+int tracefs_filter_pid_function(struct tracefs_instance *instance, int pid,
+				bool reset, bool notrace)
+{
+	const char *file;
+
+	if (notrace)
+		file = "set_ftrace_notrace_pid";
+	else
+		file = "set_ftrace_pid";
+
+	return write_pid_file(instance, file, pid, reset);
+}
+
+/**
+ * tracefs_filter_pid_function_clear - reset pid function filtering
+ * @instance: The instance to reset function filtering
+ * @notrace: If set, it will filter reset the pids that are not to be traced
+ *
+ * This will clear the function filtering on pids. If @notrace is set,
+ * it will clear the filtering on what pids should not be traced.
+ *
+ * Returns -1 on error, 0 on success.
+ */
+int tracefs_filter_pid_function_clear(struct tracefs_instance *instance, bool notrace)
+{
+	const char *file;
+	int ret;
+
+	if (notrace)
+		file = "set_ftrace_notrace_pid";
+	else
+		file = "set_ftrace_pid";
+
+	ret = tracefs_instance_file_write(instance, file, "");
+
+	return ret < 0 ? -1 : 0;
+}
+
+/**
+ * tracefs_filter_pid_events - set event filtering to a specific pid
+ * @instance: The instance to set the filter to
+ * @pid: The pid to filter on
+ * @reset: If set, it will clear out all other pids being filtered
+ * @notrace: If set, it will filter all but this pid
+ *
+ * Set the event filtering to trace or avoid tracing a given @pid.
+ * If @notrace is set, then it will avoid tracing the @pid.
+ * If @reset is set, it will clear the filter as well.
+ *
+ * Note, @reset only resets what pids will be traced, or what pids will
+ *   not be traced. That is, if both @reset and @notrace is set, then
+ *   it will not affect pids that are being traced. It will only clear
+ *   the pids that are not being traced. To do both, The
+ *   tracefs_filter_pid_events_clear() needs to be called with the
+ *   inverse of @notrace.
+ *
+ * Returns -1 on error, 0 on success.
+ */
+int tracefs_filter_pid_events(struct tracefs_instance *instance, int pid,
+			     bool reset, bool notrace)
+{
+	const char *file;
+
+	if (notrace)
+		file = "set_event_notrace_pid";
+	else
+		file = "set_event_pid";
+
+	return write_pid_file(instance, file, pid, reset);
+}
+
+/**
+ * tracefs_filter_pid_events_clear - reset pid events filtering
+ * @instance: The instance to reset function filtering
+ * @notrace: If set, it will filter reset the pids that are not to be traced
+ *
+ * This will clear the function filtering on pids. If @notrace is set,
+ * it will clear the filtering on what pids should not be traced.
+ *
+ * Returns -1 on error, 0 on success.
+ */
+int tracefs_filter_pid_events_clear(struct tracefs_instance *instance, bool notrace)
+{
+	const char *file;
+	int ret;
+
+	if (notrace)
+		file = "set_event_notrace_pid";
+	else
+		file = "set_event_pid";
+
+	ret = tracefs_instance_file_write(instance, file, "");
+
+	return ret < 0 ? -1 : 0;
+}
+
 /** Deprecated **/
 int tracefs_event_append_filter(struct tep_event *event, char **filter,
 				enum tracefs_filter type,

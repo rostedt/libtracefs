@@ -269,6 +269,13 @@ enum {
 	TRACEFS_FL_FUTURE	= (1 << 2),
 };
 
+int tracefs_filter_pid_function(struct tracefs_instance *instance, int pid,
+				bool reset, bool notrace);
+int tracefs_filter_pid_function_clear(struct tracefs_instance *instance, bool notrace);
+int tracefs_filter_pid_events(struct tracefs_instance *instance, int pid,
+			     bool reset, bool notrace);
+int tracefs_filter_pid_events_clear(struct tracefs_instance *instance, bool notrace);
+
 int tracefs_function_filter(struct tracefs_instance *instance, const char *filter,
 			    const char *module, unsigned int flags);
 int tracefs_function_notrace(struct tracefs_instance *instance, const char *filter,

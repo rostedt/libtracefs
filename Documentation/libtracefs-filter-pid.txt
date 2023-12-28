@@ -1,0 +1,181 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_filter_pid_function, tracefs_filter_pid_events, tracefs_filter_pid_function_clear, tracefs_filter_pid_events_clear -
+Add and remove PID filtering for functions and events
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+int *tracefs_filter_pid_function*(struct tracefs_instance pass:[*]_instance,_ int _pid_,
+				bool _reset_, bool _notrace_);
+int *tracefs_filter_pid_function_clear*(struct tracefs_instance pass:[*]_instance_, bool _notrace_);
+int *tracefs_filter_pid_events*(struct tracefs_instance pass:[*]_instance_, int _pid_,
+			     bool _reset_, bool _notrace_);
+int *tracefs_filter_pid_events_clear*(struct tracefs_instance pass:[*]_instance_, bool _notrace_);
+--
+
+DESCRIPTION
+-----------
+Both events and functions can be filtered by PID, but they are done separately.
+PID filtering for functions affect the function and function_graph tracer, where
+as PID filtering for events affect all events such as _sched_switch_ and _sched_waking_.
+If the *TRACEFS_OPTION_FUNCTION_FORK* is enabled (see *tracefs_option_enable*(3)),
+any PID that is set as part of the function PID filtering will automatically
+have its children added when they are spawned, as well as the PID removed when
+they exit. If the *TRACEFS_OPTION_EVENT_FORK* is set, the same is true for
+event PID filtering. This also includes the _notrace_ option where the child
+threads and processes of PIDs that are labled as notrace will also not be
+traced.
+
+The *tracefs_filter_pid_function()* affects function PID filtering and *tracefs_filter_pid_events()*
+affects the PID event filtering. For both functions, they add a _pid_ to be filtered in the given _instance_.
+If _reset_ is true, then any PIDs already being filtered will be removed, otherwise
+the _pid_ is simply added to the filtering. If _notrace_ is true, then the PID
+is added to the list of PIDs that are not to be traced. Note, that _reset_ only affects
+the list associated with _notrace_. That is, if both _reset_ and _notrace_ are true,
+then it will not affect PIDs that are to be traced. Same is if _reset_ is true and _notrace_
+is false, it will not affect PIDs that are not to be traced.
+
+The *tracefs_filter_pid_function_clear()* affects function PID filtering and
+*tracefs_filter_pid_events_clear()* affects the PID event filtering. For both
+functions it will clear all the PIDs that are being filtered for the given
+filter. If _notrace_ is true it clears all the PIDs that are not to be traced
+otherwise if it is false, it clears all the PIDs that are to be traced.
+
+RETURN VALUE
+------------
+All the functions return 0 on success and -1 on error.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <tracefs.h>
+
+static void usage(char **argv)
+{
+	fprintf(stderr, "usage: %s [-e|-f][-c|-n] pid [pid ...]\n", argv[0]);
+	fprintf(stderr, "   -e enable event filter\n");
+	fprintf(stderr, "   -f enable function filter\n");
+	fprintf(stderr, "     (default is both, function and event)\n");
+	fprintf(stderr, "   -c clear the filter\n");
+	fprintf(stderr, "   -n notrace filter\n");
+	exit(-1);
+}
+
+int main (int argc, char **argv)
+{
+	bool events = false;
+	bool funcs = false;
+	bool neg = false;
+	bool clear = false;
+	bool reset = true;
+	int i;
+
+	for (i = 1; i < argc && argv[i][0] == '-'; i++) {
+		char *arg = argv[i];
+		int c;
+		for (c = 1; arg[c]; c++) {
+			switch (arg[c]) {
+			case 'e': events = true; break;
+			case 'f': funcs = true; break;
+			case 'n': neg = true; break;
+			case 'c': clear = true; break;
+			default:
+				usage(argv);
+			}
+		}
+		if (c == 1)
+			usage(argv);
+	}
+
+	if (i == argc && !clear)
+		usage(argv);
+
+	if (!events && !funcs) {
+		events = true;
+		funcs = true;
+	}
+
+	if (clear) {
+		if (events)
+			tracefs_filter_pid_events_clear(NULL, neg);
+		if (funcs)
+			tracefs_filter_pid_function_clear(NULL, neg);
+		exit(0);
+	}
+
+	for (; i < argc; i++) {
+		int pid = atoi(argv[i]);
+
+		if (events)
+			tracefs_filter_pid_events(NULL, pid, reset, neg);
+		if (funcs)
+			tracefs_filter_pid_function(NULL, pid, reset, neg);
+
+		reset = false;
+	}
+
+	exit(0);
+}
+
+--
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1),
+*tracefs_hist_alloc*(3),
+*tracefs_hist_alloc_2d*(3),
+*tracefs_hist_alloc_nd*(3),
+*tracefs_hist_free*(3),
+*tracefs_hist_add_key*(3),
+*tracefs_hist_add_value*(3),
+*tracefs_hist_add_name*(3),
+*tracefs_hist_start*(3),
+*tracefs_hist_destory*(3),
+*tracefs_hist_add_sort_key*(3),
+*tracefs_hist_sort_key_direction*(3)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2023 Google, LLC. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

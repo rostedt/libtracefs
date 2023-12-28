@@ -16,11 +16,14 @@
 #include <pthread.h>
 
 #include <sys/mount.h>
+#include <sys/syscall.h>
 
 #include <CUnit/CUnit.h>
 #include <CUnit/Basic.h>
 
 #include "tracefs.h"
+
+#define gettid() syscall(__NR_gettid)
 
 #define TRACEFS_SUITE		"tracefs library"
 #define TEST_INSTANCE_NAME	"cunit_test_iter"
@@ -438,6 +441,248 @@ static void test_trace_sql(void)
 	test_instance_trace_sql(test_instance);
 }
 
+static void call_getppid(int cnt)
+{
+	int i;
+
+	for (i = 0; i < cnt; i++)
+		getppid();
+}
+
+struct check_data {
+	int	this_pid;
+	int	other_pid;
+	bool	trace_this;
+	bool	trace_other;
+	bool	trace_all;
+	bool	hit;
+	int (*filter_clear)(struct tracefs_instance *instance, bool notrace);
+};
+
+static int check_callback(struct tep_event *event, struct tep_record *record,
+			  int cpu, void *data)
+{
+	struct check_data *cdata = data;
+	int pid;
+
+	cdata->hit = true;
+
+	pid = tep_data_pid(event->tep, record);
+
+	if (pid == cdata->this_pid) {
+		CU_TEST(cdata->trace_this);
+		return cdata->trace_this ? 0 : -1;
+	}
+
+	if (pid == cdata->other_pid) {
+		CU_TEST(cdata->trace_other);
+		return cdata->trace_other ? 0 : -1;
+	}
+
+	CU_TEST(cdata->trace_all);
+	if (!cdata->trace_all) {
+		printf(" (Traced %d but should not have", pid);
+		if (cdata->trace_this)
+			printf(", this_pid:%d", cdata->this_pid);
+		if (cdata->trace_other)
+			printf(", other_pid:%d", cdata->other_pid);
+		printf(") ");
+	}
+
+	return cdata->trace_all ? 0 : -1;
+}
+
+static int check_filtered_pid(struct tep_handle *tep, struct tracefs_instance *instance,
+			      struct check_data *cdata)
+{
+	int ret;
+
+	cdata->hit = false;
+	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, check_callback, cdata);
+
+	tracefs_instance_clear(instance);
+
+	cdata->filter_clear(instance, false);
+	cdata->filter_clear(instance, true);
+
+	return ret;
+}
+
+struct spin_data {
+	bool	stop;
+	bool	done;
+	int	tid;
+};
+
+static void *trace_spin_thread(void *arg)
+{
+	struct spin_data *data = arg;
+
+	data->tid = gettid();
+	pthread_barrier_wait(&trace_barrier);
+
+	while (!data->done) {
+		pthread_barrier_wait(&trace_barrier);
+		while (!data->stop && !data->done)
+			getppid();
+		pthread_barrier_wait(&trace_barrier);
+	}
+
+	return NULL;
+}
+
+static void run_test(struct tracefs_instance *instance, struct tep_handle *tep,
+		     struct spin_data *data, struct check_data *cdata)
+{
+	tracefs_trace_on(instance);
+
+	/* Run a little */
+	call_getppid(1000);
+
+	/* Start the spinner */
+	data->stop = false;
+	pthread_barrier_wait(&trace_barrier);
+
+	/* Allow the other threads run */
+	msleep(100);
+
+	/* Stop the spinners */
+	data->stop = true;
+	pthread_barrier_wait(&trace_barrier);
+	/* Run a little more  */
+	call_getppid(10);
+	tracefs_trace_off(instance);
+
+	check_filtered_pid(tep, instance, cdata);
+}
+
+
+static void test_instance_pid_filter(struct tracefs_instance *instance,
+				     int (*filter_pid)(struct tracefs_instance *instance,
+						       int pid, bool reset, bool notrace),
+				     int (*filter_clear)(struct tracefs_instance *instance,
+							 bool notrace))
+{
+	struct tep_handle *tep = test_tep;
+	struct check_data cdata;
+	struct spin_data data = { };
+	pthread_t thread1;
+	pthread_t thread2;
+	int this_pid = getpid();
+
+	pthread_barrier_init(&trace_barrier, NULL, 3);
+
+	/* create two spinners, one will be used for tracing */
+	pthread_create(&thread1, NULL, trace_spin_thread, &data);
+	pthread_create(&thread2, NULL, trace_spin_thread, &data);
+
+	pthread_barrier_wait(&trace_barrier);
+
+	cdata.this_pid = this_pid;
+	cdata.other_pid = data.tid;
+	cdata.filter_clear = filter_clear;
+
+	/* Test 1 */
+	cdata.trace_this = true;
+	cdata.trace_other = false;
+	cdata.trace_all = false;
+
+	/* Add the thread, but then reset it out */
+	filter_pid(instance, data.tid, true, false);
+	filter_pid(instance, this_pid, true, false);
+
+	/* Only this thread should be traced */
+	run_test(instance, tep, &data, &cdata);
+	CU_TEST(cdata.hit);
+
+
+	/* Test 2 */
+	cdata.trace_this = true;
+	cdata.trace_other = true;
+	cdata.trace_all = false;
+
+	/* Add the thread, but then reset it out */
+	filter_pid(instance, data.tid, true, false);
+	filter_pid(instance, this_pid, false, false);
+
+	/* Only this thread should be traced */
+	run_test(instance, tep, &data, &cdata);
+	CU_TEST(cdata.hit);
+
+
+	/* Test 3 */
+	cdata.trace_this = false;
+	cdata.trace_other = true;
+	cdata.trace_all = true;
+
+	/* Add the thread, but then reset it out */
+	filter_pid(instance, data.tid, true, true);
+	filter_pid(instance, this_pid, true, true);
+
+	/* Only this thread should be traced */
+	run_test(instance, tep, &data, &cdata);
+	CU_TEST(cdata.hit);
+
+
+	/* Test 4 */
+	cdata.trace_this = false;
+	cdata.trace_other = false;
+	cdata.trace_all = true;
+
+	/* Add the thread, but then reset it out */
+	filter_pid(instance, data.tid, true, true);
+	filter_pid(instance, this_pid, false, true);
+
+	/* Only this thread should be traced */
+	run_test(instance, tep, &data, &cdata);
+	CU_TEST(cdata.hit);
+
+	/* exit out */
+	data.done = true;
+	pthread_barrier_wait(&trace_barrier);
+	pthread_barrier_wait(&trace_barrier);
+
+	pthread_join(thread1, NULL);
+	pthread_join(thread2, NULL);
+}
+
+static void test_function_pid_filter(struct tracefs_instance *instance)
+{
+	tracefs_trace_off(instance);
+	tracefs_instance_clear(instance);
+	tracefs_tracer_set(instance, TRACEFS_TRACER_FUNCTION);
+	test_instance_pid_filter(instance,
+				 tracefs_filter_pid_function,
+				 tracefs_filter_pid_function_clear);
+	tracefs_tracer_clear(instance);
+	tracefs_trace_on(instance);
+}
+
+static void test_trace_function_pid_filter(void)
+{
+	test_function_pid_filter(NULL);
+	test_function_pid_filter(test_instance);
+}
+
+static void test_events_pid_filter(struct tracefs_instance *instance)
+{
+	tracefs_trace_off(instance);
+	tracefs_instance_clear(instance);
+	tracefs_event_enable(instance, "syscalls", NULL);
+	tracefs_event_enable(instance, "raw_syscalls", NULL);
+	test_instance_pid_filter(instance,
+				 tracefs_filter_pid_events,
+				 tracefs_filter_pid_events_clear);
+	tracefs_event_disable(instance, NULL, NULL);
+	tracefs_trace_on(instance);
+}
+
+static void test_trace_events_pid_filter(void)
+{
+	test_events_pid_filter(NULL);
+	test_events_pid_filter(test_instance);
+}
+
 struct test_cpu_data {
 	struct tracefs_instance		*instance;
 	struct tracefs_cpu		*tcpu;
@@ -591,14 +836,6 @@ static void reset_trace_cpu(struct test_cpu_data *data, bool nonblock)
 	CU_TEST(data->fd >= 0);
 	data->tcpu = tracefs_cpu_open(data->instance, 0, nonblock);
 	CU_TEST(data->tcpu != NULL);
-}
-
-static void call_getppid(int cnt)
-{
-	int i;
-
-	for (i = 0; i < cnt; i++)
-		getppid();
 }
 
 static void test_cpu_read(struct test_cpu_data *data, int expect)
@@ -2965,6 +3202,10 @@ void test_tracefs_lib(void)
 		    test_trace_cpu_read_buf_percent);
 	CU_add_test(suite, "trace cpu pipe",
 		    test_trace_cpu_pipe);
+	CU_add_test(suite, "trace pid events filter",
+		    test_trace_events_pid_filter);
+	CU_add_test(suite, "trace pid function filter",
+		    test_trace_function_pid_filter);
 	CU_add_test(suite, "trace sql",
 		    test_trace_sql);
 	CU_add_test(suite, "tracing file / directory APIs",
