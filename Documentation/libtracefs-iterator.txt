@@ -3,7 +3,8 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_iterate_raw_events, tracefs_iterate_stop, tracefs_follow_event, tracefs_follow_missed_events - Iterate over events in the ring buffer
+tracefs_iterate_raw_events, tracefs_iterate_stop, tracefs_follow_event, tracefs_follow_missed_events,
+tracefs_follow_event_clear, tracefs_follow_missed_events_clear - Iterate over events in the ring buffer
 
 SYNOPSIS
 --------
@@ -28,6 +29,10 @@ int *tracefs_follow_missed_events*(struct tracefs_instance pass:[*]_instance_,
 					  struct tep_record pass:[*],
 					  int, void pass:[*]),
 			  void pass:[*]_callback_data_);
+
+int *tracefs_follow_event_clear*(struct tracefs_instance pass:[*]_instance_,
+			  const char pass:[*]_system_, const char pass:[*]_event_name_);
+int *tracefs_follow_missed_events_clear*(struct tracefs_instance pass:[*]_instance_);
 --
 
 DESCRIPTION
@@ -68,10 +73,23 @@ record that came after the missed events and _event_ will be of the type of
 event _record_ is. _cpu_ will be set to the CPU that missed the events, and
 _callback_data_ will be the content that was passed in to the function.
 
+The *tracefs_follow_event_clear()* will remove followers from _instance_ that
+match _system_ and _event_name_. If _system_ and _event_name_ are both NULL,
+then it will remove all event followers associated to _instance_. If just _system_
+is NULL, then it will remove all followers that follow events that match _event_name_. If just _event_name_
+is NULL, then it will remove all followers that are attached to events that are
+apart of a system that matches _system_.
+
+The *tracefs_follow_missed_events_clear()* will remove all followers for missed
+events.
+
 RETURN VALUE
 ------------
 The *tracefs_iterate_raw_events()* function returns -1 in case of an error or
 0 otherwise.
+
+Both *tracefs_follow_event_clear()* and *tracefs_follow_missed_events_clear()* return
+0 on success and -1 on error, or if it found no followers that match and should be removed.
 
 EXAMPLE
 -------
@@ -176,7 +194,17 @@ int main (int argc, char **argv, char **env)
 	tracefs_follow_missed_events(instance, missed_callback, NULL);
 	tracefs_follow_event(tep, instance, "sched", "sched_switch", sched_callback, &this_pid);
 	tracefs_iterate_raw_events(tep, instance, NULL, 0, callback, &my_data);
+
+	/* Note, the clear here is to show how to clear all followers
+	 * in case tracefs_iterate_raw_events() is called again, but
+	 * does not want to include the followers. It's not needed
+	 * here because tracefs_instance_free() will clean them up.
+	 */
+	tracefs_follow_event_clear(instance, NULL, NULL);
+	tracefs_follow_missed_events_clear(instance);
+
 	tracefs_instance_destroy(instance);
+	tracefs_instance_free(instance);
 
 	if (my_data.stopped) {
 		if (counter > MAX_COUNT)

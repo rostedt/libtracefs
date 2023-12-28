@@ -63,6 +63,16 @@ static struct test_sample test_array[TEST_ARRAY_SIZE];
 static int test_found;
 static unsigned long long last_ts;
 
+static void msleep(int ms)
+{
+	struct timespec tspec;
+
+	/* Sleep for 1ms */
+	tspec.tv_sec = 0;
+	tspec.tv_nsec = 1000000 * ms;
+	nanosleep(&tspec, NULL);
+}
+
 static int test_callback(struct tep_event *event, struct tep_record *record,
 			  int cpu, void *context)
 {
@@ -608,9 +618,22 @@ static void test_trace_cpu_read(void)
 struct follow_data {
 	struct tep_event *sched_switch;
 	struct tep_event *sched_waking;
+	struct tep_event *getppid;
 	struct tep_event *function;
 	int missed;
+	int switch_hit;
+	int waking_hit;
+	int getppid_hit;
+	int missed_hit;
 };
+
+static void clear_hits(struct follow_data *fdata)
+{
+	fdata->switch_hit = 0;
+	fdata->waking_hit = 0;
+	fdata->getppid_hit = 0;
+	fdata->missed_hit = 0;
+}
 
 static int switch_callback(struct tep_event *event, struct tep_record *record,
 			   int cpu, void *data)
@@ -619,6 +642,7 @@ static int switch_callback(struct tep_event *event, struct tep_record *record,
 
 	CU_TEST(cpu == record->cpu);
 	CU_TEST(event->id == fdata->sched_switch->id);
+	fdata->switch_hit++;
 	return 0;
 }
 
@@ -629,6 +653,18 @@ static int waking_callback(struct tep_event *event, struct tep_record *record,
 
 	CU_TEST(cpu == record->cpu);
 	CU_TEST(event->id == fdata->sched_waking->id);
+	fdata->waking_hit++;
+	return 0;
+}
+
+static int getppid_callback(struct tep_event *event, struct tep_record *record,
+			    int cpu, void *data)
+{
+	struct follow_data *fdata = data;
+
+	CU_TEST(cpu == record->cpu);
+	CU_TEST(event->id == fdata->getppid->id);
+	fdata->getppid_hit++;
 	return 0;
 }
 
@@ -648,6 +684,7 @@ static int missed_callback(struct tep_event *event, struct tep_record *record,
 	struct follow_data *fdata = data;
 
 	fdata->missed = record->missed_events;
+	fdata->missed_hit++;
 	return 0;
 }
 
@@ -725,6 +762,11 @@ static void test_instance_follow_events(struct tracefs_instance *instance)
 	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, all_callback, &fdata);
 	CU_TEST(ret == 0);
 
+	ret = tracefs_follow_event_clear(instance, NULL, NULL);
+	CU_TEST(ret == 0);
+	ret = tracefs_follow_missed_events_clear(instance);
+	CU_TEST(ret == 0);
+
 	pthread_join(thread, NULL);
 
 	tracefs_tracer_clear(instance);
@@ -735,6 +777,193 @@ static void test_follow_events(void)
 {
 	test_instance_follow_events(NULL);
 	test_instance_follow_events(test_instance);
+}
+
+static void test_instance_follow_events_clear(struct tracefs_instance *instance)
+{
+	struct follow_data fdata;
+	struct tep_handle *tep;
+	char **list;
+	int ret;
+
+	memset(&fdata, 0, sizeof(fdata));
+
+	tep = test_tep;
+
+	fdata.sched_switch = tep_find_event_by_name(tep, "sched", "sched_switch");
+	CU_TEST(fdata.sched_switch != NULL);
+	if (!fdata.sched_switch)
+		return;
+
+	fdata.sched_waking = tep_find_event_by_name(tep, "sched", "sched_waking");
+	CU_TEST(fdata.sched_waking != NULL);
+	if (!fdata.sched_waking)
+		return;
+
+	fdata.getppid = tep_find_event_by_name(tep, EVENT_SYSTEM, EVENT_NAME);
+	CU_TEST(fdata.getppid != NULL);
+	if (!fdata.getppid)
+		return;
+
+	ret = tracefs_follow_event(tep, instance, "sched", "sched_switch",
+				   switch_callback, &fdata);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_follow_event(tep, instance, "sched", "sched_waking",
+				   waking_callback, &fdata);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_follow_event(tep, instance, EVENT_SYSTEM, EVENT_NAME,
+				   getppid_callback, &fdata);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_follow_missed_events(instance, missed_callback, &fdata);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_event_enable(instance, "sched", "sched_switch");
+	CU_TEST(ret == 0);
+
+	ret = tracefs_event_enable(instance, "sched", "sched_waking");
+	CU_TEST(ret == 0);
+
+	ret = tracefs_event_enable(instance, EVENT_SYSTEM, EVENT_NAME);
+	CU_TEST(ret == 0);
+
+	tracefs_trace_on(instance);
+	call_getppid(100);
+	msleep(100);
+	tracefs_trace_off(instance);
+
+	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
+	CU_TEST(ret == 0);
+
+	/* Make sure all are hit */
+	CU_TEST(fdata.switch_hit > 0);
+	CU_TEST(fdata.waking_hit > 0);
+	CU_TEST(fdata.getppid_hit == 100);
+	/* No missed events */
+	CU_TEST(fdata.missed_hit == 0);
+	clear_hits(&fdata);
+
+
+
+	/* Disable getppid and do the same thing */
+	ret = tracefs_follow_event_clear(instance, EVENT_SYSTEM, EVENT_NAME);
+	CU_TEST(ret == 0);
+
+	tracefs_trace_on(instance);
+	call_getppid(100);
+	msleep(100);
+	tracefs_trace_off(instance);
+
+	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
+	CU_TEST(ret == 0);
+
+	/* All but getppid should be hit */
+	CU_TEST(fdata.switch_hit > 0);
+	CU_TEST(fdata.waking_hit > 0);
+	CU_TEST(fdata.getppid_hit == 0);
+	/* No missed events */
+	CU_TEST(fdata.missed_hit == 0);
+	clear_hits(&fdata);
+
+
+
+	/* Add function and remove sched */
+	ret = tracefs_follow_event(tep, instance, "ftrace", "function",
+				   function_callback, &fdata);
+	CU_TEST(ret == 0);
+	ret = tracefs_follow_event_clear(instance, "sched", NULL);
+	CU_TEST(ret == 0);
+
+	tracefs_trace_on(instance);
+	call_getppid(100);
+	msleep(100);
+	tracefs_trace_off(instance);
+
+	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
+	CU_TEST(ret == 0);
+
+	/* Nothing should have been hit */
+	CU_TEST(fdata.switch_hit == 0);
+	CU_TEST(fdata.waking_hit == 0);
+	CU_TEST(fdata.getppid_hit == 0);
+	/* No missed events */
+	CU_TEST(fdata.missed_hit == 0);
+	clear_hits(&fdata);
+
+
+	/* Enable function tracing and see if we missed hits */
+	ret = tracefs_tracer_set(instance, TRACEFS_TRACER_FUNCTION);
+	CU_TEST(ret == 0);
+
+	fdata.function = tep_find_event_by_name(tep, "ftrace", "function");
+	CU_TEST(fdata.function != NULL);
+	if (!fdata.function)
+		return;
+
+	tracefs_trace_on(instance);
+	call_getppid(100);
+	/* Stir the kernel a bit */
+	list = tracefs_event_systems(NULL);
+	tracefs_list_free(list);
+	sleep(1);
+	tracefs_trace_off(instance);
+
+	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
+	CU_TEST(ret == 0);
+
+	/* Nothing should have been hit */
+	CU_TEST(fdata.switch_hit == 0);
+	CU_TEST(fdata.waking_hit == 0);
+	CU_TEST(fdata.getppid_hit == 0);
+	/* We should have missed events! */
+	CU_TEST(fdata.missed_hit > 0);
+	clear_hits(&fdata);
+
+
+	/* Now remove missed events follower */
+	ret = tracefs_follow_missed_events_clear(instance);
+	CU_TEST(ret == 0);
+
+	tracefs_trace_on(instance);
+	call_getppid(100);
+	sleep(1);
+	tracefs_trace_off(instance);
+
+	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
+	CU_TEST(ret == 0);
+
+	/* Nothing should have been hit */
+	CU_TEST(fdata.switch_hit == 0);
+	CU_TEST(fdata.waking_hit == 0);
+	CU_TEST(fdata.getppid_hit == 0);
+	/* No missed events either */
+	CU_TEST(fdata.missed_hit == 0);
+	clear_hits(&fdata);
+
+	/* Turn everything off */
+	tracefs_tracer_clear(instance);
+	tracefs_event_disable(instance, NULL, NULL);
+
+	tracefs_trace_on(instance);
+
+	/* Clear the function follower */
+	ret = tracefs_follow_event_clear(instance, NULL, "function");
+
+	/* Should not have any more followers */
+	ret = tracefs_follow_event_clear(instance, NULL, NULL);
+	CU_TEST(ret != 0);
+
+	/* Nor missed event followers */
+	ret = tracefs_follow_missed_events_clear(instance);
+	CU_TEST(ret != 0);
+}
+
+static void test_follow_events_clear(void)
+{
+	test_instance_follow_events_clear(NULL);
+	test_instance_follow_events_clear(test_instance);
 }
 
 extern char *find_tracing_dir(bool debugfs, bool mount);
@@ -2570,6 +2799,7 @@ void test_tracefs_lib(void)
 
 	/* Follow events test must be after the iterate raw events above */
 	CU_add_test(suite, "Follow events", test_follow_events);
+	CU_add_test(suite, "Follow events clear", test_follow_events_clear);
 
 	CU_add_test(suite, "tracefs_tracers API",
 		    test_tracers);

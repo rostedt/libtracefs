@@ -138,6 +138,10 @@ int tracefs_follow_missed_events(struct tracefs_instance *instance,
 						 struct tep_record *,
 						 int, void *),
 				 void *callback_data);
+int tracefs_follow_event_clear(struct tracefs_instance *instance,
+			  const char *system, const char *event_name);
+int tracefs_follow_missed_events_clear(struct tracefs_instance *instance);
+
 
 char *tracefs_event_get_file(struct tracefs_instance *instance,
 			     const char *system, const char *event,

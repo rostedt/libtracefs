@@ -392,6 +392,109 @@ int tracefs_follow_event(struct tep_handle *tep, struct tracefs_instance *instan
 	return 0;
 }
 
+/**
+ * tracefs_follow_event_clear - Remove callbacks for specific events for iterators
+ * @instance: The instance to follow
+ * @system: The system of the event to remove (NULL for all)
+ * @event_name: The name of the event to remove (NULL for all)
+ *
+ * This removes all callbacks from an instance that matches a specific
+ * event. If @event_name is NULL, then it removes all followers that match
+ * @system. If @system is NULL, then it removes all followers that match
+ * @event_name. If both @system and @event_name are NULL then it removes all
+ * followers for all events.
+ *
+ * Returns 0 on success and -1 on error (which includes no followers found)
+ */
+int tracefs_follow_event_clear(struct tracefs_instance *instance,
+			       const char *system, const char *event_name)
+{
+	struct follow_event **followers;
+	struct follow_event *follower;
+	int *nr_followers;
+	int nr;
+	int i, n;
+
+	if (instance) {
+		followers = &instance->followers;
+		nr_followers = &instance->nr_followers;
+	} else {
+		followers = &root_followers;
+		nr_followers = &nr_root_followers;
+	}
+
+	if (!*nr_followers)
+		return -1;
+
+	/* If both system and event_name are NULL just remove all */
+	if (!system && !event_name) {
+		free(*followers);
+		*followers = NULL;
+		*nr_followers = 0;
+		return 0;
+	}
+
+	nr = *nr_followers;
+	follower = *followers;
+
+	for (i = 0, n = 0; i < nr; i++) {
+		if (event_name && strcmp(event_name, follower[n].event->name) != 0) {
+			n++;
+			continue;
+		}
+		if (system && strcmp(system, follower[n].event->system) != 0) {
+			n++;
+			continue;
+		}
+		/* If there are no more after this, continue to increment i */
+		if (i == nr - 1)
+			continue;
+		/* Remove this follower */
+		memmove(&follower[n], &follower[n + 1],
+			sizeof(*follower) * (nr - (n + 1)));
+	}
+
+	/* Did we find anything? */
+	if (n == i)
+		return -1;
+
+	/* NULL out the rest */
+	memset(&follower[n], 0, (sizeof(*follower)) * (nr - n));
+	*nr_followers = n;
+
+	return 0;
+}
+
+/**
+ * tracefs_follow_missed_events_clear - Remove callbacks for missed events
+ * @instance: The instance to remove missed callback followers
+ *
+ * This removes all callbacks from an instance that are for missed events.
+ *
+ * Returns 0 on success and -1 on error (which includes no followers found)
+ */
+int tracefs_follow_missed_events_clear(struct tracefs_instance *instance)
+{
+	struct follow_event **followers;
+	int *nr_followers;
+
+	if (instance) {
+		followers = &instance->missed_followers;
+		nr_followers = &instance->nr_missed_followers;
+	} else {
+		followers = &root_missed_followers;
+		nr_followers = &nr_root_missed_followers;
+	}
+
+	if (!*nr_followers)
+		return -1;
+
+	free(*followers);
+	*followers = NULL;
+	*nr_followers = 0;
+	return 0;
+}
+
 static bool top_iterate_keep_going;
 
 /*
