@@ -1490,6 +1490,7 @@ void tracefs_instance_reset(struct tracefs_instance *instance)
 	tracefs_tracer_clear(instance);
 	tracefs_instance_file_write(instance, "events/enable", "0");
 	tracefs_instance_file_write(instance, "set_ftrace_pid", "");
+	tracefs_instance_file_write(instance, "max_graph_depth", "0");
 	tracefs_instance_file_clear(instance, "trace");
 
 	systems = tracefs_event_systems(NULL);
