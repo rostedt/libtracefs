@@ -642,7 +642,7 @@ static int update_vars(struct tep_handle *tep,
 	enum field_type ftype = FIELD_NONE;
 	struct tep_event *event;
 	struct field *field;
-	const char *extra_label;
+	const char *extra_label = NULL;
 	const char *label;
 	const char *raw = event_field->raw;
 	const char *event_name;
