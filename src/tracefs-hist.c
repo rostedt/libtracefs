@@ -1838,8 +1838,6 @@ int tracefs_synth_save(struct tracefs_synth *synth,
 
 	action->type = ACTION_SAVE;
 	action->handler = type;
-	*synth->next_action = action;
-	synth->next_action = &action->next;
 
 	save = strdup(".save(");
 	if (!save)
