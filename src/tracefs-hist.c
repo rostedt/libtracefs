@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <ctype.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
@@ -1687,27 +1688,81 @@ int tracefs_synth_append_end_filter(struct tracefs_synth *synth,
 				   type, field, compare, val);
 }
 
-static int test_max_var(struct tracefs_synth *synth, const char *var)
+static bool var_match(const char *match, const char *var, int match_len, int len)
+{
+	char copy[match_len + 1];
+	char *p, *e;
+
+	strncpy(copy, match, match_len + 1);
+	copy[match_len] = '\0';
+
+	p = copy;
+
+	if (*p == '$')
+		p++;
+
+	if (strncmp(p, var, len) == 0)
+		return true;
+
+	/* Check if this was hashed __<var>_<number>_<number> */
+	if (p[0] != '_' || p[1] != '_')
+		return false;
+
+	p += 2;
+
+	e = copy + match_len - 1;
+	if (!isdigit(*e))
+		return false;
+	while (isdigit(*e) && e > p)
+		e--;
+	if (e == p || *e != '_')
+		return false;
+
+	e--;
+	if (!isdigit(*e))
+		return false;
+	while (isdigit(*e) && e > p)
+		e--;
+	if (e == p || *e != '_')
+		return false;
+
+	if (e - p != len)
+		return false;
+
+	*e = '\0';
+
+	return strncmp(p, var, len) == 0;
+}
+
+static char *test_max_var(struct tracefs_synth *synth, const char *var)
 {
 	char **vars = synth->end_vars;
+	char *ret;
 	char *p;
 	int len;
 	int i;
 
 	len = strlen(var);
+	if (var[0] == '$') {
+		var++;
+		len--;
+	}
 
 	/* Make sure the var is defined for the end event */
 	for (i = 0; vars[i]; i++) {
 		p = strchr(vars[i], '=');
 		if (!p)
 			continue;
-		if (p - vars[i] != len)
-			continue;
-		if (!strncmp(var, vars[i], len))
-			return 0;
+
+		if (var_match(vars[i], var, p - vars[i], len)) {
+			i = asprintf(&ret, "%.*s", (int)(p - vars[i]), vars[i]);
+			if (i < 0)
+				return NULL;
+			return ret;
+		}
 	}
 	errno = ENODEV;
-	return -1;
+	return NULL;
 }
 
 static struct action *create_action(enum tracefs_synth_handler type,
@@ -1715,14 +1770,16 @@ static struct action *create_action(enum tracefs_synth_handler type,
 				    const char *var)
 {
 	struct action *action;
+	char *newvar = NULL;
 	int ret;
 
 	switch (type) {
 	case TRACEFS_SYNTH_HANDLE_MAX:
 	case TRACEFS_SYNTH_HANDLE_CHANGE:
-		ret = test_max_var(synth, var);
-		if (ret < 0)
+		newvar = test_max_var(synth, var);
+		if (!newvar)
 			return NULL;
+		var = newvar;
 		break;
 	default:
 		break;
@@ -1730,15 +1787,18 @@ static struct action *create_action(enum tracefs_synth_handler type,
 
 	action = calloc(1, sizeof(*action));
 	if (!action)
-		return NULL;
+		goto out;
 
 	if (var) {
 		ret = asprintf(&action->handle_field, "$%s", var);
-		if (!action->handle_field) {
+		if (ret < 0) {
 			free(action);
+			free(newvar);
 			return NULL;
 		}
 	}
+ out:
+	free(newvar);
 	return action;
 }
 
