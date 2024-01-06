@@ -1481,9 +1481,12 @@ void tracefs_instance_reset(struct tracefs_instance *instance)
 	int has_trigger = -1;
 	char **systems;
 	struct stat st;
+	char **file_list = NULL;
+	int list_size = 0;
 	char **events;
 	char *file;
 	int i, j;
+	int ret;
 
 	tracefs_trace_off(instance);
 	disable_func_stack_trace_instance(instance);
@@ -1514,8 +1517,15 @@ void tracefs_instance_reset(struct tracefs_instance *instance)
 					else
 						has_trigger = 1;
 				}
-				if (has_trigger)
-					clear_trigger(file);
+				if (has_trigger) {
+					ret = clear_trigger(file);
+					if (ret) {
+						char **list;
+						list = tracefs_list_add(file_list, file);
+						if (list)
+							file_list = list;
+					}
+				}
 				tracefs_put_tracing_file(file);
 			}
 			tracefs_list_free(events);
@@ -1523,6 +1533,25 @@ void tracefs_instance_reset(struct tracefs_instance *instance)
 		tracefs_list_free(systems);
 	}
 
+	while (file_list && list_size != tracefs_list_size(file_list)) {
+		char **list = file_list;
+
+		list_size = tracefs_list_size(file_list);
+		file_list = NULL;
+		for (i = 0; list[i]; i++) {
+			ret = clear_trigger(file);
+			if (ret) {
+				char **tlist;
+				tlist = tracefs_list_add(file_list, list[i]);
+				if (tlist)
+					file_list = tlist;
+			}
+		}
+		tracefs_list_free(list);
+	}
+	tracefs_list_free(file_list);
+
+	tracefs_instance_file_write(instance, "synthetic_events", " ");
 	tracefs_instance_file_write(instance, "error_log", " ");
 	tracefs_instance_file_write(instance, "trace_clock", "local");
 	tracefs_instance_file_write(instance, "set_event_pid", "");
