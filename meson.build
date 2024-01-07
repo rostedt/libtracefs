@@ -38,7 +38,9 @@ subdir('include')
 if cunit_dep.found()
     subdir('utest')
 endif
+if get_option('samples')
 subdir('samples')
+endif
 
 if get_option('doc')
 subdir('Documentation')
