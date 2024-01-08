@@ -1,0 +1,194 @@
+libtracefs(3)
+=============
+
+NAME
+----
+tracefs_cpu_open_mapped, tracefs_cpu_is_mapped, tracefs_cpu_map, tracefs_cpu_unmap - Memory mapping of the ring buffer
+
+SYNOPSIS
+--------
+[verse]
+--
+*#include <tracefs.h>*
+
+bool *tracefs_cpu_is_mapped*(struct tracefs_cpu pass:[*]tcpu);
+int *tracefs_cpu_map*(struct tracefs_cpu pass:[*]tcpu);
+void *tracefs_cpu_unmap*(struct tracefs_cpu pass:[*]tcpu);
+struct tracefs_cpu pass:[*]*tracefs_cpu_open_mapped*(struct tracefs_instance pass:[*]instance,
+					    int cpu, bool nonblock);
+--
+
+DESCRIPTION
+-----------
+If the trace_pipe_raw supports memory mapping, this is usually a more efficient
+method to stream data from the kernel ring buffer than by reading it, as it does
+not require copying the memory that is being read.
+
+If memory mapping is supported by the kernel and the application asks to use the
+memory mapping via either *tracefs_cpu_map()* or by *tracefs_cpu_open_mapped()*
+then the functions *tracefs_cpu_read*(3) and *tracefs_cpu_read_buf*(3) will use
+the mapping directly instead of calling the read system call.
+
+Note, mapping can also slow down *tracefs_cpu_buffered_read*(3) and
+*tracefs_cpu_buffered_read_buf*(3), as those use splice piping and when the
+kernel ring buffer is memory mapped, splice does a copy instead of using the
+ring buffer directly. Thus care must be used when determining to map the
+ring buffer or not, and why it does not get mapped by default.
+
+The *tracefs_cpu_is_mapped()* function will return true if _tcpu_ currently has
+its ring buffer memory mapped and false otherwise. This does not return whether or
+not that the kernel supports memory mapping, but that can usually be determined
+by calling *tracefs_cpu_map()*.
+
+The *tracefs_cpu_map()* function will attempt to map the ring buffer associated
+to _tcpu_ if it is not already mapped.
+
+The *tracefs_cpu_unmap()* function will unmap the ring buffer associated to
+_tcpu_ if it is mapped.
+
+The *tracefs_cpu_open_mapped()* is equivalent to calling *tracefs_cpu_open*(3) followed
+by *tracefs_cpu_map()* on the returned _tcpu_ of *tracefs_cpu_open*(3). Note, this
+will still succeed if the mapping fails, in which case it acts the same as
+*tracefs_cpu_open*(3). If knowing if the mapping succeed or not, *tracefs_cpu_is_mapped()*
+should be called on the return _tcpu_.
+
+RETURN VALUE
+------------
+*tracefs_cpu_is_mapped()* returns true if the given _tcpu_ has its ring buffer
+memory mapped or false otherwise.
+
+*tracefs_cpu_map()* returns 0 on success and -1 on error in mapping. If 0 is
+returned then *tracefs_cpu_is_mapped()* will return true afterward, or false
+if the mapping failed.
+
+*tracefs_cpu_open_mapped()* returns an allocated tracefs_cpu on success of creation
+regardless if it succeed in mapping the ring buffer or not. It returns NULL for
+the same reasons *tracefs_cpu_open*(3) returns NULL. If success of mapping is
+to be known, then calling *tracefs_cpu_is_mapped()* afterward is required.
+
+EXAMPLE
+-------
+[source,c]
+--
+#include <stdlib.h>
+#include <ctype.h>
+#include <tracefs.h>
+
+static void read_subbuf(struct tep_handle *tep, struct kbuffer *kbuf)
+{
+	static struct trace_seq seq;
+	struct tep_record record;
+
+	if (seq.buffer)
+		trace_seq_reset(&seq);
+	else
+		trace_seq_init(&seq);
+
+	while ((record.data = kbuffer_read_event(kbuf, &record.ts))) {
+		record.size = kbuffer_event_size(kbuf);
+		kbuffer_next_event(kbuf, NULL);
+		tep_print_event(tep, &seq, &record,
+				"%s-%d %6.1000d\t%s: %s\n",
+				TEP_PRINT_COMM,
+				TEP_PRINT_PID,
+				TEP_PRINT_TIME,
+				TEP_PRINT_NAME,
+				TEP_PRINT_INFO);
+		trace_seq_do_printf(&seq);
+		trace_seq_reset(&seq);
+	}
+}
+
+int main (int argc, char **argv)
+{
+	struct tracefs_cpu *tcpu;
+	struct tep_handle *tep;
+	struct kbuffer *kbuf;
+	bool mapped;
+	int cpu;
+
+	if (argc < 2 || !isdigit(argv[1][0])) {
+		printf("usage: %s cpu\n\n", argv[0]);
+		exit(-1);
+	}
+
+	cpu = atoi(argv[1]);
+
+	tep = tracefs_local_events(NULL);
+	if (!tep) {
+		perror("Reading trace event formats");
+		exit(-1);
+	}
+
+	tcpu = tracefs_cpu_open_mapped(NULL, cpu, 0);
+	if (!tcpu) {
+		perror("Open CPU 0 file");
+		exit(-1);
+	}
+
+	/*
+	 * If this kernel supports mapping, use normal read,
+	 * otherwise use the piped buffer read.
+	 */
+	mapped = tracefs_cpu_is_mapped(tcpu);
+	if (!mapped)
+		printf("Was not able to map, falling back to buffered read\n");
+	while ((kbuf = mapped ? tracefs_cpu_read_buf(tcpu, true) :
+			tracefs_cpu_buffered_read_buf(tcpu, true))) {
+		read_subbuf(tep, kbuf);
+	}
+
+	kbuf = tracefs_cpu_flush_buf(tcpu);
+	if (kbuf)
+		read_subbuf(tep, kbuf);
+
+	tracefs_cpu_close(tcpu);
+	tep_free(tep);
+
+	return 0;
+}
+--
+
+FILES
+-----
+[verse]
+--
+*tracefs.h*
+	Header file to include in order to have access to the library APIs.
+*-ltracefs*
+	Linker switch to add when building a program that uses the library.
+--
+
+SEE ALSO
+--------
+*tracefs_cpu_open*(3),
+*tracefs_cpu_read*(3),
+*tracefs_cpu_read_buf*(3),
+*tracefs_cpu_buffered_read*(3),
+*tracefs_cpu_buffered_read_buf*(3),
+*libtracefs*(3),
+*libtraceevent*(3),
+*trace-cmd*(1)
+
+AUTHOR
+------
+[verse]
+--
+*Steven Rostedt* <rostedt@goodmis.org>
+--
+REPORTING BUGS
+--------------
+Report bugs to  <linux-trace-devel@vger.kernel.org>
+
+LICENSE
+-------
+libtracefs is Free Software licensed under the GNU LGPL 2.1
+
+RESOURCES
+---------
+https://git.kernel.org/pub/scm/libs/libtrace/libtracefs.git/
+
+COPYING
+-------
+Copyright \(C) 2022 Google, Inc. Free use of this software is granted under
+the terms of the GNU Public License (GPL).

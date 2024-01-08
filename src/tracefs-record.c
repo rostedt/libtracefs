@@ -36,6 +36,7 @@ struct tracefs_cpu {
 	int		splice_read_flags;
 	struct kbuffer	*kbuf;
 	void		*buffer;
+	void		*mapping;
 };
 
 /**
@@ -229,6 +230,31 @@ int tracefs_snapshot_free(struct tracefs_instance *instance)
 	return ret < 0 ? -1 : 0;
 }
 
+/**
+ * tracefs_cpu_open_mapped - open an instance raw trace file and map it
+ * @instance: the instance (NULL for toplevel) of the cpu raw file to open
+ * @cpu: The CPU that the raw trace file is associated with
+ * @nonblock: If true, the file will be opened in O_NONBLOCK mode
+ *
+ * Return a descriptor that can read the tracefs trace_pipe_raw file
+ * for a give @cpu in a given @instance.
+ *
+ * Returns NULL on error.
+ */
+struct tracefs_cpu *
+tracefs_cpu_open_mapped(struct tracefs_instance *instance, int cpu, bool nonblock)
+{
+	struct tracefs_cpu *tcpu;
+
+	tcpu = tracefs_cpu_open(instance, cpu, nonblock);
+	if (!tcpu)
+		return NULL;
+
+	tracefs_cpu_map(tcpu);
+
+	return tcpu;
+}
+
 static void close_fd(int fd)
 {
 	if (fd < 0)
@@ -283,6 +309,28 @@ int tracefs_cpu_read_size(struct tracefs_cpu *tcpu)
 	if (!tcpu)
 		return -1;
 	return tcpu->subbuf_size;
+}
+
+bool tracefs_cpu_is_mapped(struct tracefs_cpu *tcpu)
+{
+	return tcpu->mapping != NULL;
+}
+
+int tracefs_cpu_map(struct tracefs_cpu *tcpu)
+{
+	if (tcpu->mapping)
+		return 0;
+
+	tcpu->mapping = trace_mmap(tcpu->fd, tcpu->kbuf);
+	return tcpu->mapping ? 0 : -1;
+}
+
+void tracefs_cpu_unmap(struct tracefs_cpu *tcpu)
+{
+	if (!tcpu->mapping)
+		return;
+
+	trace_unmap(tcpu->mapping);
 }
 
 static void set_nonblock(struct tracefs_cpu *tcpu)
@@ -383,6 +431,9 @@ int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 	if (ret <= 0)
 		return ret;
 
+	if (tcpu->mapping)
+		return trace_mmap_read(tcpu->mapping, buffer);
+
 	ret = read(tcpu->fd, buffer, tcpu->subbuf_size);
 
 	/* It's OK if there's no data to read */
@@ -426,6 +477,16 @@ static bool get_buffer(struct tracefs_cpu *tcpu)
 struct kbuffer *tracefs_cpu_read_buf(struct tracefs_cpu *tcpu, bool nonblock)
 {
 	int ret;
+
+	/* If mapping is enabled, just use it directly */
+	if (tcpu->mapping) {
+		ret = wait_on_input(tcpu, nonblock);
+		if (ret <= 0)
+			return NULL;
+
+		ret = trace_mmap_load_subbuf(tcpu->mapping, tcpu->kbuf);
+		return ret > 0 ? tcpu->kbuf : NULL;
+	}
 
 	if (!get_buffer(tcpu))
 		return NULL;

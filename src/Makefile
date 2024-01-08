@@ -16,6 +16,7 @@ OBJS += tracefs-dynevents.o
 OBJS += tracefs-eprobes.o
 OBJS += tracefs-uprobes.o
 OBJS += tracefs-record.o
+OBJS += tracefs-mmap.o
 ifeq ($(VSOCK_DEFINED), 1)
 OBJS += tracefs-vsock.o
 endif

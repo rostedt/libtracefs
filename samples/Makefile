@@ -26,6 +26,7 @@ EXAMPLES += guest
 EXAMPLES += cpu-buf
 EXAMPLES += instances-stat
 EXAMPLES += instances-subbuf
+EXAMPLES += cpu-map
 
 TARGETS :=
 TARGETS += sqlhist

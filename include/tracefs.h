@@ -693,6 +693,13 @@ int tracefs_snapshot_snap(struct tracefs_instance *instance);
 int tracefs_snapshot_clear(struct tracefs_instance *instance);
 int tracefs_snapshot_free(struct tracefs_instance *instance);
 
+/* Memory mapping of ring buffer */
+bool tracefs_cpu_is_mapped(struct tracefs_cpu *tcpu);
+int tracefs_cpu_map(struct tracefs_cpu *tcpu);
+void tracefs_cpu_unmap(struct tracefs_cpu *tcpu);
+struct tracefs_cpu *tracefs_cpu_open_mapped(struct tracefs_instance *instance,
+					    int cpu, bool nonblock);
+
 /* Mapping vsocket cids to pids using tracing */
 int tracefs_instance_find_cid_pid(struct tracefs_instance *instance, int cid);
 int tracefs_find_cid_pid(int cid);

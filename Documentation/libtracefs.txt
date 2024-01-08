@@ -138,6 +138,13 @@ Trace stream:
 	ssize_t *tracefs_trace_pipe_print*(struct tracefs_instance pass:[*]_instance_, int _flags_);
 	void *tracefs_trace_pipe_stop*(struct tracefs_instance pass:[*]_instance_);
 
+Memory mapping the ring buffer:
+	bool *tracefs_cpu_is_mapped*(struct tracefs_cpu pass:[*]tcpu);
+	int *tracefs_cpu_map*(struct tracefs_cpu pass:[*]tcpu);
+	void *tracefs_cpu_unmap*(struct tracefs_cpu pass:[*]tcpu);
+	struct tracefs_cpu pass:[*]*tracefs_cpu_open_mapped*(struct tracefs_instance pass:[*]instance,
+						int cpu, bool nonblock);
+
 Trace options:
 	const struct tracefs_options_mask pass:[*]*tracefs_options_get_supported*(struct tracefs_instance pass:[*]_instance_);
 	bool *tracefs_option_is_supported*(struct tracefs_instance pass:[*]_instance_, enum tracefs_option_id _id_);
