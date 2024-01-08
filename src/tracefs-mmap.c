@@ -61,6 +61,10 @@ __hidden void *trace_mmap(int fd, struct kbuffer *kbuf)
 	void *meta;
 	void *data;
 
+#ifndef FORCE_MMAP_ENABLE
+	return NULL;
+#endif
+
 	page_size = getpagesize();
 	meta = mmap(NULL, page_size, PROT_READ, MAP_SHARED, fd, 0);
 	if (meta == MAP_FAILED)

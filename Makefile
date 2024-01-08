@@ -165,6 +165,12 @@ INCLUDES += -I$(src)/include/tracefs
 include $(src)/scripts/features.mk
 
 # Set compile option CFLAGS if not set elsewhere
+ifdef EXTRA_CFLAGS
+  CFLAGS ?= $(EXTRA_CFLAGS)
+else
+  CFLAGS ?= -g -Wall
+endif
+
 CFLAGS ?= -g -Wall
 CPPFLAGS ?=
 LDFLAGS ?=
@@ -172,14 +178,14 @@ LDFLAGS ?=
 CUNIT_INSTALLED := $(shell if (printf "$(pound)include <CUnit/Basic.h>\n void main(){CU_initialize_registry();}" | $(CC) -x c - -lcunit -o /dev/null >/dev/null 2>&1) ; then echo 1; else echo 0 ; fi)
 export CUNIT_INSTALLED
 
-export CFLAGS
-export INCLUDES
-
 # Append required CFLAGS
 override CFLAGS += -D_GNU_SOURCE $(LIBTRACEEVENT_INCLUDES) $(INCLUDES)
 
 # Make sure 32 bit stat() works on large file systems
 override CFLAGS += -D_FILE_OFFSET_BITS=64
+
+export CFLAGS
+export INCLUDES
 
 all: all_cmd
 
