@@ -40,7 +40,7 @@ enum field_type {
 	for (expr = (table)->fields; expr; expr = (field)->next)
 
 #define TIMESTAMP_COMPARE "TIMESTAMP_DELTA"
-#define TIMESTAMP_USECS_COMPARE "TIMESTAMP_USECS_DELTA"
+#define TIMESTAMP_USECS_COMPARE "TIMESTAMP_DELTA_USECS"
 #define EVENT_START	"__START_EVENT__"
 #define EVENT_END	"__END_EVENT__"
 #define TIMESTAMP_NSECS "TIMESTAMP"

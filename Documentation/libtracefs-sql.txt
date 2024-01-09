@@ -134,12 +134,12 @@ Because it is so common to have:
    (end.TIMESTAMP_USECS - start.TIMESTAMP_USECS)
 --
 
-The above can be represented with *TIMESTAMP_USECS_DELTA* or if nanoseconds are OK, you can
+The above can be represented with *TIMESTAMP_DELTA_USECS* or if nanoseconds are OK, you can
 use *TIMESTAMP_DELTA*. That is, the previous select can also be represented by:
 
 [source,c]
 --
-select start.pid, TIMESTAMP_USECS_DELTA as lat from sched_waking as start JOIN sched_switch as end ON start.pid = end.next_pid
+select start.pid, TIMESTAMP_DELTA_USECS as lat from sched_waking as start JOIN sched_switch as end ON start.pid = end.next_pid
 --
 
 
