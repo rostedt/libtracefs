@@ -31,8 +31,6 @@ struct cpu_iterate {
 	struct tep_record record;
 	struct tep_event *event;
 	struct kbuffer *kbuf;
-	void *page;
-	int psize;
 	int cpu;
 };
 
@@ -63,46 +61,24 @@ static int read_kbuf_record(struct cpu_iterate *cpu)
 
 int read_next_page(struct tep_handle *tep, struct cpu_iterate *cpu)
 {
-	enum kbuffer_long_size long_size;
-	enum kbuffer_endian endian;
-	int r;
+	struct kbuffer *kbuf;
 
 	if (!cpu->tcpu)
 		return -1;
 
-	r = tracefs_cpu_buffered_read(cpu->tcpu, cpu->page, true);
+	kbuf = tracefs_cpu_buffered_read_buf(cpu->tcpu, true);
 	/*
-	 * tracefs_cpu_buffered_read() only reads in full subbuffer size,
+	 * tracefs_cpu_buffered_read_buf() only reads in full subbuffer size,
 	 * but this wants partial buffers as well. If the function returns
-	 * empty (-1 for EAGAIN), try tracefs_cpu_read() next, as that can
+	 * empty (-1 for EAGAIN), try tracefs_cpu_flush_buf() next, as that can
 	 * read partially filled buffers too, but isn't as efficient.
 	 */
-	if (r <= 0)
-		r = tracefs_cpu_read(cpu->tcpu, cpu->page, true);
-	if (r <= 0)
+	if (!kbuf)
+		kbuf = tracefs_cpu_flush_buf(cpu->tcpu);
+	if (!kbuf)
 		return -1;
 
-	if (!cpu->kbuf) {
-		if (tep_is_file_bigendian(tep))
-			endian = KBUFFER_ENDIAN_BIG;
-		else
-			endian = KBUFFER_ENDIAN_LITTLE;
-
-		if (tep_get_header_page_size(tep) == 8)
-			long_size = KBUFFER_LSIZE_8;
-		else
-			long_size = KBUFFER_LSIZE_4;
-
-		cpu->kbuf = kbuffer_alloc(long_size, endian);
-		if (!cpu->kbuf)
-			return -1;
-	}
-
-	kbuffer_load_subbuffer(cpu->kbuf, cpu->page);
-	if (kbuffer_subbuffer_size(cpu->kbuf) > r) {
-		tracefs_warning("%s: page_size > %d", __func__, r);
-		return -1;
-	}
+	cpu->kbuf = kbuf;
 
 	return 0;
 }
@@ -314,11 +290,7 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 
 		tmp[i].tcpu = tcpu;
 		tmp[i].cpu = cpu;
-		tmp[i].psize = tracefs_cpu_read_size(tcpu);
-		tmp[i].page =  malloc(tmp[i].psize);
-
-		if (!tmp[i++].page)
-			goto error;
+		i++;
 	}
 	*count = i;
 	return 0;
@@ -326,7 +298,6 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 	tmp = *all_cpus;
 	for (; i >= 0; i--) {
 		tracefs_cpu_close(tmp[i].tcpu);
-		free(tmp[i].page);
 	}
 	free(tmp);
 	*all_cpus = NULL;
@@ -539,9 +510,7 @@ static int iterate_events(struct tep_handle *tep,
 out:
 	if (all_cpus) {
 		for (i = 0; i < count; i++) {
-			kbuffer_free(all_cpus[i].kbuf);
 			tracefs_cpu_close(all_cpus[i].tcpu);
-			free(all_cpus[i].page);
 		}
 		free(all_cpus);
 	}
