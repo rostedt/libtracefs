@@ -690,6 +690,9 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer)
 	if (tcpu->buffered < 0)
 		tcpu->buffered = 0;
 
+	if (tcpu->mapping)
+		return trace_mmap_read(tcpu->mapping, buffer);
+
 	if (tcpu->buffered) {
 		ret = read(tcpu->splice_pipe[0], buffer, tcpu->subbuf_size);
 		if (ret > 0)
@@ -728,6 +731,13 @@ struct kbuffer *tracefs_cpu_flush_buf(struct tracefs_cpu *tcpu)
 
 	if (!get_buffer(tcpu))
 		return NULL;
+
+	if (tcpu->mapping) {
+		/* Make sure that reading is now non blocking */
+		set_nonblock(tcpu);
+		ret = trace_mmap_load_subbuf(tcpu->mapping, tcpu->kbuf);
+		return ret > 0 ? tcpu->kbuf : NULL;
+	}
 
 	ret = tracefs_cpu_flush(tcpu, tcpu->buffer);
 	if (ret <= 0)
