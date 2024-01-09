@@ -18,7 +18,7 @@ void *tracefs_cpu_close*(struct tracefs_cpu pass:[*]_tcpu_);
 struct tracefs_cpu pass:[*]*tracefs_cpu_alloc_fd*(int _fd_, int _subbuf_size_, bool _nonblock_);
 void *tracefs_cpu_free_fd*(struct tracefs_cpu pass:[*]_tcpu_);
 
-struct tracefs_cpu pass:[*]*tracefs_cpu_snapshot-open*(struct tracefs_instance pass:[*]_instance_,
+struct tracefs_cpu pass:[*]*tracefs_cpu_snapshot_open*(struct tracefs_instance pass:[*]_instance_,
 					     int _cpu_, bool _nonblock_);
 --
 
