@@ -276,6 +276,7 @@ void tracefs_cpu_free_fd(struct tracefs_cpu *tcpu)
 	close_fd(tcpu->splice_pipe[0]);
 	close_fd(tcpu->splice_pipe[1]);
 
+	trace_unmap(tcpu->mapping);
 	kbuffer_free(tcpu->kbuf);
 	free(tcpu);
 }
