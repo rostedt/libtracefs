@@ -148,6 +148,7 @@ Trace stream:
 
 Memory mapping the ring buffer:
 	bool *tracefs_cpu_is_mapped*(struct tracefs_cpu pass:[*]tcpu);
+	bool *tracefs_mapped_is_supported*(void);
 	int *tracefs_cpu_map*(struct tracefs_cpu pass:[*]tcpu);
 	void *tracefs_cpu_unmap*(struct tracefs_cpu pass:[*]tcpu);
 	struct tracefs_cpu pass:[*]*tracefs_cpu_open_mapped*(struct tracefs_instance pass:[*]instance,

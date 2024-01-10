@@ -695,6 +695,7 @@ int tracefs_snapshot_free(struct tracefs_instance *instance);
 
 /* Memory mapping of ring buffer */
 bool tracefs_cpu_is_mapped(struct tracefs_cpu *tcpu);
+bool tracefs_mapped_is_supported(void);
 int tracefs_cpu_map(struct tracefs_cpu *tcpu);
 void tracefs_cpu_unmap(struct tracefs_cpu *tcpu);
 struct tracefs_cpu *tracefs_cpu_open_mapped(struct tracefs_instance *instance,

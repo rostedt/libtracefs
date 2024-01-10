@@ -3,7 +3,7 @@ libtracefs(3)
 
 NAME
 ----
-tracefs_cpu_open_mapped, tracefs_cpu_is_mapped, tracefs_cpu_map, tracefs_cpu_unmap - Memory mapping of the ring buffer
+tracefs_cpu_open_mapped, tracefs_cpu_is_mapped, tracefs_mapped_is_supported, tracefs_cpu_map, tracefs_cpu_unmap - Memory mapping of the ring buffer
 
 SYNOPSIS
 --------
@@ -12,6 +12,7 @@ SYNOPSIS
 *#include <tracefs.h>*
 
 bool *tracefs_cpu_is_mapped*(struct tracefs_cpu pass:[*]tcpu);
+bool *tracefs_mapped_is_supported*(void);
 int *tracefs_cpu_map*(struct tracefs_cpu pass:[*]tcpu);
 void *tracefs_cpu_unmap*(struct tracefs_cpu pass:[*]tcpu);
 struct tracefs_cpu pass:[*]*tracefs_cpu_open_mapped*(struct tracefs_instance pass:[*]instance,
@@ -45,6 +46,9 @@ its ring buffer memory mapped and false otherwise. This does not return whether 
 not that the kernel supports memory mapping, but that can usually be determined
 by calling *tracefs_cpu_map()*.
 
+The *tracefs_mapped_is_supported()* returns true if the ring buffer can be
+memory mapped.
+
 The *tracefs_cpu_map()* function will attempt to map the ring buffer associated
 to _tcpu_ if it is not already mapped.
 
@@ -61,6 +65,9 @@ RETURN VALUE
 ------------
 *tracefs_cpu_is_mapped()* returns true if the given _tcpu_ has its ring buffer
 memory mapped or false otherwise.
+
+*tracefs_mapped_is_supported()* returns true if the tracing ring buffer can be
+memory mapped or false if it cannot be or an error occurred.
 
 *tracefs_cpu_map()* returns 0 on success and -1 on error in mapping. If 0 is
 returned then *tracefs_cpu_is_mapped()* will return true afterward, or false

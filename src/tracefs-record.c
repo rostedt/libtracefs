@@ -317,6 +317,25 @@ bool tracefs_cpu_is_mapped(struct tracefs_cpu *tcpu)
 	return tcpu->mapping != NULL;
 }
 
+/**
+ * tracefs_mapped_is_supported - find out if memory mapping is supported
+ *
+ * Return true if the ring buffer can be memory mapped, or false on
+ * error or it cannot be.
+ */
+bool tracefs_mapped_is_supported(void)
+{
+	struct tracefs_cpu *tcpu;
+	bool ret;
+
+	tcpu = tracefs_cpu_open_mapped(NULL, 0, false);
+	if (!tcpu)
+		return false;
+	ret = tracefs_cpu_is_mapped(tcpu);
+	tracefs_cpu_close(tcpu);
+	return ret;
+}
+
 int tracefs_cpu_map(struct tracefs_cpu *tcpu)
 {
 	if (tcpu->mapping)
