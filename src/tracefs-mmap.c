@@ -81,6 +81,7 @@ __hidden void *trace_mmap(int fd, struct kbuffer *kbuf)
 		munmap(meta, page_size);
 		free(tmap);
 	}
+	kbuf = tmap->kbuf;
 
 	tmap->fd = fd;
 
@@ -91,7 +92,7 @@ __hidden void *trace_mmap(int fd, struct kbuffer *kbuf)
 		munmap(meta, page_size);
 		meta = mmap(NULL, tmap->meta_len, PROT_READ, MAP_SHARED, fd, 0);
 		if (meta == MAP_FAILED) {
-			kbuffer_free(tmap->kbuf);
+			kbuffer_free(kbuf);
 			free(tmap);
 			return NULL;
 		}
@@ -106,7 +107,7 @@ __hidden void *trace_mmap(int fd, struct kbuffer *kbuf)
 			  fd, tmap->meta_len);
 	if (tmap->data == MAP_FAILED) {
 		munmap(meta, tmap->meta_len);
-		kbuffer_free(tmap->kbuf);
+		kbuffer_free(kbuf);
 		free(tmap);
 		return NULL;
 	}
