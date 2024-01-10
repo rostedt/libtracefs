@@ -207,5 +207,10 @@ __hidden int trace_mmap_read(void *mapping, void *buffer)
 		return ret;
 
 	/* Update the buffer */
-	return kbuffer_read_buffer(kbuf, buffer, tmap->map->subbuf_size);
+	ret = kbuffer_read_buffer(kbuf, buffer, tmap->map->subbuf_size);
+	if (ret <= 0)
+		return ret;
+
+	/* This needs to include the size of the meta data too */
+	return ret + kbuffer_start_of_data(kbuf);
 }
