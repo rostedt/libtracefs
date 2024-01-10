@@ -11,6 +11,7 @@ sources= [
    'tracefs-instance.c',
    'tracefs-kprobes.c',
    'tracefs-marker.c',
+   'tracefs-mmap.c',
    'tracefs-record.c',
    'tracefs-sqlhist.c',
    'tracefs-tools.c',
