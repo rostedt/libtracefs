@@ -402,6 +402,25 @@ static int wait_on_input(struct tracefs_cpu *tcpu, bool nonblock)
 	return FD_ISSET(tcpu->fd, &rfds);
 }
 
+/* If nonblock is set, set errno to EAGAIN on no data */
+static int mmap_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
+{
+	void *mapping = tcpu->mapping;
+	int ret;
+
+	ret = trace_mmap_read(mapping, buffer);
+	if (ret <= 0) {
+		if (!ret && nonblock)
+			errno = EAGAIN;
+		return ret;
+	}
+
+	/* Write full sub-buffer size, but zero out empty space */
+	if (ret < tcpu->subbuf_size)
+		memset(buffer + ret, 0, tcpu->subbuf_size - ret);
+	return tcpu->subbuf_size;
+}
+
 /**
  * tracefs_cpu_read - read from the raw trace file
  * @tcpu: The descriptor representing the raw trace file
@@ -433,7 +452,7 @@ int tracefs_cpu_read(struct tracefs_cpu *tcpu, void *buffer, bool nonblock)
 		return ret;
 
 	if (tcpu->mapping)
-		return trace_mmap_read(tcpu->mapping, buffer);
+		return mmap_read(tcpu, buffer, nonblock);
 
 	ret = read(tcpu->fd, buffer, tcpu->subbuf_size);
 
@@ -572,7 +591,7 @@ int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonbl
 		return ret;
 
 	if (tcpu->mapping)
-		return trace_mmap_read(tcpu->mapping, buffer);
+		return mmap_read(tcpu, buffer, nonblock);
 
 	if (tcpu->flags & TC_NONBLOCK)
 		mode |= SPLICE_F_NONBLOCK;
@@ -704,7 +723,7 @@ int tracefs_cpu_flush(struct tracefs_cpu *tcpu, void *buffer)
 		tcpu->buffered = 0;
 
 	if (tcpu->mapping)
-		return trace_mmap_read(tcpu->mapping, buffer);
+		return mmap_read(tcpu, buffer, false);
 
 	if (tcpu->buffered) {
 		ret = read(tcpu->splice_pipe[0], buffer, tcpu->subbuf_size);
