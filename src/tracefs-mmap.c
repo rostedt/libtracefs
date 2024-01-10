@@ -143,6 +143,11 @@ __hidden void trace_unmap(void *mapping)
 	free(tmap);
 }
 
+static int get_reader(struct trace_mmap *tmap)
+{
+	return ioctl(tmap->fd, TRACE_MMAP_IOCTL_GET_READER);
+}
+
 __hidden int trace_mmap_load_subbuf(void *mapping, struct kbuffer *kbuf)
 {
 	struct trace_mmap *tmap = mapping;
@@ -171,11 +176,18 @@ __hidden int trace_mmap_load_subbuf(void *mapping, struct kbuffer *kbuf)
 	kbuffer_refresh(kbuf);
 
 	/* Are there still events to read? */
-	if (kbuffer_curr_size(kbuf))
+	if (kbuffer_curr_size(kbuf)) {
+		/* If current is greater than what was read, refresh */
+		if (kbuffer_curr_offset(kbuf) + kbuffer_curr_size(kbuf) >
+		    tmap->map->reader.read) {
+			if (get_reader(tmap) < 0)
+				return -1;
+		}
 		return 1;
+	}
 
 	/* See if a new page is ready? */
-	if (ioctl(tmap->fd, TRACE_MMAP_IOCTL_GET_READER) < 0)
+	if (get_reader(tmap) < 0)
 		return -1;
 	id = tmap->map->reader.id;
 	data = tmap->data + tmap->map->subbuf_size * id;
