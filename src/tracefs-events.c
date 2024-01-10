@@ -32,7 +32,6 @@ struct cpu_iterate {
 	struct tep_event *event;
 	struct kbuffer *kbuf;
 	int cpu;
-	bool mapped;
 };
 
 static int read_kbuf_record(struct cpu_iterate *cpu)
@@ -67,11 +66,7 @@ int read_next_page(struct tep_handle *tep, struct cpu_iterate *cpu)
 	if (!cpu->tcpu)
 		return -1;
 
-	/* Do not do buffered reads if it is mapped */
-	if (cpu->mapped)
-		kbuf = tracefs_cpu_read_buf(cpu->tcpu, true);
-	else
-		kbuf = tracefs_cpu_buffered_read_buf(cpu->tcpu, true);
+	kbuf = tracefs_cpu_buffered_read_buf(cpu->tcpu, true);
 	/*
 	 * tracefs_cpu_buffered_read_buf() only reads in full subbuffer size,
 	 * but this wants partial buffers as well. If the function returns
@@ -295,7 +290,6 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 
 		tmp[i].tcpu = tcpu;
 		tmp[i].cpu = cpu;
-		tmp[i].mapped = tracefs_cpu_is_mapped(tcpu);
 		i++;
 	}
 	*count = i;

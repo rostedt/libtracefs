@@ -29,11 +29,16 @@ memory mapping via either *tracefs_cpu_map()* or by *tracefs_cpu_open_mapped()*
 then the functions *tracefs_cpu_read*(3) and *tracefs_cpu_read_buf*(3) will use
 the mapping directly instead of calling the read system call.
 
-Note, mapping can also slow down *tracefs_cpu_buffered_read*(3) and
-*tracefs_cpu_buffered_read_buf*(3), as those use splice piping and when the
-kernel ring buffer is memory mapped, splice does a copy instead of using the
-ring buffer directly. Thus care must be used when determining to map the
-ring buffer or not, and why it does not get mapped by default.
+Note, mapping will cause *tracefs_cpu_buffered_read*(3) and *tracefs_cpu_buffered_read_buf*(3)
+to act just like *tracefs_cpu_read*(3) and *tracefs_cpu_read_buf*(3) respectively
+as it doesn't make sense to use a splice pipe when mapped. The kernel will do
+a copy for splice reads on mapping, and then another copy in the function when
+it can avoid the copying if the ring buffer is memory mapped.
+
+If the _tcpu_ is memory mapped it will also force *tracefs_cpu_write*(3) and
+*tracefs_cpu_pipe*(3) to copy from the mapping instead of using splice.
+Thus care must be used when determining to map the ring buffer or not,
+and why it does not get mapped by default.
 
 The *tracefs_cpu_is_mapped()* function will return true if _tcpu_ currently has
 its ring buffer memory mapped and false otherwise. This does not return whether or
@@ -78,6 +83,7 @@ static void read_subbuf(struct tep_handle *tep, struct kbuffer *kbuf)
 {
 	static struct trace_seq seq;
 	struct tep_record record;
+	int missed_events;
 
 	if (seq.buffer)
 		trace_seq_reset(&seq);
@@ -86,6 +92,14 @@ static void read_subbuf(struct tep_handle *tep, struct kbuffer *kbuf)
 
 	while ((record.data = kbuffer_read_event(kbuf, &record.ts))) {
 		record.size = kbuffer_event_size(kbuf);
+		missed_events = kbuffer_missed_events(kbuf);
+		if (missed_events) {
+			printf("[MISSED EVENTS");
+			if (missed_events > 0)
+				printf(": %d]\n", missed_events);
+			else
+				printf("]\n");
+		}
 		kbuffer_next_event(kbuf, NULL);
 		tep_print_event(tep, &seq, &record,
 				"%s-%d %6.1000d\t%s: %s\n",
@@ -128,7 +142,10 @@ int main (int argc, char **argv)
 
 	/*
 	 * If this kernel supports mapping, use normal read,
-	 * otherwise use the piped buffer read.
+	 * otherwise use the piped buffer read, although if
+	 * the mapping succeeded, tracefs_cpu_buffered_read_buf()
+	 * acts the same as tracefs_cpu_read_buf(). But this is just
+	 * an example on how to use tracefs_cpu_is_mapped().
 	 */
 	mapped = tracefs_cpu_is_mapped(tcpu);
 	if (!mapped)

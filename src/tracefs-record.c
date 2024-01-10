@@ -571,6 +571,9 @@ int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonbl
 	if (ret <= 0)
 		return ret;
 
+	if (tcpu->mapping)
+		return trace_mmap_read(tcpu->mapping, buffer);
+
 	if (tcpu->flags & TC_NONBLOCK)
 		mode |= SPLICE_F_NONBLOCK;
 
@@ -616,6 +619,16 @@ int tracefs_cpu_buffered_read(struct tracefs_cpu *tcpu, void *buffer, bool nonbl
 struct kbuffer *tracefs_cpu_buffered_read_buf(struct tracefs_cpu *tcpu, bool nonblock)
 {
 	int ret;
+
+	/* If mapping is enabled, just use it directly */
+	if (tcpu->mapping) {
+		ret = wait_on_input(tcpu, nonblock);
+		if (ret <= 0)
+			return NULL;
+
+		ret = trace_mmap_load_subbuf(tcpu->mapping, tcpu->kbuf);
+		return ret > 0 ? tcpu->kbuf : NULL;
+	}
 
 	if (!get_buffer(tcpu))
 		return NULL;
@@ -795,6 +808,20 @@ int tracefs_cpu_write(struct tracefs_cpu *tcpu, int wfd, bool nonblock)
 	int tot;
 	int ret;
 
+	if (tcpu->mapping) {
+		int r = tracefs_cpu_read(tcpu, buffer, nonblock);
+		if (r < 0)
+			return r;
+		do {
+			ret = write(wfd, buffer, r);
+			if (ret < 0)
+				return ret;
+			r -= ret;
+			tot_write += ret;
+		} while (r > 0);
+		return tot_write;
+	}
+
 	ret = wait_on_input(tcpu, nonblock);
 	if (ret <= 0)
 		return ret;
@@ -859,6 +886,9 @@ int tracefs_cpu_pipe(struct tracefs_cpu *tcpu, int wfd, bool nonblock)
 {
 	int mode = SPLICE_F_MOVE;
 	int ret;
+
+	if (tcpu->mapping)
+		return tracefs_cpu_write(tcpu, wfd, nonblock);
 
 	ret = wait_on_input(tcpu, nonblock);
 	if (ret <= 0)
