@@ -1539,6 +1539,7 @@ void tracefs_instance_reset(struct tracefs_instance *instance)
 		list_size = tracefs_list_size(file_list);
 		file_list = NULL;
 		for (i = 0; list[i]; i++) {
+			file = list[i];
 			ret = clear_trigger(file);
 			if (ret) {
 				char **tlist;
