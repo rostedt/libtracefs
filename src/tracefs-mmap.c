@@ -166,6 +166,12 @@ __hidden int trace_mmap_load_subbuf(void *mapping, struct kbuffer *kbuf)
 	 */
 	if (data != kbuffer_subbuffer(kbuf)) {
 		kbuffer_load_subbuffer(kbuf, data);
+		/* Move the read pointer forward if need be */
+		if (kbuffer_curr_index(tmap->kbuf)) {
+			int size = kbuffer_curr_offset(tmap->kbuf);
+			char tmpbuf[size];
+			kbuffer_read_buffer(kbuf, tmpbuf, size);
+		}
 		return 1;
 	}
 
