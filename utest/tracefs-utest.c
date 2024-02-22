@@ -26,6 +26,10 @@
 
 #define gettid() syscall(__NR_gettid)
 
+#ifndef PATH_MAX
+#define PATH_MAX 1024
+#endif
+
 #define TRACEFS_SUITE		"tracefs library"
 #define TEST_INSTANCE_NAME	"cunit_test_iter"
 #define TEST_TRACE_DIR		"/tmp/trace_utest.XXXXXX"
