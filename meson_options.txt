@@ -18,3 +18,5 @@ option('doc', type : 'boolean', value: true,
        description : 'produce documentation')
 option('samples', type : 'boolean', value: true,
        description : 'build samples')
+option('utest', type : 'boolean', value: true,
+       description : 'build utest')

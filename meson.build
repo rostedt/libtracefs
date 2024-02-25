@@ -35,7 +35,7 @@ incdir = include_directories(['include'])
 
 subdir('src')
 subdir('include')
-if cunit_dep.found()
+if get_option('utest') and cunit_dep.found()
     subdir('utest')
 endif
 if get_option('samples')
