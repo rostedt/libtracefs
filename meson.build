@@ -6,7 +6,7 @@ project(
     'libtracefs', ['c'],
     meson_version: '>= 0.50.0',
     license: 'LGPL-2.1',
-    version: '1.8',
+    version: '1.8.0',
     default_options: [
         'c_std=gnu99',
         'buildtype=debug',
