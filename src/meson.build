@@ -17,6 +17,7 @@ sources= [
    'tracefs-tools.c',
    'tracefs-uprobes.c',
    'tracefs-utils.c',
+   'tracefs-mmap.c',
 ]
 
 flex = find_program('flex', required: true)
