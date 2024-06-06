@@ -1576,7 +1576,7 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 	const struct tep_format_field *field;
 	const char *hname = NULL;
 	char *tmp_var = NULL;
-	int ret;
+	int ret = -1;
 
 	if (!synth || !end_field) {
 		errno = EINVAL;
@@ -1594,15 +1594,15 @@ int tracefs_synth_add_end_field(struct tracefs_synth *synth,
 		tmp_var = new_arg(synth);
 
 	if (!trace_verify_event_field(synth->end_event, end_field, &field))
-		return -1;
+		goto out;
 
 	ret = add_var(&synth->end_vars, name ? hname : tmp_var, end_field, false);
 	if (ret)
 		goto out;
 
 	ret = add_synth_fields(synth, field, name, hname ? : tmp_var);
-	free(tmp_var);
  out:
+	free(tmp_var);
 	return ret;
 }
 
