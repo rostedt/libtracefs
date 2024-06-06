@@ -250,12 +250,12 @@ static int append_filter(char **filter, unsigned int *state,
 	case TRACEFS_COMPARE_NE: tmp = append_string(tmp, NULL, " != "); break;
 	case TRACEFS_COMPARE_RE:
 		if (!is_string)
-			goto inval;
+			goto free;
 		tmp = append_string(tmp, NULL, "~");
 		break;
 	default:
 		if (is_string)
-			goto inval;
+			goto free;
 	}
 
 	switch (compare) {
@@ -277,6 +277,8 @@ static int append_filter(char **filter, unsigned int *state,
 	*state = S_COMPARE;
 
 	return 0;
+free:
+	free(tmp);
 inval:
 	errno = EINVAL;
 	return -1;
