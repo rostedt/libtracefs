@@ -858,7 +858,7 @@ char **tracefs_event_systems(const char *tracing_dir)
 		free(sys);
 		if (ret >= 0) {
 			if (add_list_string(&systems, name) < 0)
-				goto out_free;
+				break;
 		}
 	}
 
