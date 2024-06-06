@@ -559,8 +559,10 @@ static int add_func_str(struct func_list ***next_func_ptr, const char *func)
 		if (!func_list)
 			return -1;
 		func_list->func = strdup(func);
-		if (!func_list->func)
+		if (!func_list->func) {
+			free(func_list);
 			return -1;
+		}
 		*next_func = func_list;
 		return 0;
 	}
