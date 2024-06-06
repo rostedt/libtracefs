@@ -589,6 +589,7 @@ tracefs_dynevent_get_all(unsigned int types, const char *system)
 	return all_events;
 
 error:
+	free(events);
 	if (all_events) {
 		for (i = 0; i < all; i++)
 			free(all_events[i]);
