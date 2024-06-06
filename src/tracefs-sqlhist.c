@@ -1109,7 +1109,7 @@ static int build_filter(struct tep_handle *tep, struct sqlhist_bison *sb,
 			     const char *val);
 	struct filter *filter = &expr->filter;
 	enum tracefs_compare cmp;
-	const char *val;
+	const char *val = NULL;
 	int and_or = TRACEFS_FILTER_AND;
 	char num[64];
 	int ret;
