@@ -810,9 +810,9 @@ static int update_fields(struct tep_handle *tep,
 			if (!p)
 				return -1;
 			field_name = store_str(sb, p);
+			free((char *)p);
 			if (!field_name)
 				return -1;
-			free((char *)p);
 		}
 
 		tfield = tep_find_any_field(event, field_name);
