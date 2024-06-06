@@ -121,7 +121,7 @@ __hidden int my_yyinput(void *extra, char *buf, int max)
 	struct sqlhist_bison *sb = extra;
 
 	if (!sb || !sb->buffer)
-		return -1;
+		return 0;
 
 	if (sb->buffer_idx + max > sb->buffer_size)
 		max = sb->buffer_size - sb->buffer_idx;
