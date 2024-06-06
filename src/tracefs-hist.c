@@ -596,8 +596,10 @@ int tracefs_hist_set_sort_key(struct tracefs_hist *hist,
 		if (!sort_key)
 			break;
 		tmp = add_sort_key(hist, sort_key, list);
-		if (!tmp)
+		if (!tmp) {
+			va_end(ap);
 			goto fail;
+		}
 		list = tmp;
 	}
 	va_end(ap);
