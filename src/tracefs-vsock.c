@@ -19,8 +19,10 @@ static int open_vsock(unsigned int cid, unsigned int port)
 	if (sd < 0)
 		return -1;
 
-	if (connect(sd, (struct sockaddr *)&addr, sizeof(addr)))
+	if (connect(sd, (struct sockaddr *)&addr, sizeof(addr))) {
+		close(sd);
 		return -1;
+	}
 
 	return sd;
 }
