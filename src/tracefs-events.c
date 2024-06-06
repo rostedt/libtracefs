@@ -919,11 +919,10 @@ char **tracefs_system_events(const char *tracing_dir, const char *system)
 			free(event);
 			continue;
 		}
+		free(event);
 
 		if (add_list_string(&events, name) < 0)
 			goto out_free;
-
-		free(event);
 	}
 
 	closedir(dir);
