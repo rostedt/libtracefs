@@ -217,6 +217,7 @@ struct tracefs_instance *tracefs_instance_create(const char *name)
 	return inst;
 
 error:
+	tracefs_put_tracing_file(path);
 	tracefs_instance_free(inst);
 	return NULL;
 }
