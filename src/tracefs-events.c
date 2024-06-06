@@ -275,18 +275,18 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 			tcpu = tracefs_cpu_snapshot_open(instance, cpu, true);
 		else
 			tcpu = tracefs_cpu_open_mapped(instance, cpu, true);
+		if (!tcpu)
+			goto error;
+
 		tmp = realloc(*all_cpus, (i + 1) * sizeof(*tmp));
 		if (!tmp) {
-			i--;
+			tracefs_cpu_close(tcpu);
 			goto error;
 		}
 
 		*all_cpus = tmp;
 
 		memset(tmp + i, 0, sizeof(*tmp));
-
-		if (!tcpu)
-			goto error;
 
 		tmp[i].tcpu = tcpu;
 		tmp[i].cpu = cpu;
@@ -296,7 +296,7 @@ static int open_cpu_files(struct tracefs_instance *instance, cpu_set_t *cpus,
 	return 0;
  error:
 	tmp = *all_cpus;
-	for (; i >= 0; i--) {
+	for (i--; i >= 0; i--) {
 		tracefs_cpu_close(tmp[i].tcpu);
 	}
 	free(tmp);
