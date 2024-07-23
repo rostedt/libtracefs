@@ -22,8 +22,8 @@
  * @entries:		Number of entries in the ring-buffer.
  * @overrun:		Number of entries lost in the ring-buffer.
  * @read:		Number of entries that have been read.
- * @Reserved1:		Reserved for future use.
- * @Reserved2:		Reserved for future use.
+ * @Reserved1:		Internal use only.
+ * @Reserved2:		Internal use only.
  */
 struct trace_buffer_meta {
 	__u32		meta_page_size;
@@ -48,7 +48,7 @@ struct trace_buffer_meta {
 	__u64	Reserved2;
 };
 
-#define TRACE_MMAP_IOCTL_GET_READER		_IO('T', 0x1)
+#define TRACE_MMAP_IOCTL_GET_READER		_IO('R', 0x20)
 
 struct trace_mmap {
 	struct trace_buffer_meta	*map;
@@ -77,10 +77,6 @@ __hidden void *trace_mmap(int fd, struct kbuffer *kbuf)
 	int page_size;
 	void *meta;
 	void *data;
-
-#ifndef FORCE_MMAP_ENABLE
-	return NULL;
-#endif
 
 	page_size = getpagesize();
 	meta = mmap(NULL, page_size, PROT_READ, MAP_SHARED, fd, 0);
