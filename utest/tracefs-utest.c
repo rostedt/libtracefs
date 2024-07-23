@@ -1576,6 +1576,8 @@ static void test_instance_follow_events_clear(struct tracefs_instance *instance)
 {
 	struct follow_data fdata;
 	struct tep_handle *tep;
+	unsigned long page_size;
+	size_t save_size;
 	char **list;
 	int ret;
 
@@ -1671,7 +1673,7 @@ static void test_instance_follow_events_clear(struct tracefs_instance *instance)
 
 	tracefs_trace_on(instance);
 	call_getppid(100);
-	msleep(100);
+	system("ls -l /usr/bin > /dev/null");
 	tracefs_trace_off(instance);
 
 	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
@@ -1695,15 +1697,24 @@ static void test_instance_follow_events_clear(struct tracefs_instance *instance)
 	if (!fdata.function)
 		return;
 
+	/* Shrink the buffer to make sure we have missed events */
+	page_size = getpagesize();
+	save_size = tracefs_instance_get_buffer_size(instance, 0);
+	ret = tracefs_instance_set_buffer_size(instance, page_size * 4, 0);
+	CU_TEST(ret == 0);
+
 	tracefs_trace_on(instance);
 	call_getppid(100);
 	/* Stir the kernel a bit */
 	list = tracefs_event_systems(NULL);
 	tracefs_list_free(list);
-	sleep(1);
+	system("ls -l /usr/bin > /dev/null");
 	tracefs_trace_off(instance);
 
 	ret = tracefs_iterate_raw_events(tep, instance, NULL, 0, NULL, &fdata);
+	CU_TEST(ret == 0);
+
+	ret = tracefs_instance_set_buffer_size(instance, save_size, 0);
 	CU_TEST(ret == 0);
 
 	/* Nothing should have been hit */
