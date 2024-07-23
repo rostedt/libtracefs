@@ -67,6 +67,8 @@ $(EXAMPLES): $(patsubst %,$(sdir)/%,$(TARGETS))
 #
 # $(bdir)/XX.o: $(bdir)/XX.c
 #	$(CC) -g -Wall $(CFLAGS) -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
+$(bdir)/cpu-map.o: $(bdir)/cpu-map.c
+	$(CC) -g -Wall $(CFLAGS) -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 $(bdir)/kprobes.o: $(bdir)/kprobes.c
 	$(CC) -g -Wall $(CFLAGS) -c -o $@ $^ -I../include/ $(LIBTRACEEVENT_INCLUDES)
 
