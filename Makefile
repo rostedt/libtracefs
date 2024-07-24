@@ -400,7 +400,7 @@ sqlhist: samples/sqlhist
 samples: libtracefs.a force
 	$(Q)$(call descend,$(src)/samples,all)
 
-clean:
+clean: clean_meson
 	$(Q)$(call descend_clean,utest)
 	$(Q)$(call descend_clean,src)
 	$(Q)$(call descend_clean,samples)
@@ -409,6 +409,19 @@ clean:
 	  $(PKG_CONFIG_FILE) \
 	  $(VERSION_FILE) \
 	  $(BUILD_PREFIX))
+
+meson:
+	$(MAKE) -f Makefile.meson
+
+meson_install:
+	$(MAKE) -f Makefile.meson install
+
+meson_docs:
+	$(MAKE) -f Makefile.meson docs
+
+PHONY += clean_meson
+clean_meson:
+	$(Q)$(MAKE) -f Makefile.meson $@
 
 .PHONY: clean
 
