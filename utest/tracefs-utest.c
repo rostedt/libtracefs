@@ -2280,6 +2280,11 @@ static void test_kprobes_instance(struct tracefs_instance *instance)
 	int ret;
 	int i;
 
+	if (!tracefs_file_exists(NULL, "kprobe_events")) {
+		printf("[KERNEL DOES NOT HAVE KPROBE EVENTS] ...");
+		return;
+	}
+
 	tep = tep_alloc();
 	CU_TEST(tep != NULL);
 
