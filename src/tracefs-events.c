@@ -1012,12 +1012,20 @@ char **tracefs_tracers(const char *tracing_dir)
  */
 char **tracefs_instance_tracers(struct tracefs_instance *instance)
 {
-	const char *tracing_dir = NULL;
+	char *tracing_dir = NULL;
+	char **list;
+	int ret;
 
-	if (instance)
-		tracing_dir = instance->trace_dir;
+	if (instance) {
+		ret = asprintf(&tracing_dir, "%s/instances/%s", instance->trace_dir,
+			       instance->name);
+		if (ret < 0)
+			return NULL;
+	}
 
-	return list_tracers(tracing_dir);
+	list = list_tracers(tracing_dir);
+	free(tracing_dir);
+	return list;
 }
 
 static int load_events(struct tep_handle *tep,
