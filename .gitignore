@@ -13,3 +13,4 @@ tfs_version.h
 *.o
 .*.d
 sqlhist
+utest/trace-utest
