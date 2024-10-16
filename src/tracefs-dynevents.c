@@ -34,22 +34,20 @@ static int dyn_generic_del(struct dyn_events_desc *, struct tracefs_dynevent *);
 static int dyn_synth_del(struct dyn_events_desc *, struct tracefs_dynevent *);
 
 struct dyn_events_desc {
-	enum tracefs_dynevent_type type;
-	const char *file;
-	const char *prefix;
+	enum tracefs_dynevent_type	type;
+	const char			*file;
+	const char			*prefix;
 	int (*del)(struct dyn_events_desc *desc, struct tracefs_dynevent *dyn);
 	int (*parse)(struct dyn_events_desc *desc, const char *group,
 				char *line, struct tracefs_dynevent **ret_dyn);
 } dynevents[] = {
-	{TRACEFS_DYNEVENT_KPROBE, KPROBE_EVENTS, "p", dyn_generic_del, dyn_generic_parse},
+	{TRACEFS_DYNEVENT_KPROBE,    KPROBE_EVENTS, "p", dyn_generic_del, dyn_generic_parse},
 	{TRACEFS_DYNEVENT_KRETPROBE, KPROBE_EVENTS, "r", dyn_generic_del, dyn_generic_parse},
-	{TRACEFS_DYNEVENT_UPROBE, UPROBE_EVENTS, "p", dyn_generic_del, dyn_generic_parse},
+	{TRACEFS_DYNEVENT_UPROBE,    UPROBE_EVENTS, "p", dyn_generic_del, dyn_generic_parse},
 	{TRACEFS_DYNEVENT_URETPROBE, UPROBE_EVENTS, "r", dyn_generic_del, dyn_generic_parse},
-	{TRACEFS_DYNEVENT_EPROBE, "", "e", dyn_generic_del, dyn_generic_parse},
-	{TRACEFS_DYNEVENT_SYNTH, SYNTH_EVENTS, "", dyn_synth_del, dyn_synth_parse},
+	{TRACEFS_DYNEVENT_EPROBE,    "",            "e", dyn_generic_del, dyn_generic_parse},
+	{TRACEFS_DYNEVENT_SYNTH,     SYNTH_EVENTS, "", dyn_synth_del, dyn_synth_parse},
 };
-
-
 
 static int dyn_generic_del(struct dyn_events_desc *desc, struct tracefs_dynevent *dyn)
 {
@@ -280,8 +278,13 @@ static void init_devent_desc(void)
 		return;
 
 	/* Use  ftrace dynamic_events, if available */
-	for (i = 0; i < EVENT_INDEX(TRACEFS_DYNEVENT_MAX); i++)
+	for (i = 0; i < EVENT_INDEX(TRACEFS_DYNEVENT_MAX); i++) {
+		/* kprobes and uprobes do not use default file */
+		if (dynevents[i].prefix[0] == 'p' ||
+		    dynevents[i].prefix[0] == 'r')
+			continue;
 		dynevents[i].file = DYNEVENTS_EVENTS;
+	}
 
 	dynevents[EVENT_INDEX(TRACEFS_DYNEVENT_SYNTH)].prefix = "s";
 }
@@ -480,24 +483,30 @@ int tracefs_dynevent_destroy(struct tracefs_dynevent *devent, bool force)
 	return desc->del(desc, devent);
 }
 
-static int get_all_dynevents(enum tracefs_dynevent_type type, const char *system,
-			     struct tracefs_dynevent ***ret_all)
+static int get_dynevent(enum tracefs_dynevent_type type, const char *system,
+			struct tracefs_dynevent ***ret_all, int count)
 {
 	struct dyn_events_desc *desc;
-	struct tracefs_dynevent *devent, **tmp, **all = NULL;
+	struct tracefs_dynevent *devent, **tmp, **all;
 	char *content;
-	int count = 0;
 	char *line;
 	char *next;
-	int ret;
+	int ret = -1;
 
 	desc = get_devent_desc(type);
 	if (!desc)
 		return -1;
 
-	content = tracefs_instance_file_read(NULL, desc->file, NULL);
-	if (!content)
+	if (!tracefs_file_exists(NULL, desc->file))
 		return -1;
+
+	content = tracefs_instance_file_read(NULL, desc->file, NULL);
+	/* File exists, but may be empty */
+	if (!content)
+		return 0;
+
+	if (ret_all)
+		all = *ret_all;
 
 	line = content;
 	do {
@@ -507,11 +516,12 @@ static int get_all_dynevents(enum tracefs_dynevent_type type, const char *system
 		ret = desc->parse(desc, system, line, ret_all ? &devent : NULL);
 		if (!ret) {
 			if (ret_all) {
-				tmp = realloc(all, (count + 1) * sizeof(*tmp));
+				tmp = realloc(all, (count + 2) * sizeof(*tmp));
 				if (!tmp)
-					goto error;
+					break;
 				all = tmp;
 				all[count] = devent;
+				all[count + 1] = NULL;
 			}
 			count++;
 		}
@@ -521,12 +531,38 @@ static int get_all_dynevents(enum tracefs_dynevent_type type, const char *system
 	free(content);
 	if (ret_all)
 		*ret_all = all;
-	return count;
 
-error:
-	free(content);
-	free(all);
-	return -1;
+	return count;
+}
+
+static int get_all_dynevents(enum tracefs_dynevent_type type, const char *system,
+			     struct tracefs_dynevent ***ret_all)
+{
+	int count = 0;
+	int i;
+
+	if (ret_all)
+		*ret_all = NULL;
+
+	for (i = 0; i < EVENT_INDEX(TRACEFS_DYNEVENT_MAX); i++) {
+		if (!((1 << i) & type))
+			continue;
+
+		count = get_dynevent((1 << i), system, ret_all, count);
+		if (count < 0) {
+			count = 0;
+			break;
+		}
+	}
+
+	if (!count) {
+		if (ret_all) {
+			free(*ret_all);
+			*ret_all = NULL;
+		}
+		count = -1;
+	}
+	return count;
 }
 
 /**
@@ -561,41 +597,16 @@ void tracefs_dynevent_list_free(struct tracefs_dynevent **events)
 struct tracefs_dynevent **
 tracefs_dynevent_get_all(unsigned int types, const char *system)
 {
-	struct tracefs_dynevent **events, **tmp, **all_events = NULL;
-	int count, all = 0;
-	int i;
+	struct tracefs_dynevent **events;
+	int count;
 
-	for (i = 1; i < TRACEFS_DYNEVENT_MAX; i <<= 1) {
-		if (types) {
-			if (i > types)
-				break;
-			if (!(types & i))
-				continue;
-		}
-		count = get_all_dynevents(i, system, &events);
-		if (count > 0) {
-			tmp = realloc(all_events, (all + count + 1) * sizeof(*tmp));
-			if (!tmp)
-				goto error;
-			all_events = tmp;
-			memcpy(all_events + all, events, count * sizeof(*events));
-			all += count;
-			/* Add a NULL pointer at the end */
-			all_events[all] = NULL;
-			free(events);
-		}
+	count = get_all_dynevents(types, system, &events);
+	if (count <= 0) {
+		free(events);
+		return NULL;
 	}
 
-	return all_events;
-
-error:
-	free(events);
-	if (all_events) {
-		for (i = 0; i < all; i++)
-			free(all_events[i]);
-		free(all_events);
-	}
-	return NULL;
+	return events;
 }
 
 /**
