@@ -550,7 +550,7 @@ static int init_splice(struct tracefs_cpu *tcpu)
 	if (ret < 0)
 		return ret;
 
-	if (tfs_str_read_file("/proc/sys/fs/pipe-max-size", &buf, false)) {
+	if (tfs_str_read_file("/proc/sys/fs/pipe-max-size", &buf, false) > 0) {
 		int size = atoi(buf);
 		fcntl(tcpu->splice_pipe[0], F_SETPIPE_SZ, &size);
 		free(buf);
