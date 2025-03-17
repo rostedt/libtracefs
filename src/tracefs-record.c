@@ -293,6 +293,8 @@ void tracefs_cpu_close(struct tracefs_cpu *tcpu)
 	if (!tcpu)
 		return;
 
+	free(tcpu->buffer);
+	tcpu->buffer = NULL;
 	close(tcpu->fd);
 	tracefs_cpu_free_fd(tcpu);
 }
