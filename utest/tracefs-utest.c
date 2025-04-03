@@ -2206,6 +2206,7 @@ static bool check_probes(struct probe_test *probes, int count,
 {
 	enum tracefs_dynevent_type type;
 	struct tep_event *tevent;
+	bool uprobes_supported = true;
 	char *ename;
 	char *address;
 	char *event;
@@ -2240,6 +2241,15 @@ static bool check_probes(struct probe_test *probes, int count,
 			}
 			ret = tracefs_event_enable(instance, system, event);
 			if (in_system) {
+				/* ENOTSUPP is 524 */
+				if (ret && errno == 524) {
+					if (uprobes_supported)
+						printf("[KERNEL DOES NOT HAVE UPROBE EVENTS] ...");
+					uprobes_supported = false;
+					/* Count it as passed */
+					found++;
+					break;
+				}
 				CU_TEST(ret == 0);
 			} else {
 				CU_TEST(ret != 0);
