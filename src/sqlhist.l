@@ -1,6 +1,8 @@
 %{
 /* code here */
 
+/* If you change this file, run: make sqlhist_remake */
+
 #include <stdarg.h>
 #include "sqlhist-parse.h"
 

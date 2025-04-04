@@ -46,17 +46,19 @@ $(LIBTRACEFS_SHARED_SO): $(LIBTRACEFS_SHARED_VERSION)
 libtracefs.so: $(LIBTRACEFS_SHARED_SO)
 
 # bison will create both sqlhist.tab.c and sqlhist.tab.h
-sqlhist.tab.h:
-sqlhist.tab.c: sqlhist.y sqlhist.tab.h
-	bison --debug -v --report-file=bison.report -d -o $@ $<
+sqlhist.tab_gen.h:
+sqlhist.tab_gen.c: sqlhist.y sqlhist.tab.h
+	bison --debug -v --report-file=bison.report -d -o $(subst _gen,,$@) $<
 
-sqlhist-lex.c: sqlhist.l sqlhist.tab.c
-	flex -o $@ $<
+sqlhist-lex_gen.c: sqlhist.l sqlhist.tab.c
+	flex -o $(subst _gen,,$@) $<
 
 $(bdir)/%.o: %.c
 	$(Q)$(call do_fpic_compile)
 
 tracefs-sqlhist.o: sqlhist.tab.h
+
+sqlhist_remake: sqlhist.tab_gen.c sqlhist-lex_gen.c
 
 $(OBJS): | $(bdir)
 
@@ -67,4 +69,4 @@ clean:
 
 $(bdir)/tracefs-sqlhist.o tracefs-sqlhist.o: sqlhist.tab.h
 
-.PHONY: $(LIBTRACEFS_SHARED_SO) $(LIBTRACEFS_STATIC)
+.PHONY: $(LIBTRACEFS_SHARED_SO) $(LIBTRACEFS_STATIC) sqlhist.tab_gen.c sqlhist-lex_gen.c

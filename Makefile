@@ -400,6 +400,9 @@ sqlhist: samples/sqlhist
 samples: libtracefs.a force
 	$(Q)$(call descend,$(src)/samples,all)
 
+sqlhist_remake:
+	$(Q)$(call descend,$(src)/src,sqlhist_remake)
+
 clean: clean_meson
 	$(Q)$(call descend_clean,utest)
 	$(Q)$(call descend_clean,src)
