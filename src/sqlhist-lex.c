@@ -1,6 +1,6 @@
-#line 1 "sqlhist-lex.c"
+#line 2 "sqlhist-lex.c"
 
-#line 3 "sqlhist-lex.c"
+#line 4 "sqlhist-lex.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -506,6 +506,8 @@ static const flex_int16_t yy_chk[234] =
 #line 2 "sqlhist.l"
 /* code here */
 
+/* If you change this file, run: make sqlhist_remake */
+
 #include <stdarg.h>
 #include "sqlhist-parse.h"
 
@@ -524,8 +526,8 @@ extern int tfs_my_yyinput(void *extra, char *buf, int max);
 #define TRACE_SB	((struct sqlhist_bison *)yyextra)
 #define HANDLE_COLUMN do { TRACE_SB->line_idx += strlen(yytext); } while (0)
 
-#line 527 "sqlhist-lex.c"
-#line 528 "sqlhist-lex.c"
+#line 530 "sqlhist-lex.c"
+#line 531 "sqlhist-lex.c"
 
 #define INITIAL 0
 
@@ -799,10 +801,10 @@ YY_DECL
 		}
 
 	{
-#line 33 "sqlhist.l"
+#line 35 "sqlhist.l"
 
 
-#line 805 "sqlhist-lex.c"
+#line 808 "sqlhist-lex.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -861,42 +863,42 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 35 "sqlhist.l"
+#line 37 "sqlhist.l"
 { HANDLE_COLUMN; return SELECT; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 36 "sqlhist.l"
+#line 38 "sqlhist.l"
 { HANDLE_COLUMN; return AS; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 37 "sqlhist.l"
+#line 39 "sqlhist.l"
 { HANDLE_COLUMN; return FROM; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 38 "sqlhist.l"
+#line 40 "sqlhist.l"
 { HANDLE_COLUMN; return JOIN; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 39 "sqlhist.l"
+#line 41 "sqlhist.l"
 { HANDLE_COLUMN; return ON; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 40 "sqlhist.l"
+#line 42 "sqlhist.l"
 { HANDLE_COLUMN; return WHERE; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 41 "sqlhist.l"
+#line 43 "sqlhist.l"
 { HANDLE_COLUMN; return CAST; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 43 "sqlhist.l"
+#line 45 "sqlhist.l"
 {
 	HANDLE_COLUMN;
 	yylval->string = tfs_store_str(TRACE_SB, yyg->yytext_r);
@@ -906,7 +908,7 @@ YY_RULE_SETUP
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 49 "sqlhist.l"
+#line 51 "sqlhist.l"
 {
 	HANDLE_COLUMN;
 	yylval->string = tfs_store_str(TRACE_SB, yyg->yytext_r);
@@ -915,7 +917,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 55 "sqlhist.l"
+#line 57 "sqlhist.l"
 {
 	const char *str = yyg->yytext_r;
 	HANDLE_COLUMN;
@@ -926,7 +928,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 63 "sqlhist.l"
+#line 65 "sqlhist.l"
 {
 	HANDLE_COLUMN;
 	yylval->number = strtol(yyg->yytext_r, NULL, 0);
@@ -935,7 +937,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 69 "sqlhist.l"
+#line 71 "sqlhist.l"
 {
 	HANDLE_COLUMN;
 	yylval->number = strtol(yyg->yytext_r, NULL, 0);
@@ -944,66 +946,66 @@ YY_RULE_SETUP
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 75 "sqlhist.l"
+#line 77 "sqlhist.l"
 { HANDLE_COLUMN; return NEQ; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 76 "sqlhist.l"
+#line 78 "sqlhist.l"
 { HANDLE_COLUMN; return LE; }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 77 "sqlhist.l"
+#line 79 "sqlhist.l"
 { HANDLE_COLUMN; return GE; }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 78 "sqlhist.l"
+#line 80 "sqlhist.l"
 { HANDLE_COLUMN; return EQ; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 79 "sqlhist.l"
+#line 81 "sqlhist.l"
 { HANDLE_COLUMN; return AND; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 80 "sqlhist.l"
+#line 82 "sqlhist.l"
 { HANDLE_COLUMN; return OR; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 81 "sqlhist.l"
+#line 83 "sqlhist.l"
 { HANDLE_COLUMN; return yytext[0]; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 83 "sqlhist.l"
+#line 85 "sqlhist.l"
 { HANDLE_COLUMN; return yytext[0]; }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 85 "sqlhist.l"
+#line 87 "sqlhist.l"
 { HANDLE_COLUMN; }
 	YY_BREAK
 case 22:
 /* rule 22 can match eol */
 YY_RULE_SETUP
-#line 86 "sqlhist.l"
+#line 88 "sqlhist.l"
 { TRACE_SB->line_idx = 0; TRACE_SB->line_no++; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 88 "sqlhist.l"
+#line 90 "sqlhist.l"
 { HANDLE_COLUMN; return PARSE_ERROR; }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 89 "sqlhist.l"
+#line 91 "sqlhist.l"
 ECHO;
 	YY_BREAK
-#line 1006 "sqlhist-lex.c"
+#line 1009 "sqlhist-lex.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2184,7 +2186,7 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 #define YYTABLES_NAME "yytables"
 
-#line 89 "sqlhist.l"
+#line 91 "sqlhist.l"
 
 
 int yywrap(void *data)
