@@ -593,7 +593,7 @@ int tracefs_event_verify_filter(struct tep_event *event, const char *filter,
 #define TRACEFS_TIMESTAMP "common_timestamp"
 #define TRACEFS_TIMESTAMP_USECS "common_timestamp.usecs"
 
-#define TRACEFS_STACKTRACE "tfs_common_stacktrace"
+#define TRACEFS_STACKTRACE "common_stacktrace"
 
 enum tracefs_synth_handler {
 	TRACEFS_SYNTH_HANDLE_NONE	= 0,
