@@ -260,6 +260,23 @@ __hidden void *tfs_add_cast(struct sqlhist_bison *sb, void *data, const char *ty
 	return expr;
 }
 
+__hidden void *tfs_add_cast_buckets(struct sqlhist_bison *sb, void *data,
+				    const char *type, int num)
+{
+	struct expr *expr = data;
+	struct field *field = &expr->field;
+	char *str;
+
+	if (asprintf(&str, "%s=%u", type, num) < 0)
+		return NULL;
+
+	field->type = tfs_store_str(sb, str);
+	free(str);
+	if (!field->type)
+		return NULL;
+	return expr;
+}
+
 __hidden int tfs_add_selection(struct sqlhist_bison *sb, void *select, const char *name)
 {
 	struct sql_table *table = sb->table;

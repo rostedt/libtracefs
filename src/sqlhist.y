@@ -108,6 +108,10 @@ selection_expr :
  | '(' field ')'		{  $$ = $2; }
  | selection_addition
  | '(' selection_addition ')'	{  $$ = $2; }
+ | CAST '(' field AS FIELD '=' NUMBER ')' {
+					 $$ = tfs_add_cast_buckets(sb, $3, $5, $7);
+					 CHECK_RETURN_PTR($$);
+				}
  | CAST '(' field AS FIELD ')'	{
 					 $$ = tfs_add_cast(sb, $3, $5);
 					 CHECK_RETURN_PTR($$);

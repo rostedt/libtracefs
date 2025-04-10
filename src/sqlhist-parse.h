@@ -67,6 +67,7 @@ int tfs_add_selection(struct sqlhist_bison *sb, void *item, const char *label);
 int tfs_add_from(struct sqlhist_bison *sb, void *item);
 int tfs_add_to(struct sqlhist_bison *sb, void *item);
 void *tfs_add_cast(struct sqlhist_bison *sb, void *field, const char *type);
+void *tfs_add_cast_buckets(struct sqlhist_bison *sb, void *field, const char *type, int num);
 
 void *tfs_add_string(struct sqlhist_bison *sb, const char *str);
 void *tfs_add_number(struct sqlhist_bison *sb, long val);

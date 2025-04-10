@@ -250,6 +250,17 @@ tracefs_hist_alloc(struct tep_handle *tep,
 	return tracefs_hist_alloc_nd(tep, system, event_name, axis);
 }
 
+static struct tracefs_hist *
+hist_alloc_cnt(struct tep_handle *tep,
+	       const char *system, const char *event_name,
+	       const char *key, enum tracefs_hist_key_type type,
+	       int cnt)
+{
+	struct tracefs_hist_axis_cnt axis[] = {{key, type, cnt}, {NULL, 0}};
+
+	return tracefs_hist_alloc_nd_cnt(tep, system, event_name, axis);
+}
+
 /**
  * tracefs_hist_alloc_2d - Initialize two-dimensional histogram
  * @tep: The tep handle that has the @system and @event.
@@ -323,6 +334,7 @@ hist_alloc_nd(struct tep_handle *tep,
 	tracefs_hist_free(hist);
 	return NULL;
 }
+
 /**
  * tracefs_hist_alloc_nd - Initialize N-dimensional histogram
  * @tep: The tep handle that has the @system and @event.
@@ -778,6 +790,7 @@ struct tracefs_synth {
 	unsigned int		end_parens;
 	unsigned int		end_state;
 	int			*start_type;
+	int			*start_cnts;
 	char			arg_name[16];
 	int			arg_cnt;
 	bool			new_format;
@@ -847,6 +860,7 @@ void tracefs_synth_free(struct tracefs_synth *synth)
 	free(synth->start_filter);
 	free(synth->end_filter);
 	free(synth->start_type);
+	free(synth->start_cnts);
 
 	tep_unref(synth->tep);
 
@@ -1476,6 +1490,7 @@ __hidden int tfs_synth_add_start_field(struct tracefs_synth *synth,
 	char *start_arg;
 	char **tmp;
 	int *types;
+	int *cnts;
 	int len;
 	int ret;
 
@@ -1528,6 +1543,14 @@ __hidden int tfs_synth_add_start_field(struct tracefs_synth *synth,
 	}
 	synth->start_type = types;
 	synth->start_type[len - 1] = type;
+
+	cnts = realloc(synth->start_cnts, sizeof(*cnts) * len);
+	if (!cnts) {
+		ret = -1;
+		goto out_free;
+	}
+	synth->start_cnts = cnts;
+	synth->start_cnts[len - 1] = count;
 
  out_free:
 	free(start_arg);
@@ -2185,6 +2208,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 	const char *key;
 	char **keys;
 	int *types;
+	int *cnts;
 	int ret;
 	int i;
 
@@ -2197,6 +2221,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 	event = synth->start_event->name;
 	types = synth->start_type;
 	keys = synth->start_keys;
+	cnts = synth->start_cnts;
 	tep = synth->tep;
 
 	if (!keys)
@@ -2207,6 +2232,7 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 
 	for (i = 0; keys[i]; i++) {
 		int type = types ? types[i] : 0;
+		int cnt = cnts ? cnts[i] : 0;
 
 		if (type == HIST_COUNTER_TYPE)
 			continue;
@@ -2214,14 +2240,14 @@ tracefs_synth_get_start_hist(struct tracefs_synth *synth)
 		key = keys[i];
 
 		if (i) {
-			ret = tracefs_hist_add_key(hist, key, type);
+			ret = tracefs_hist_add_key_cnt(hist, key, type, cnt);
 			if (ret < 0) {
 				tracefs_hist_free(hist);
 				return NULL;
 			}
 		} else {
-			hist = tracefs_hist_alloc(tep, system, event,
-						  key, type);
+			hist = hist_alloc_cnt(tep, system, event,
+					      key, type, cnt);
 			if (!hist)
 				return NULL;
 		}
