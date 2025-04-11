@@ -1433,6 +1433,10 @@ static int verify_field_type(struct tep_handle *tep,
 		if (tfield->flags & (TEP_FIELD_IS_STRING | TEP_FIELD_IS_ARRAY))
 			goto fail_type;
 		ret = TRACEFS_HIST_KEY_BUCKETS;
+	} else if (!strcmp(type, "stacktrace")) {
+		if (!(tfield->flags & (TEP_FIELD_IS_ARRAY)))
+			goto fail_type;
+		ret = TRACEFS_HIST_KEY_STACKTRACE;
 	} else {
 		parse_error(sb, field->raw,
 			    "Cast of '%s' to unknown type '%s'\n",
