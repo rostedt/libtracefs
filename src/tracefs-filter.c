@@ -36,9 +36,10 @@ static const struct tep_format_field common_timestamp_usecs = {
 };
 
 static const struct tep_format_field common_comm = {
-	.type			= "char *",
+	.type			= "char",
 	.name			= "common_comm",
-	.size			= 16,
+	.size			= 4,
+	.flags			= TEP_FIELD_IS_ARRAY | TEP_FIELD_IS_DYNAMIC,
 };
 
 const struct tep_format_field tfs_common_stacktrace __hidden = {
