@@ -1054,6 +1054,9 @@ static int alloc_synthetic_event(struct tracefs_synth *synth)
 
 	for (i = 0; synth->synthetic_fields && synth->synthetic_fields[i]; i++) {
 		field = synth->synthetic_fields[i];
+		/* Strip off __data_loc */
+		if (!strncmp(field, "__data_loc ", sizeof("__data_loc ") - 1))
+			field += sizeof("__data_loc ") - 1;
 		format = tfs_append_string(format, i ? " " : NULL, field);
 	}
 
