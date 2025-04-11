@@ -63,3 +63,7 @@ pkg.generate(
 libtracefs_dep = declare_dependency(
     include_directories: ['.'],
     link_with: libtracefs)
+
+install_data(
+    'tracefs_sql.bash',
+    install_dir: datadir + '/bash-completion/completions')

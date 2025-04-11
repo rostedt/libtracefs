@@ -55,6 +55,8 @@ libdir_relative ?= $(libdir_relative_temp)
 prefix ?= /usr/local
 man_dir ?= $(prefix)/share/man
 man_dir_SQ = '$(subst ','\'',$(man_dir))'
+completion_dir ?= $(prefix)/share/bash-completion/completions
+completion_dir_SQ = '$(subst ','\'',$(completion_dir))'
 libdir ?= $(prefix)/$(libdir_relative)
 libdir_SQ = '$(subst ','\'',$(libdir))'
 includedir_relative ?= include/tracefs
@@ -86,9 +88,6 @@ else
 PREF_DEFINED := 0
 endif
 
-etcdir ?= /etc
-etcdir_SQ = '$(subst ','\'',$(etcdir))'
-
 export man_dir man_dir_SQ html_install html_install_SQ INSTALL
 export img_install img_install_SQ
 export DESTDIR DESTDIR_SQ
@@ -99,8 +98,6 @@ pound := \#
 HELP_DIR = -DHELP_DIR=$(html_install)
 HELP_DIR_SQ = '$(subst ','\'',$(HELP_DIR))'
 #' emacs highlighting gets confused by the above escaped quote.
-
-BASH_COMPLETE_DIR ?= $(etcdir)/bash_completion.d
 
 # copy a bit from Linux kbuild
 
@@ -300,7 +297,10 @@ install_libs: libs install_pkgconfig
 	$(Q)$(call do_install,$(src)/include/tracefs.h,$(includedir_SQ),644)
 	$(Q)$(call install_ld_config)
 
-install: install_libs
+install_bash_completion: force
+	$(Q)$(call do_install_data,$(src)/src/tracefs_sql.bash,$(completion_dir))
+
+install: install_libs install_bash_completion
 
 install_pkgconfig: $(PKG_CONFIG_FILE)
 	$(Q)$(call , $(PKG_CONFIG_FILE)) \

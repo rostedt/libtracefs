@@ -21,6 +21,7 @@ threads_dep = dependency('threads', required: true)
 cunit_dep = dependency('cunit', required : false)
 
 prefixdir = get_option('prefix')
+datadir = join_paths(prefixdir, get_option('datadir'))
 bindir = join_paths(prefixdir, get_option('bindir'))
 mandir = join_paths(prefixdir, get_option('mandir'))
 htmldir = join_paths(prefixdir, get_option('htmldir'))
