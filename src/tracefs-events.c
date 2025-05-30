@@ -1459,7 +1459,7 @@ static int read_event_state(struct tracefs_instance *instance, const char *file,
 		*state = STATE_MIXED;
 		break;
 	default:
-		*state = TRACEFS_ERROR;
+		*state = STATE_ERROR;
 		ret = -1;
 		break;
 	}
