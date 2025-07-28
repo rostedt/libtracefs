@@ -79,6 +79,12 @@ int main(int argc, char **argv)
 
 	CU_basic_set_mode(verbose);
 	CU_basic_run_tests();
+
+	int err = CU_get_error() != CUE_SUCCESS ||
+		CU_get_number_of_suites_failed() > 0 ||
+		CU_get_number_of_failures() > 0;
+
 	CU_cleanup_registry();
-	return 0;
+
+	return err ? 1 : 0;
 }

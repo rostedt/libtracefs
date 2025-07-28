@@ -3849,11 +3849,15 @@ static int test_suite_destroy(void)
 static int test_suite_init(void)
 {
 	test_tep = tracefs_local_events(NULL);
-	if (test_tep == NULL)
+	if (test_tep == NULL) {
+		perror("tracefs_local_events");
 		return 1;
+	}
 	test_instance = tracefs_instance_create(TEST_INSTANCE_NAME);
-	if (!test_instance)
+	if (!test_instance) {
+		perror("tracefs_instance_create");
 		return 1;
+	}
 
 	mapping_is_supported = tracefs_mapped_is_supported();
 	if (mapping_is_supported)
