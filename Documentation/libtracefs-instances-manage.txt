@@ -42,7 +42,7 @@ The *tracefs_instance_destroy()* removes the instance from the system, but
 does not free the structure. *tracefs_instance_free()* must still be called
 on _instance_.
 
-The tracefs_instance_alloc()* function allocates a new tracefs_instance structure
+The *tracefs_instance_alloc()* function allocates a new tracefs_instance structure
 for existing trace instance. If the instance does not exist in the system, the function
 fails. The _tracing_dir_ parameter points to the system trace directory. It can be
 NULL, then default system trace directory is used. This parameter is useful to allocate
