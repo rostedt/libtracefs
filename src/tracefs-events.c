@@ -1511,12 +1511,23 @@ static int enable_disable_system(struct tracefs_instance *instance,
 }
 
 static int enable_disable_all(struct tracefs_instance *instance,
-			      bool enable)
+			      bool enable, enum event_state *state)
 {
 	const char *str = enable ? "1" : "0";
+	char *event_file;
 	int ret;
 
-	ret = tracefs_instance_file_write(instance, "events/enable", str);
+	ret = asprintf(&event_file, "events/enable");
+	if (ret < 0)
+		return ret;
+
+	if (state)
+		ret = read_event_state(instance, event_file, state);
+	else
+
+		ret = tracefs_instance_file_write(instance, event_file, str);
+	free(event_file);
+
 	return ret < 0 ? ret : 0;
 }
 
@@ -1552,7 +1563,7 @@ static int event_enable_disable(struct tracefs_instance *instance,
 
 	/* Handle all events first */
 	if (!system && !event)
-		return enable_disable_all(instance, enable);
+		return enable_disable_all(instance, enable, state);
 
 	systems = tracefs_event_systems(NULL);
 	if (!systems)
