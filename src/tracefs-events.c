@@ -1524,8 +1524,8 @@ static int enable_disable_all(struct tracefs_instance *instance,
 	if (state)
 		ret = read_event_state(instance, event_file, state);
 	else
-
 		ret = tracefs_instance_file_write(instance, event_file, str);
+
 	free(event_file);
 
 	return ret < 0 ? ret : 0;
