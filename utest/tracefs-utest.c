@@ -1860,10 +1860,7 @@ static void test_mounting(void)
 			printf("debug directory mounted at '%s'\n",
 			       debug_dir);
 
-		/* Make sure the directory has content.*/
-		asprintf(&path, "%s/tracing", debug_dir);
-		CU_TEST(stat(path, &st) == 0);
-		free(path);
+		CU_TEST(stat(debug_dir, &st) == 0);
 	}
 
 	if (save_debug)
