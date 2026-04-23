@@ -498,12 +498,12 @@ static int get_dynevent(enum tracefs_dynevent_type type, const char *system,
 		return -1;
 
 	if (!tracefs_file_exists(NULL, desc->file))
-		return -1;
+		return count;
 
 	content = tracefs_instance_file_read(NULL, desc->file, NULL);
 	/* File exists, but may be empty */
 	if (!content)
-		return 0;
+		return count;
 
 	if (ret_all)
 		all = *ret_all;
