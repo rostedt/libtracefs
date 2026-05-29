@@ -2289,7 +2289,7 @@ static bool check_probes(struct probe_test *probes, int count,
 static void test_kprobes_instance(struct tracefs_instance *instance)
 {
 	struct probe_test ktests[] = {
-		{ TRACEFS_DYNEVENT_KPROBE, "p", NULL, "mkdir", "do_mkdirat", "path=+u0($arg2):ustring" },
+		{ TRACEFS_DYNEVENT_KPROBE, "p", NULL, "mkdir", "filename_mkdirat", "path=+u0($arg2):ustring" },
 		{ TRACEFS_DYNEVENT_KPROBE, "p", NULL, "close", "close_fd", NULL },
 		{ TRACEFS_DYNEVENT_KPROBE, "p", "ptest", "open2", "do_sys_openat2",
 				  "file=+u0($arg2):ustring flags=+0($arg3):x64" },
@@ -2634,7 +2634,7 @@ static void test_multi_probes_instance(struct tracefs_instance *instance)
 					   "file=+0($filename):ustring" },
 		{ TRACEFS_DYNEVENT_EPROBE, "e", "etest", "sopen_out", "syscalls.sys_exit_openat",
 					   "res=$ret:u64" },
-		{ TRACEFS_DYNEVENT_KPROBE, "p", NULL, "mkdir", "do_mkdirat", "path=+u0($arg2):ustring" },
+		{ TRACEFS_DYNEVENT_KPROBE, "p", NULL, "mkdir", "filename_mkdirat", "path=+u0($arg2):ustring" },
 		{ TRACEFS_DYNEVENT_KPROBE, "p", NULL, "close", "close_fd", NULL },
 		{ TRACEFS_DYNEVENT_KPROBE, "p", "ptest", "open2", "do_sys_openat2",
 				  "file=+u0($arg2):ustring flags=+0($arg3):x64" },
