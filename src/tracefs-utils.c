@@ -173,12 +173,19 @@ __hidden char *tfs_find_debug_tracing_dir(bool debugfs, bool mount)
  */
 int tracefs_tracing_dir_is_mounted(bool mount, const char **path)
 {
-	const char *dir;
+	char *dir;
 
+	/*
+	 * tfs_find_debug_tracing_dir() allocates a new string on every call
+	 * and the caller owns it, but @path is documented as not freeable.
+	 * Use it only to probe (unlike tracefs_tracing_dir() it can be told
+	 * not to mount), then hand back the cached path the library owns.
+	 */
 	dir = tfs_find_debug_tracing_dir(false, false);
 	if (dir) {
+		free(dir);
 		if (path)
-			*path = dir;
+			*path = tracefs_tracing_dir();
 		return 1;
 	}
 	if (!mount)
@@ -187,8 +194,9 @@ int tracefs_tracing_dir_is_mounted(bool mount, const char **path)
 	dir = tfs_find_debug_tracing_dir(false, mount);
 	if (!dir)
 		return -1;
+	free(dir);
 	if (path)
-		*path = dir;
+		*path = tracefs_tracing_dir();
 	return 0;
 }
 
