@@ -14,7 +14,8 @@ LIBTRACEFS_STATIC ?= $(obj)/lib/libtracefs.a
 
 LIBS += -lcunit				\
 	-ldl				\
-	$(LIBTRACEFS_STATIC)
+	$(LIBTRACEFS_STATIC)		\
+	$(EXTRA_LIBS)
 
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 
