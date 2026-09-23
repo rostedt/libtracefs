@@ -181,7 +181,7 @@ static void save_affinity(void)
 {
 	int cpus;
 
-	cpus = sysconf(_SC_NPROCESSORS_CONF);
+	cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	cpuset_save = CPU_ALLOC(cpus);
 	cpuset = CPU_ALLOC(cpus);
 	cpu_size = CPU_ALLOC_SIZE(cpus);
@@ -216,7 +216,7 @@ static void test_iter_write(struct tracefs_instance *instance)
 	int cpus;
 	int ret;
 
-	cpus = sysconf(_SC_NPROCESSORS_CONF);
+	cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	save_affinity();
 
 	path = tracefs_instance_get_file(instance, "trace_marker");
@@ -243,7 +243,7 @@ static void test_iter_write(struct tracefs_instance *instance)
 
 static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu, bool snapshot)
 {
-	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	cpu_set_t *cpuset = NULL;
 	int cpu_size = 0;
 	int check = 0;
@@ -292,7 +292,7 @@ static void iter_raw_events_on_cpu(struct tracefs_instance *instance, int cpu, b
 
 static void test_instance_iter_raw_events(struct tracefs_instance *instance)
 {
-	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int ret;
 	int i;
 
@@ -317,7 +317,7 @@ static void test_iter_raw_events(void)
 
 static void test_instance_iter_snapshot_events(struct tracefs_instance *instance)
 {
-	int cpus = sysconf(_SC_NPROCESSORS_CONF);
+	int cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	int i;
 
 	iter_raw_events_on_cpu(instance, -1, true);
