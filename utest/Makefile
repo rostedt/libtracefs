@@ -10,9 +10,11 @@ OBJS =
 OBJS += trace-utest.o
 OBJS += tracefs-utest.o
 
+LIBTRACEFS_STATIC ?= $(obj)/lib/libtracefs.a
+
 LIBS += -lcunit				\
 	-ldl				\
-	$(obj)/lib/libtracefs.a
+	$(LIBTRACEFS_STATIC)
 
 OBJS := $(OBJS:%.o=$(bdir)/%.o)
 
@@ -21,7 +23,7 @@ $(bdir):
 
 $(OBJS): | $(bdir)
 
-$(bdir)/trace-utest: $(OBJS) $(obj)/lib/libtracefs.a
+$(bdir)/trace-utest: $(OBJS) $(LIBTRACEFS_STATIC)
 	$(Q)$(do_app_build)
 
 $(bdir)/%.o: %.c
