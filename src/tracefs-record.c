@@ -554,20 +554,19 @@ static int init_splice(struct tracefs_cpu *tcpu)
 
 	if (tfs_str_read_file("/proc/sys/fs/pipe-max-size", &buf, false) > 0) {
 		int size = atoi(buf);
-		fcntl(tcpu->splice_pipe[0], F_SETPIPE_SZ, &size);
+		fcntl(tcpu->splice_pipe[0], F_SETPIPE_SZ, size);
 		free(buf);
 	}
 
-	ret = fcntl(tcpu->splice_pipe[0], F_GETPIPE_SZ, &tcpu->pipe_size);
+	ret = fcntl(tcpu->splice_pipe[0], F_GETPIPE_SZ);
 	/*
 	 * F_GETPIPE_SZ was introduced in 2.6.35, ftrace was introduced
 	 * in 2.6.31. If we are running on an older kernel, just fall
-	 * back to using subbuf_size for splice(). It could also return
-	 * the size of the pipe and not set pipe_size.
+	 * back to using subbuf_size for splice().
 	 */
-	if (ret > 0 && !tcpu->pipe_size)
+	if (ret > 0)
 		tcpu->pipe_size = ret;
-	else if (ret < 0)
+	else
 		tcpu->pipe_size = tcpu->subbuf_size;
 
 	tcpu->splice_read_flags = SPLICE_F_MOVE;
